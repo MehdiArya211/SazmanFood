@@ -10,7 +10,9 @@ var unitStatistic = {
         loadDetailsForm: "/FoodMang/UnitStatistics/LoadDetailsForm/",
         saveDetails: "/FoodMang/UnitStatistics/SaveDetails",
         send: "/FoodMang/UnitStatistics/Send",
-        approve: "/FoodMang/UnitStatistics/Approve"
+        approve: "/FoodMang/UnitStatistics/Approve",
+        returnStatistic: "/FoodMang/UnitStatistics/Return",
+        cancel: "/FoodMang/UnitStatistics/Cancel"
     },
 
     list: {
@@ -132,7 +134,8 @@ var unitStatistic = {
                 '<i class="material-icons">list</i></a>';
 
             if (unitStatisticPermissions.canRegister === true &&
-                status !== 3) {
+                status !== 3 &&
+                status !== 5) {
                 buttons +=
                     '<a onclick="unitStatistic.edit.loadForm(' + id + ')" ' +
                     'class="btn btn-simple btn-info btn-icon operation-button" ' +
@@ -156,6 +159,21 @@ var unitStatistic = {
                     'class="btn btn-simple btn-success btn-icon operation-button" ' +
                     'title="تأیید نهایی" data-toggle="tooltip">' +
                     '<i class="material-icons">check_circle</i></a>';
+            }
+
+            if (unitStatisticPermissions.canApprove === true &&
+                status === 2) {
+                buttons +=
+                    '<a onclick="unitStatistic.returnStatistic.confirm(' + id + ')" ' +
+                    'class="btn btn-simple btn-warning btn-icon operation-button" ' +
+                    'title="عودت برای اصلاح" data-toggle="tooltip">' +
+                    '<i class="material-icons">keyboard_return</i></a>';
+
+                buttons +=
+                    '<a onclick="unitStatistic.cancel.confirm(' + id + ')" ' +
+                    'class="btn btn-simple btn-danger btn-icon operation-button" ' +
+                    'title="لغو آمار" data-toggle="tooltip">' +
+                    '<i class="material-icons">cancel</i></a>';
             }
 
             return buttons;
@@ -636,6 +654,158 @@ var unitStatistic = {
         }
     },
 
+    returnStatistic: {
+        confirm: function (id) {
+            swal({
+                title: "عودت آمار برای اصلاح",
+                text: "دلیل عودت را وارد کنید. این توضیح برای ثبت‌کننده نمایش داده می‌شود.",
+                type: "warning",
+                input: "textarea",
+                inputPlaceholder: "دلیل عودت...",
+                inputAttributes: {
+                    maxlength: 1000
+                },
+                showCancelButton: true,
+                confirmButtonClass: "btn btn-warning",
+                cancelButtonClass: "btn btn-default",
+                confirmButtonText: "عودت آمار",
+                cancelButtonText: "انصراف",
+                buttonsStyling: false,
+                inputValidator: function (value) {
+                    return new Promise(function (resolve, reject) {
+                        if (value && value.trim()) {
+                            resolve();
+                        } else {
+                            reject("ثبت دلیل عودت الزامی است.");
+                        }
+                    });
+                }
+            }).then(function (result) {
+                var reason = result && result.value !== undefined
+                    ? result.value
+                    : result;
+
+                if (reason && reason.trim()) {
+                    unitStatistic.returnStatistic.execute(id, reason);
+                }
+            });
+        },
+
+        execute: function (id, reason) {
+            $.ajax({
+                url: unitStatistic.urls.returnStatistic,
+                type: "POST",
+                data: {
+                    id: id,
+                    reason: reason,
+                    __RequestVerificationToken:
+                        unitStatistic.helpers.getToken()
+                },
+                success: function (result) {
+                    if (unitStatistic.helpers.isSuccess(result)) {
+                        $("#details-modal").modal("hide");
+                        unitStatistic.list.reload();
+
+                        unitStatistic.helpers.success(
+                            "عودت شد!",
+                            "آمار برای اصلاح به ثبت‌کننده عودت داده شد."
+                        );
+                    } else {
+                        unitStatistic.helpers.error(
+                            "عودت انجام نشد!",
+                            unitStatistic.helpers.getMessage(
+                                result,
+                                "عودت آمار با خطا همراه بود."
+                            )
+                        );
+                    }
+                },
+                error: function (xhr) {
+                    unitStatistic.helpers.showAjaxError(
+                        xhr,
+                        "عودت آمار با خطا همراه بود."
+                    );
+                }
+            });
+        }
+    },
+
+    cancel: {
+        confirm: function (id) {
+            swal({
+                title: "لغو آمار یگان",
+                text: "دلیل لغو را وارد کنید. سابقه آمار و دلیل لغو نگهداری خواهد شد.",
+                type: "error",
+                input: "textarea",
+                inputPlaceholder: "دلیل لغو...",
+                inputAttributes: {
+                    maxlength: 1000
+                },
+                showCancelButton: true,
+                confirmButtonClass: "btn btn-danger",
+                cancelButtonClass: "btn btn-default",
+                confirmButtonText: "لغو آمار",
+                cancelButtonText: "انصراف",
+                buttonsStyling: false,
+                inputValidator: function (value) {
+                    return new Promise(function (resolve, reject) {
+                        if (value && value.trim()) {
+                            resolve();
+                        } else {
+                            reject("ثبت دلیل لغو الزامی است.");
+                        }
+                    });
+                }
+            }).then(function (result) {
+                var reason = result && result.value !== undefined
+                    ? result.value
+                    : result;
+
+                if (reason && reason.trim()) {
+                    unitStatistic.cancel.execute(id, reason);
+                }
+            });
+        },
+
+        execute: function (id, reason) {
+            $.ajax({
+                url: unitStatistic.urls.cancel,
+                type: "POST",
+                data: {
+                    id: id,
+                    reason: reason,
+                    __RequestVerificationToken:
+                        unitStatistic.helpers.getToken()
+                },
+                success: function (result) {
+                    if (unitStatistic.helpers.isSuccess(result)) {
+                        $("#details-modal").modal("hide");
+                        unitStatistic.list.reload();
+
+                        unitStatistic.helpers.success(
+                            "لغو شد!",
+                            "آمار یگان با موفقیت لغو شد."
+                        );
+                    } else {
+                        unitStatistic.helpers.error(
+                            "لغو انجام نشد!",
+                            unitStatistic.helpers.getMessage(
+                                result,
+                                "لغو آمار با خطا همراه بود."
+                            )
+                        );
+                    }
+                },
+                error: function (xhr) {
+                    unitStatistic.helpers.showAjaxError(
+                        xhr,
+                        "لغو آمار با خطا همراه بود."
+                    );
+                }
+            });
+        }
+    },
+
     filter: {
         collect: function () {
             return {
@@ -774,6 +944,14 @@ var unitStatistic = {
 
             if (status === 3) {
                 return '<span class="label label-success">تأیید نهایی</span>';
+            }
+
+            if (status === 4) {
+                return '<span class="label label-warning">عودت‌شده</span>';
+            }
+
+            if (status === 5) {
+                return '<span class="label label-danger">لغوشده</span>';
             }
 
             return '<span class="label label-default">نامشخص</span>';
