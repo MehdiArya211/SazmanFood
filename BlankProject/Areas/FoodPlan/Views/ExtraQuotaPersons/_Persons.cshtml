@@ -5,6 +5,9 @@
     var diningHalls =
         ViewBag.DiningHalls as IEnumerable<SelectListDTO>
         ?? new List<SelectListDTO>();
+
+    var canManagePersons =
+        ViewBag.CanManagePersons == true;
 }
 
 <div class="modal-header">
@@ -47,7 +50,7 @@
 
         <hr />
 
-        @if (Model.IsOfficial)
+        @if (canManagePersons && Model.IsOfficial)
         {
             <form action="/FoodPlan/ExtraQuotaPersons/CreateOfficial"
                   method="post"
@@ -150,7 +153,7 @@
                 </div>
             </form>
         }
-        else
+        else if (canManagePersons && Model.IsDuty)
         {
             <form action="/FoodPlan/ExtraQuotaPersons/CreateDuty"
                   method="post"
@@ -206,6 +209,16 @@
             </form>
         }
 
+        @if (!canManagePersons)
+        {
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    شما فقط امکان مشاهده پرسنل تعیین‌شده را دارید.
+                    ثبت یا حذف پرسنل توسط اداری یگان یا رکن چهار پشتیبانی انجام می‌شود.
+                </div>
+            </div>
+        }
+
         <div class="col-md-12">
             <h4>پرسنل ثبت‌شده</h4>
 
@@ -232,12 +245,15 @@
                             <td>@item.FullName</td>
                             <td>@item.PersonCode</td>
                             <td>
-                                <a onclick="extraQuotaPersons.person.delete(@item.Id, @Model.RequestId)"
-                                   class="btn btn-simple btn-danger btn-icon"
-                                   title="حذف"
-                                   data-toggle="tooltip">
-                                    <i class="material-icons">close</i>
-                                </a>
+                                @if (canManagePersons)
+                                {
+                                    <a onclick="extraQuotaPersons.person.delete(@item.Id, @Model.RequestId)"
+                                       class="btn btn-simple btn-danger btn-icon"
+                                       title="حذف"
+                                       data-toggle="tooltip">
+                                        <i class="material-icons">close</i>
+                                    </a>
+                                }
                             </td>
                         </tr>
 
