@@ -62,6 +62,24 @@ public class UnitStatisticDTO
         }
     }
 
+    [Display(Name = "عودت‌کننده")]
+    public string ReturnerFullName { get; set; }
+
+    [Display(Name = "تاریخ عودت")]
+    public DateTime? ReturnDate { get; set; }
+
+    [Display(Name = "دلیل عودت")]
+    public string ReturnReason { get; set; }
+
+    [Display(Name = "لغوکننده")]
+    public string CancelerFullName { get; set; }
+
+    [Display(Name = "تاریخ لغو")]
+    public DateTime? CancelDate { get; set; }
+
+    [Display(Name = "دلیل لغو")]
+    public string CancelReason { get; set; }
+
     [Display(Name = "فعال")]
     public bool IsActive { get; set; }
 
@@ -74,6 +92,8 @@ public class UnitStatisticDTO
                 UnitStatisticStatus.Draft => "ثبت اولیه",
                 UnitStatisticStatus.Sent => "ارسال شده",
                 UnitStatisticStatus.Approved => "تأیید نهایی",
+                UnitStatisticStatus.Returned => "عودت‌شده",
+                UnitStatisticStatus.Canceled => "لغوشده",
                 _ => "نامشخص"
             };
         }
@@ -97,6 +117,12 @@ public class UnitStatisticDTO
                 ApproverId = model.ApproverId,
                 ApproverFullName = model.ApproverFullName,
                 ApproveDate = model.ApproveDate,
+                ReturnerFullName = model.ReturnerFullName,
+                ReturnDate = model.ReturnDate,
+                ReturnReason = model.ReturnReason,
+                CancelerFullName = model.CancelerFullName,
+                CancelDate = model.CancelDate,
+                CancelReason = model.CancelReason,
                 IsActive = model.IsActive
             };
         }
