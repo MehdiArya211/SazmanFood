@@ -1,0 +1,104 @@
+﻿@model DTO.Entities.EditFoodSourceDTO
+
+<div class="modal-header">
+    <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title" id="modal5-label">ویرایش مأخذ غذایی</h4>
+    <div class="text-center">پرکردن فیلدهای ستاره‌دار الزامی است.</div>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <form asp-action="Edit" class="edit-form" onsubmit="return foodSource.edit.save(event)">
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+                <hr />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="error text-center text-danger">@ViewBag.Error</div>
+
+                <input asp-for="Id" type="hidden" />
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label asp-for="YeganTypeId" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <select asp-for="YeganTypeId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.YeganTypes">
+                                <option value="">انتخاب کنید</option>
+                            </select>
+                            <span asp-validation-for="YeganTypeId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="PersonalTypeId" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <select asp-for="PersonalTypeId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.PersonalTypes">
+                                <option value="">انتخاب کنید</option>
+                            </select>
+                            <span asp-validation-for="PersonalTypeId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="DayType" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <select asp-for="DayType"
+                                    class="selectpicker"
+                                    data-size="7"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.DayTypes">
+                                <option value="">انتخاب کنید</option>
+                            </select>
+                            <span asp-validation-for="DayType" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label asp-for="PercentBreakfast" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <input asp-for="PercentBreakfast" class="form-control percent-input" type="number" step="0.01" min="0" max="100" />
+                            <span asp-validation-for="PercentBreakfast" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="PercentLunch" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <input asp-for="PercentLunch" class="form-control percent-input" type="number" step="0.01" min="0" max="100" />
+                            <span asp-validation-for="PercentLunch" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="PercentDinner" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <input asp-for="PercentDinner" class="form-control percent-input" type="number" step="0.01" min="0" max="100" />
+                            <span asp-validation-for="PercentDinner" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-info">
+                        <i class="material-icons">save</i>
+                        ذخیره اطلاعات
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

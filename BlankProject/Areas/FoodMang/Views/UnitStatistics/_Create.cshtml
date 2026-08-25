@@ -1,0 +1,94 @@
+﻿@model DTO.Entities.UnitStatisticCreateDTO
+
+<div class="modal-header">
+    <button type="button"
+            class="close"
+            title="بستن پنجره"
+            data-dismiss="modal"
+            aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h4 class="modal-title">
+        ثبت آمار جدید یگان
+    </h4>
+
+    <div class="text-center">
+        پرکردن فیلدهای ستاره‌دار الزامی است.
+    </div>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <form asp-action="Create"
+              class="create-form"
+              onsubmit="return unitStatistic.create.save(event)">
+            @Html.AntiForgeryToken()
+
+            <input asp-for="OrgId" type="hidden" />
+            <input asp-for="OrgTitle" type="hidden" />
+
+            <div class="form-horizontal">
+                <hr />
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger"></div>
+
+                <div class="error text-center text-danger"></div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label class="control-label text-right col-md-12">
+                            یگان
+                        </label>
+
+                        <div class="col-md-12">
+                            <input value="@Model.OrgTitle"
+                                   class="form-control"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="TotalOfficialCount"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="TotalOfficialCount"
+                                   class="form-control"
+                                   type="number"
+                                   min="0" />
+
+                            <span asp-validation-for="TotalOfficialCount"
+                                  class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="TotalDutyCount"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="TotalDutyCount"
+                                   class="form-control"
+                                   type="number"
+                                   min="0" />
+
+                            <span asp-validation-for="TotalDutyCount"
+                                  class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-info">
+                        <i class="material-icons">save</i>
+                        ذخیره اطلاعات
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

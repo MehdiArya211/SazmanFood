@@ -1,0 +1,250 @@
+﻿@model DTO.Entities.ExtraQuotaPersonFormDTO
+@using DTO.Base
+
+@{
+    var diningHalls =
+        ViewBag.DiningHalls as IEnumerable<SelectListDTO>
+        ?? new List<SelectListDTO>();
+}
+
+<div class="modal-header">
+    <button type="button"
+            class="close"
+            title="بستن پنجره"
+            data-dismiss="modal"
+            aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h4 class="modal-title">
+        اختصاص پرسنل بن مازاد
+    </h4>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <div class="quota-summary row">
+            <div class="col-md-3">
+                <strong>وعده:</strong>
+                @Model.MealTitle
+            </div>
+
+            <div class="col-md-3">
+                <strong>تعداد:</strong>
+                @Model.Count
+            </div>
+
+            <div class="col-md-3">
+                <strong>ثبت‌شده:</strong>
+                @Model.RegisteredCount
+            </div>
+
+            <div class="col-md-3">
+                <strong>باقی‌مانده:</strong>
+                @Model.RemainingCount
+            </div>
+        </div>
+
+        <hr />
+
+        @if (Model.IsOfficial)
+        {
+            <form action="/FoodPlan/ExtraQuotaPersons/CreateOfficial"
+                  method="post"
+                  class="official-form"
+                  onsubmit="return extraQuotaPersons.official.save(event)">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="RequestId"
+                       value="@Model.RequestId" />
+
+                <input type="hidden"
+                       id="OfficialPersonId"
+                       name="PersonId" />
+
+                <input type="hidden"
+                       id="OfficialNationalCode"
+                       name="NationalCode" />
+
+                <input type="hidden"
+                       id="OfficialRankTitle"
+                       name="RankTitle" />
+
+                <input type="hidden"
+                       id="OfficialFullName"
+                       name="FullName" />
+
+                <div class="error text-center text-danger"></div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-3">
+                        <label class="control-label text-right col-md-12 required">
+                            کد پرسنلی
+                        </label>
+                        <div class="col-md-12">
+                            <input id="OfficialPersonCode"
+                                   name="PersonCode"
+                                   class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-1">
+                        <button type="button"
+                                class="btn btn-info btn-just-icon"
+                                style="margin-top:25px"
+                                onclick="extraQuotaPersons.official.search()">
+                            <i class="material-icons">search</i>
+                        </button>
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        <label class="control-label text-right col-md-12">
+                            درجه
+                        </label>
+                        <div class="col-md-12">
+                            <input id="OfficialRankTitleDisplay"
+                                   class="form-control"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label class="control-label text-right col-md-12">
+                            نام و نشان
+                        </label>
+                        <div class="col-md-12">
+                            <input id="OfficialFullNameDisplay"
+                                   class="form-control"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label class="control-label text-right col-md-12 required">
+                            سالن غذاخوری
+                        </label>
+                        <div class="col-md-12">
+                            <select name="DiningHallId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    data-style="select-with-transition">
+                                <option value="">انتخاب کنید</option>
+                                @foreach (var item in diningHalls)
+                                {
+                                    <option value="@item.Id">
+                                        @item.Title
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-info">
+                        <i class="material-icons">save</i>
+                        ذخیره
+                    </button>
+                </div>
+            </form>
+        }
+        else
+        {
+            <form action="/FoodPlan/ExtraQuotaPersons/CreateDuty"
+                  method="post"
+                  class="duty-form"
+                  onsubmit="return extraQuotaPersons.duty.save(event)">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="RequestId"
+                       value="@Model.RequestId" />
+
+                <div class="error text-center text-danger"></div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label class="control-label text-right col-md-12 required">
+                            کد ملی
+                        </label>
+                        <div class="col-md-12">
+                            <input name="NationalCode"
+                                   class="form-control"
+                                   maxlength="10" />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label class="control-label text-right col-md-12 required">
+                            شماره پرسنلی
+                        </label>
+                        <div class="col-md-12">
+                            <input name="PersonCode"
+                                   class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label class="control-label text-right col-md-12 required">
+                            نام و نشان
+                        </label>
+                        <div class="col-md-12">
+                            <input name="FullName"
+                                   class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-info">
+                        <i class="material-icons">save</i>
+                        ذخیره
+                    </button>
+                </div>
+            </form>
+        }
+
+        <div class="col-md-12">
+            <h4>پرسنل ثبت‌شده</h4>
+
+            <table class="table table-striped table-no-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>ردیف</th>
+                        <th>درجه</th>
+                        <th>نام و نشان</th>
+                        <th>کد پرسنلی</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var row = 1;
+                    }
+
+                    @foreach (var item in Model.Persons)
+                    {
+                        <tr>
+                            <td>@row</td>
+                            <td>@item.RankTitle</td>
+                            <td>@item.FullName</td>
+                            <td>@item.PersonCode</td>
+                            <td>
+                                <a onclick="extraQuotaPersons.person.delete(@item.Id, @Model.RequestId)"
+                                   class="btn btn-simple btn-danger btn-icon"
+                                   title="حذف"
+                                   data-toggle="tooltip">
+                                    <i class="material-icons">close</i>
+                                </a>
+                            </td>
+                        </tr>
+
+                        row++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

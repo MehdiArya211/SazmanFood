@@ -1,0 +1,96 @@
+﻿@model Domain.Entities.GuestExtraFoodRequest
+@using Utilities.Extentions
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>چاپ بن مهمان</title>
+
+    <style>
+        body {
+            font-family: Tahoma, Arial;
+            font-size: 13px;
+            direction: rtl;
+        }
+
+        .print-toolbar {
+            margin: 15px;
+            text-align: center;
+        }
+
+        .token {
+            width: 280px;
+            min-height: 150px;
+            border: 1px dashed #333;
+            padding: 12px;
+            margin: 8px;
+            display: inline-block;
+            vertical-align: top;
+            page-break-inside: avoid;
+        }
+
+        .token-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+
+        .token-row {
+            margin-bottom: 6px;
+        }
+
+        @@media print {
+            .print-toolbar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <button onclick="window.print()">
+            چاپ
+        </button>
+    </div>
+
+    @for (var i = 1; i <= Model.GuestCount; i++)
+    {
+        <div class="token">
+            <div class="token-title">
+                بن غذای مهمان
+            </div>
+
+            <div class="token-row">
+                <strong>شماره:</strong>
+                @i از @Model.GuestCount
+            </div>
+
+            <div class="token-row">
+                <strong>یگان:</strong>
+                @Model.OrgTitle
+            </div>
+
+            <div class="token-row">
+                <strong>از تاریخ:</strong>
+                @Model.FromDate.ToPersianDateTime().ToString()
+            </div>
+
+            <div class="token-row">
+                <strong>تا تاریخ:</strong>
+                @Model.ToDate.ToPersianDateTime().ToString()
+            </div>
+
+            <div class="token-row">
+                <strong>تاریخ چاپ:</strong>
+                @DateTime.Now.ToPersianDateTime().ToString()
+            </div>
+        </div>
+    }
+</body>
+</html>

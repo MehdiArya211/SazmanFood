@@ -1,0 +1,1022 @@
+﻿@model DTO.Entities.UnitStatisticDetailsDTO
+@using Domain.Enums
+
+@{
+    var canRegister = ViewBag.CanRegister == true;
+    var canApprove = ViewBag.CanApprove == true;
+
+    var isApproved = Model.Status == UnitStatisticStatus.Approved;
+    var canEdit = canRegister && !isApproved;
+
+    var statusText = Model.Status == UnitStatisticStatus.Approved
+        ? "تأیید نهایی"
+        : Model.Status == UnitStatisticStatus.Sent
+            ? "ارسال شده"
+            : "ثبت اولیه";
+
+    var statusClass = Model.Status == UnitStatisticStatus.Approved
+        ? "unit-status-approved"
+        : Model.Status == UnitStatisticStatus.Sent
+            ? "unit-status-sent"
+            : "unit-status-draft";
+}
+<style>
+    /* =========================================
+   Unit Statistic Details
+   ========================================= */
+
+.unit-statistic-view {
+    direction: rtl;
+    text-align: right;
+    background: #f7f8fb;
+    color: #2f3441;
+}
+
+.unit-statistic-view * {
+    box-sizing: border-box;
+}
+
+/* Modal sizing */
+
+.unit-stat-dialog {
+    width: 94%;
+    max-width: 1180px;
+    margin: 25px auto;
+}
+
+.unit-stat-dialog .modal-content {
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 18px 55px rgba(25, 32, 56, 0.2);
+}
+
+/* Header */
+
+.unit-statistic-header {
+    min-height: 76px;
+    padding: 16px 22px;
+    border-bottom: 1px solid #e9ecf2;
+    background: #ffffff;
+}
+
+.unit-statistic-header .close {
+    float: left;
+    margin: 4px 15px 0 0;
+    font-size: 28px;
+    color: #7c8291;
+    opacity: 1;
+}
+
+.unit-statistic-header .close:hover {
+    color: #d9534f;
+}
+
+.unit-statistic-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 45px;
+}
+
+.unit-statistic-title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.unit-statistic-title > .material-icons {
+    width: 44px;
+    height: 44px;
+    margin-left: 12px;
+    border-radius: 12px;
+    background: #eef2ff;
+    color: #536dfe;
+    line-height: 44px;
+    text-align: center;
+    font-size: 25px;
+}
+
+.unit-statistic-title h4 {
+    margin: 0 0 4px;
+    color: #252a36;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.unit-statistic-title small {
+    display: block;
+    color: #8a91a2;
+    font-size: 12px;
+}
+
+/* Status */
+
+.unit-status-badge {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.unit-status-draft {
+    background: #f2f3f7;
+    color: #686f7e;
+}
+
+.unit-status-sent {
+    background: #fff2d8;
+    color: #a56600;
+}
+
+.unit-status-approved {
+    background: #e5f7ec;
+    color: #21834b;
+}
+
+/* Body */
+
+.unit-statistic-body {
+    max-height: calc(100vh - 205px);
+    padding: 18px 22px 20px;
+    overflow-y: auto;
+    background: #f7f8fb;
+}
+
+/* Summary */
+
+.unit-summary {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -6px 14px;
+}
+
+.unit-summary-item {
+    display: flex;
+    align-items: center;
+    width: calc(25% - 12px);
+    min-height: 76px;
+    margin: 0 6px;
+    padding: 14px 16px;
+    border: 1px solid #e9ecf3;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 3px 12px rgba(29, 39, 67, 0.04);
+}
+
+.unit-summary-org {
+    width: calc(50% - 12px);
+}
+
+.unit-summary-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 43px;
+    width: 43px;
+    height: 43px;
+    margin-left: 12px;
+    border-radius: 11px;
+    background: #f2f5ff;
+    color: #536dfe;
+}
+
+.unit-summary-icon .material-icons {
+    font-size: 22px;
+}
+
+.unit-summary-content {
+    min-width: 0;
+}
+
+.unit-summary-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #8a91a2;
+    font-size: 12px;
+}
+
+.unit-summary-content strong {
+    display: block;
+    overflow: hidden;
+    color: #292f3c;
+    font-size: 17px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Messages */
+
+.unit-message {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    padding: 11px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+}
+
+.unit-message > .material-icons {
+    margin: 1px 0 0 10px;
+    font-size: 22px;
+}
+
+.unit-message div {
+    display: flex;
+    flex-direction: column;
+}
+
+.unit-message strong {
+    margin-bottom: 3px;
+    font-size: 13px;
+}
+
+.unit-message span:not(.material-icons) {
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.unit-message-success {
+    border-color: #c8ead5;
+    background: #eaf8ef;
+    color: #237746;
+}
+
+.unit-message-warning {
+    border-color: #f1d79d;
+    background: #fff8e7;
+    color: #8c620b;
+}
+
+.unit-message-info {
+    border-color: #bfdff4;
+    background: #edf8ff;
+    color: #216a96;
+}
+
+.unit-form-error:not(:empty) {
+    margin-bottom: 14px;
+    padding: 10px;
+    border: 1px solid #f4cccc;
+    border-radius: 8px;
+    background: #fff0f0;
+}
+
+/* Cards grid */
+
+.unit-details-grid {
+    display: flex;
+    align-items: stretch;
+    margin: 0 -7px;
+}
+
+.unit-details-card {
+    display: flex;
+    flex-direction: column;
+    width: calc(50% - 14px);
+    min-width: 0;
+    margin: 0 7px;
+    border: 1px solid #e3e7ef;
+    border-radius: 13px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgba(26, 35, 60, 0.05);
+    overflow: hidden;
+}
+
+/* Card header */
+
+.unit-details-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 72px;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecf2;
+    background: #ffffff;
+}
+
+.unit-details-card-title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.unit-details-card-title h4 {
+    margin: 0 0 4px;
+    color: #303644;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.unit-details-card-title small {
+    display: block;
+    color: #9298a6;
+    font-size: 11px;
+}
+
+.unit-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    margin-left: 10px;
+    border-radius: 10px;
+}
+
+.unit-card-icon .material-icons {
+    font-size: 21px;
+}
+
+.official-icon {
+    background: #eef2ff;
+    color: #536dfe;
+}
+
+.duty-icon {
+    background: #e9f8f3;
+    color: #23986c;
+}
+
+.unit-card-counter {
+    display: flex;
+    align-items: baseline;
+    flex: 0 0 auto;
+    padding: 7px 12px;
+    border-radius: 9px;
+    background: #f5f7fa;
+    direction: rtl;
+}
+
+.unit-card-counter span,
+.unit-card-counter strong {
+    color: #303644;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.unit-card-counter small {
+    margin: 0 5px;
+    color: #9298a6;
+    font-size: 10px;
+}
+
+/* Table */
+
+.unit-details-table {
+    flex: 1 1 auto;
+    max-height: 43vh;
+    min-height: 210px;
+    overflow: auto;
+}
+
+.unit-stat-table {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    table-layout: fixed;
+}
+
+.unit-stat-table > thead > tr > th {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    height: 43px;
+    padding: 10px;
+    border: 0;
+    border-bottom: 1px solid #e5e8ee;
+    background: #f8f9fb;
+    color: #717888;
+    font-size: 11px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.unit-stat-table > tbody > tr > td {
+    height: 53px;
+    padding: 7px 10px;
+    border: 0;
+    border-bottom: 1px solid #eef0f4;
+    color: #404655;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.unit-stat-table > tbody > tr:last-child > td {
+    border-bottom: 0;
+}
+
+.unit-stat-table > tbody > tr:hover {
+    background: #fafbfe;
+}
+
+.unit-row-number {
+    width: 58px;
+    text-align: center;
+}
+
+.unit-count-column {
+    width: 130px;
+    text-align: center;
+}
+
+.unit-row-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    background: #f0f2f6;
+    color: #737a89;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.unit-service-title {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.unit-count-cell {
+    width: 130px;
+}
+
+.unit-count-input.form-control {
+    width: 100%;
+    height: 36px;
+    margin: 0;
+    padding: 6px 8px;
+    border: 1px solid #dfe3ea;
+    border-radius: 8px;
+    background-image: none;
+    background-color: #ffffff;
+    color: #303644;
+    box-shadow: none;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.unit-count-input.form-control:focus {
+    border-color: #7388ff;
+    box-shadow: 0 0 0 3px rgba(83, 109, 254, 0.11);
+}
+
+.unit-count-input.form-control[readonly] {
+    border-color: #e5e8ee;
+    background: #f5f6f8;
+    color: #737988;
+    cursor: default;
+}
+
+.unit-validation-message {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+/* Totals */
+
+.unit-details-total {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 47px;
+    padding: 9px 13px;
+    border-top: 1px solid #e9ecf2;
+    background: #fafbfc;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.unit-total-ok {
+    background: #edf9f1;
+    color: #267a48;
+}
+
+.unit-total-low {
+    background: #fff9ea;
+    color: #94670d;
+}
+
+.unit-total-over {
+    background: #fff0f0;
+    color: #b84444;
+}
+
+/* Footer actions */
+
+.unit-statistic-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 70px;
+    padding: 12px 22px;
+    border-top: 1px solid #e3e7ed;
+    background: #ffffff;
+    text-align: right;
+}
+
+.unit-action-hint {
+    display: flex;
+    align-items: center;
+    color: #888f9d;
+    font-size: 11px;
+}
+
+.unit-action-hint .material-icons {
+    margin-left: 6px;
+    color: #78909c;
+    font-size: 18px;
+}
+
+.unit-action-buttons {
+    display: flex;
+    align-items: center;
+}
+
+.unit-action-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+    height: 39px;
+    margin: 0 5px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.unit-action-buttons .btn .material-icons {
+    margin-left: 7px;
+    font-size: 18px;
+}
+
+.unit-save-button {
+    background: #536dfe !important;
+}
+
+.unit-approve-button {
+    background: #2eaa6f !important;
+}
+
+/* Responsive */
+
+@@media (max-width: 991px) {
+    .unit-stat-dialog {
+        width: 96%;
+        margin: 15px auto;
+    }
+
+    .unit-summary-org,
+    .unit-summary-item {
+        width: calc(33.333% - 12px);
+    }
+
+    .unit-details-grid {
+        display: block;
+        margin: 0;
+    }
+
+    .unit-details-card {
+        width: 100%;
+        margin: 0 0 14px;
+    }
+
+    .unit-details-table {
+        max-height: 330px;
+    }
+
+    .unit-statistic-body {
+        max-height: calc(100vh - 195px);
+    }
+}
+
+@@media (max-width: 767px) {
+    .unit-statistic-header {
+        padding: 13px 15px;
+    }
+
+    .unit-statistic-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-left: 30px;
+    }
+
+    .unit-status-badge {
+        margin-top: 9px;
+    }
+
+    .unit-statistic-body {
+        padding: 12px;
+    }
+
+    .unit-summary {
+        display: block;
+        margin: 0 0 12px;
+    }
+
+    .unit-summary-org,
+    .unit-summary-item {
+        width: 100%;
+        min-height: 65px;
+        margin: 0 0 8px;
+    }
+
+    .unit-statistic-actions {
+        display: block;
+        padding: 10px 12px;
+    }
+
+    .unit-action-hint {
+        margin-bottom: 9px;
+    }
+
+    .unit-action-buttons {
+        display: flex;
+    }
+
+    .unit-action-buttons .btn {
+        flex: 1;
+        min-width: 0;
+        margin: 0 3px;
+        padding-right: 8px;
+        padding-left: 8px;
+        font-size: 11px;
+    }
+
+    .unit-count-column,
+    .unit-count-cell {
+        width: 105px;
+    }
+
+    .unit-row-number {
+        width: 45px;
+    }
+}
+</style>
+<div class="unit-statistic-view" dir="rtl">
+
+    <div class="modal-header unit-statistic-header">
+        <button type="button"
+                class="close"
+                title="بستن پنجره"
+                data-dismiss="modal"
+                aria-label="بستن">
+            <span aria-hidden="true">&times;</span>
+        </button>
+
+        <div class="unit-statistic-heading">
+            <div class="unit-statistic-title">
+                <span class="material-icons">assessment</span>
+
+                <div>
+                    <h4 class="modal-title">جزئیات آمار یگان</h4>
+                    <small>مشاهده، بررسی و ویرایش جزئیات آمار</small>
+                </div>
+            </div>
+
+            <span class="unit-status-badge @statusClass">
+                @statusText
+            </span>
+        </div>
+    </div>
+
+    <form asp-action="SaveDetails"
+          class="details-form"
+          autocomplete="off"
+          onsubmit="return unitStatistic.details.save(event)">
+
+        @Html.AntiForgeryToken()
+
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="OrgId" type="hidden" />
+        <input asp-for="OrgTitle" type="hidden" />
+        <input asp-for="TotalOfficialCount" type="hidden" />
+        <input asp-for="TotalDutyCount" type="hidden" />
+        <input asp-for="Status" type="hidden" />
+
+        <div class="modal-body unit-statistic-body">
+
+            <div class="unit-summary">
+
+                <div class="unit-summary-item unit-summary-org">
+                    <div class="unit-summary-icon">
+                        <span class="material-icons">account_balance</span>
+                    </div>
+
+                    <div class="unit-summary-content">
+                        <span class="unit-summary-label">یگان</span>
+                        <strong title="@Model.OrgTitle">
+                            @Model.OrgTitle
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="unit-summary-item">
+                    <div class="unit-summary-icon">
+                        <span class="material-icons">badge</span>
+                    </div>
+
+                    <div class="unit-summary-content">
+                        <span class="unit-summary-label">تعداد کل کادر</span>
+
+                        <strong id="OfficialExpected">
+                            @Model.TotalOfficialCount
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="unit-summary-item">
+                    <div class="unit-summary-icon">
+                        <span class="material-icons">groups</span>
+                    </div>
+
+                    <div class="unit-summary-content">
+                        <span class="unit-summary-label">تعداد کل وظیفه</span>
+
+                        <strong id="DutyExpected">
+                            @Model.TotalDutyCount
+                        </strong>
+                    </div>
+                </div>
+
+            </div>
+
+            @if (isApproved)
+            {
+                <div class="unit-message unit-message-success">
+                    <span class="material-icons">verified</span>
+
+                    <div>
+                        <strong>آمار تأیید نهایی شده است</strong>
+                        <span>اطلاعات این آمار فقط قابل مشاهده است و امکان ویرایش ندارد.</span>
+                    </div>
+                </div>
+            }
+            else if (Model.Status == UnitStatisticStatus.Sent && canRegister)
+            {
+                <div class="unit-message unit-message-warning">
+                    <span class="material-icons">warning</span>
+
+                    <div>
+                        <strong>آمار قبلاً ارسال شده است</strong>
+                        <span>
+                            ویرایش مقادیر باعث بازگشت وضعیت آمار به ثبت اولیه خواهد شد.
+                        </span>
+                    </div>
+                </div>
+            }
+            else if (Model.Status == UnitStatisticStatus.Sent && canApprove)
+            {
+                <div class="unit-message unit-message-info">
+                    <span class="material-icons">fact_check</span>
+
+                    <div>
+                        <strong>آمار آماده بررسی است</strong>
+                        <span>
+                            جزئیات را بررسی کرده و در صورت صحت، تأیید نهایی را انجام دهید.
+                        </span>
+                    </div>
+                </div>
+            }
+
+            <div class="error unit-form-error text-center text-danger"></div>
+
+            <div class="unit-details-grid">
+
+                <!-- جزئیات کادر -->
+                <section class="unit-details-card">
+                    <header class="unit-details-card-header">
+                        <div class="unit-details-card-title">
+                            <span class="unit-card-icon official-icon">
+                                <span class="material-icons">badge</span>
+                            </span>
+
+                            <div>
+                                <h4>جزئیات کادر</h4>
+                                <small>
+                                    مقدار ثبت‌شده برای هر نوع خدمت
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="unit-card-counter">
+                            <span id="OfficialLiveTotal">۰</span>
+                            <small>از</small>
+                            <strong>@Model.TotalOfficialCount</strong>
+                        </div>
+                    </header>
+
+                    <div class="unit-details-table">
+                        <table class="table unit-stat-table">
+                            <thead>
+                                <tr>
+                                    <th class="unit-row-number">ردیف</th>
+                                    <th>نوع خدمت</th>
+                                    <th class="unit-count-column">تعداد</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @for (var i = 0; i < Model.OfficialDetails.Count; i++)
+                                {
+                                    <tr>
+                                        <td class="unit-row-number">
+                                            <span class="unit-row-badge">
+                                                @(i + 1)
+                                            </span>
+                                        </td>
+
+                                        <td class="unit-service-title">
+                                            @Model.OfficialDetails[i].YeganTypeTitle
+
+                                            <input asp-for="OfficialDetails[i].Id"
+                                                   type="hidden" />
+
+                                            <input asp-for="OfficialDetails[i].YeganTypeId"
+                                                   type="hidden" />
+
+                                            <input asp-for="OfficialDetails[i].YeganTypeTitle"
+                                                   type="hidden" />
+                                        </td>
+
+                                        <td class="unit-count-cell">
+                                            @if (canEdit)
+                                            {
+                                                <input asp-for="OfficialDetails[i].Count"
+                                                       class="form-control unit-count-input official-count"
+                                                       type="number"
+                                                       min="0"
+                                                       inputmode="numeric"
+                                                       aria-label="تعداد @Model.OfficialDetails[i].YeganTypeTitle" />
+                                            }
+                                            else
+                                            {
+                                                <input asp-for="OfficialDetails[i].Count"
+                                                       class="form-control unit-count-input official-count"
+                                                       type="number"
+                                                       readonly
+                                                       aria-label="تعداد @Model.OfficialDetails[i].YeganTypeTitle" />
+                                            }
+
+                                            <span asp-validation-for="OfficialDetails[i].Count"
+                                                  class="text-danger unit-validation-message">
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <footer id="OfficialTotalText"
+                            class="unit-details-total">
+                    </footer>
+                </section>
+
+                <!-- جزئیات وظیفه -->
+                <section class="unit-details-card">
+                    <header class="unit-details-card-header">
+                        <div class="unit-details-card-title">
+                            <span class="unit-card-icon duty-icon">
+                                <span class="material-icons">groups</span>
+                            </span>
+
+                            <div>
+                                <h4>جزئیات وظیفه</h4>
+                                <small>
+                                    مقدار ثبت‌شده برای هر نوع خدمت
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="unit-card-counter">
+                            <span id="DutyLiveTotal">۰</span>
+                            <small>از</small>
+                            <strong>@Model.TotalDutyCount</strong>
+                        </div>
+                    </header>
+
+                    <div class="unit-details-table">
+                        <table class="table unit-stat-table">
+                            <thead>
+                                <tr>
+                                    <th class="unit-row-number">ردیف</th>
+                                    <th>نوع خدمت</th>
+                                    <th class="unit-count-column">تعداد</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @for (var i = 0; i < Model.DutyDetails.Count; i++)
+                                {
+                                    <tr>
+                                        <td class="unit-row-number">
+                                            <span class="unit-row-badge">
+                                                @(i + 1)
+                                            </span>
+                                        </td>
+
+                                        <td class="unit-service-title">
+                                            @Model.DutyDetails[i].YeganTypeTitle
+
+                                            <input asp-for="DutyDetails[i].Id"
+                                                   type="hidden" />
+
+                                            <input asp-for="DutyDetails[i].YeganTypeId"
+                                                   type="hidden" />
+
+                                            <input asp-for="DutyDetails[i].YeganTypeTitle"
+                                                   type="hidden" />
+                                        </td>
+
+                                        <td class="unit-count-cell">
+                                            @if (canEdit)
+                                            {
+                                                <input asp-for="DutyDetails[i].Count"
+                                                       class="form-control unit-count-input duty-count"
+                                                       type="number"
+                                                       min="0"
+                                                       inputmode="numeric"
+                                                       aria-label="تعداد @Model.DutyDetails[i].YeganTypeTitle" />
+                                            }
+                                            else
+                                            {
+                                                <input asp-for="DutyDetails[i].Count"
+                                                       class="form-control unit-count-input duty-count"
+                                                       type="number"
+                                                       readonly
+                                                       aria-label="تعداد @Model.DutyDetails[i].YeganTypeTitle" />
+                                            }
+
+                                            <span asp-validation-for="DutyDetails[i].Count"
+                                                  class="text-danger unit-validation-message">
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <footer id="DutyTotalText"
+                            class="unit-details-total">
+                    </footer>
+                </section>
+
+            </div>
+        </div>
+
+        <div class="modal-footer unit-statistic-actions">
+
+            <div class="unit-action-hint">
+                @if (canEdit)
+                {
+                    <span class="material-icons">info</span>
+                    <span>جمع مقادیر هر بخش باید با تعداد کل آن برابر باشد.</span>
+                }
+            </div>
+
+            <div class="unit-action-buttons">
+                <button type="button"
+                        class="btn btn-default"
+                        data-dismiss="modal">
+                    بستن
+                </button>
+
+                @if (canEdit)
+                {
+                    <button type="submit"
+                            class="btn btn-info unit-save-button">
+                        <span class="material-icons">save</span>
+                        ثبت جزئیات
+                    </button>
+                }
+
+                @if (canApprove && !isApproved)
+                {
+                    <button type="button"
+                            class="btn btn-success unit-approve-button"
+                            onclick="unitStatistic.approve.confirm(@Model.Id)">
+                        <span class="material-icons">verified</span>
+                        تأیید نهایی آمار
+                    </button>
+                }
+            </div>
+
+        </div>
+    </form>
+</div>

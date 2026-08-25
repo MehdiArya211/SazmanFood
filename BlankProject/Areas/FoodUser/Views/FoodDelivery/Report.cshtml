@@ -1,0 +1,72 @@
+﻿@{
+    ViewData["Title"] = "گزارش تحویل غذا";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
+
+<div class="col-md-12">
+    <div class="card filter">
+        <div class="card-content">
+            <div class="row">
+                <div class="form-group col-md-3">
+                    <label>تاریخ</label>
+                    <div id="VueReportDate">
+                        <date-picker v-model="date"
+                                     type="date"
+                                     editable="true"
+                                     auto-submit="true"
+                                     input-class="form-control"
+                                     alt-format="YYYY-MM-DD HH:mm:ss"
+                                     alt-name="FilterDate">
+                        </date-picker>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-3">
+                    <label>وضعیت تحویل</label>
+                    <select id="FilterDeliveryStatus" class="selectpicker">
+                        <option value="">همه</option>
+                        <option value="true">تحویل شده</option>
+                        <option value="false">تحویل نشده</option>
+                    </select>
+                </div>
+
+                <div class="form-group col-md-2">
+                    <a class="btn btn-success" onclick="foodDeliveryReport.list.reload()">
+                        جستجو
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-content">
+            <h4 class="card-title">گزارش تحویل غذا</h4>
+
+            <table id="deliveryReportTable" class="table table-striped table-hover" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>شناسه</th>
+                        <th>نام</th>
+                        <th>کد</th>
+                        <th>یگان</th>
+                        <th>وعده</th>
+                        <th>غذا</th>
+                        <th>نوع ژتون</th>
+                        <th>وضعیت</th>
+                        <th>زمان تحویل</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/assets/js/jquery.datatables.js"></script>
+    <script src="~/areas/fooddelivery/fooddeliveryreport.js" asp-append-version="true"></script>
+}

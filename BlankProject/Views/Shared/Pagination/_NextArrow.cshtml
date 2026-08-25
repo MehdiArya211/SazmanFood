@@ -1,0 +1,33 @@
+﻿@{
+    int PageCount = (int)(ViewBag.PageCount as int?);
+    int CurrentPage = (int)(ViewBag.CurrentPage as int?);
+
+    string srch = Context.Request.Query["srch"];
+
+    string url = "javascript:void(0);";
+    if (CurrentPage < PageCount)
+    {
+        url = Context.Request.Path;
+        var index = url.IndexOf("?");
+        if (index > 0)
+        {
+            url = url.Substring(0, index);
+        }
+        url += "?page=" + (CurrentPage + 1);
+        if (!string.IsNullOrEmpty(srch))
+        {
+            url += "&srch=" + srch;
+        }
+    }
+}
+
+
+<li class="page-item @(CurrentPage == PageCount ? "disabled" : "")">
+    <a href="@url" class="page-link" rel="@(CurrentPage == PageCount ? PageCount : CurrentPage + 1)">
+        بعدی <i class="fas fa-long-arrow-alt-right margin-5px-left xs-display-none"></i>
+    </a>
+</li>
+
+
+
+

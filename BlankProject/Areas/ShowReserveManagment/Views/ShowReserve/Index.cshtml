@@ -1,0 +1,853 @@
+﻿@model List<WeeklyFoodReserveDTO>
+
+@using DTO.Entities.FoodReservation;
+@using Services.SessionServices
+@{
+    ViewData["Title"] = "مدیریت برنامه غذایی";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var Admin = Context.Session.GetUser();
+}
+
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>چاپ بن غذا</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'IRANSans', 'Tahoma', Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+            .header-content h1 {
+                font-size: 2.2rem;
+                margin: 0 0 10px 0;
+                font-weight: 700;
+                letter-spacing: 1px;
+            }
+
+            .header-content p {
+                font-size: 1.1rem;
+                margin: 0;
+                opacity: 0.9;
+            }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .week-table {
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+
+        .table-header {
+            background: #34495e;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+            .table-header h2 {
+                margin: 0;
+                font-size: 1.5rem;
+                font-weight: 600;
+            }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .day-column {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+
+            .day-column:hover:not(.past-day) {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 35px rgba(0,0,0,0.18);
+            }
+
+            .day-column.past-day {
+                background: #f8f9fa;
+                opacity: 0.6;
+                filter: grayscale(50%);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                border-color: #e9ecef;
+            }
+
+            .day-column.today-day {
+                border-color: #28a745;
+                background: linear-gradient(135deg, #ffffff 0%, #f8fff9 100%);
+                box-shadow: 0 8px 25px rgba(40, 167, 69, 0.2);
+            }
+
+            .day-column.future-day {
+                border-color: #007bff;
+                background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+                box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15);
+            }
+
+        .day-header {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+            border-radius: 14px 14px 0 0;
+        }
+
+            .day-header.past {
+                background: linear-gradient(135deg, #adb5bd 0%, #868e96 100%);
+                color: #6c757d;
+            }
+
+            .day-header.today {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            }
+
+            .day-header.future {
+                background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+                color: white;
+                box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+            }
+
+        .day-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+        }
+
+        .day-date {
+            font-size: 0.95rem;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        .day-status {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+            .day-status.past {
+                background: rgba(108, 117, 125, 0.9);
+                color: white;
+            }
+
+            .day-status.today {
+                background: rgba(255, 193, 7, 0.95);
+                color: #212529;
+                animation: pulse 2s infinite;
+            }
+
+            .day-status.future {
+                background: rgba(0, 123, 255, 0.9);
+                color: white;
+            }
+
+        keyframes pulse {
+            0%
+
+        {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+
+        }
+
+        .meals-container {
+            padding: 0;
+        }
+
+        .meal-section {
+            border-bottom: 1px solid #e1e8ed;
+            padding: 20px;
+        }
+
+            .meal-section:last-child {
+                border-bottom: none;
+            }
+
+            .meal-section.breakfast {
+                background: linear-gradient(135deg, #fff8e1 0%, #fff3c4 100%);
+                border-right: 4px solid #ff9800;
+            }
+
+            .meal-section.lunch {
+                background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+                border-right: 4px solid #9c27b0;
+            }
+
+            .meal-section.dinner {
+                background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+                border-right: 4px solid #4caf50;
+            }
+
+        .past-day .meal-section {
+            background: #f8f9fa !important;
+            border-right-color: #dee2e6 !important;
+            opacity: 0.7;
+        }
+
+        .past-day .food-name,
+        .past-day .meal-title {
+            color: #6c757d !important;
+        }
+
+        .past-day .meal-icon {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .meal-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .meal-icon {
+            font-size: 1.8rem;
+            margin-left: 12px;
+            width: 40px;
+            text-align: center;
+        }
+
+        .meal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .meal-time {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-right: auto;
+        }
+
+        .food-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dotted #bdc3c7;
+        }
+
+            .food-item:last-child {
+                border-bottom: none;
+            }
+
+        .food-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .food-name {
+            font-size: 1rem;
+            color: #2c3e50;
+            font-weight: 600;
+            text-align: left;
+        }
+
+        .print-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e1e8ed;
+            text-align: center;
+        }
+
+        .print-button {
+            padding: 12px 24px;
+            background: #34495e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+            .print-button:hover:not(:disabled) {
+                background: #2c3e50;
+                transform: translateY(-1px);
+            }
+
+            .print-button:disabled {
+                background: #bdc3c7;
+                color: #7f8c8d;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+            .empty-state h2 {
+                font-size: 1.8rem;
+                color: #7f8c8d;
+                margin-bottom: 15px;
+            }
+
+            .empty-state p {
+                font-size: 1.1rem;
+                color: #95a5a6;
+            }
+
+        media (max-width: 768px) {
+            .days-grid
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        .header-content h1 {
+            font-size: 1.8rem;
+        }
+
+        .container {
+            padding: 20px 15px;
+        }
+
+        }
+
+        media print {
+            body
+
+        {
+            background: white;
+        }
+
+        .print-button, .print-section {
+            display: none;
+        }
+
+        .week-table {
+            box-shadow: none;
+            border: 1px solid #000;
+        }
+
+        .day-column {
+            break-inside: avoid;
+        }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="header-section">
+        <div class="header-content">
+            <h1>برنامه غذایی هفتگی</h1>
+            <p> مشاهده و چاپ </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="weeklyFoodContainer">
+            <!-- محتوا از طریق JavaScript بارگذاری می‌شود -->
+        </div>
+    </div>
+
+    <script>
+        // داده واقعی از مدل رو به JS تبدیل می‌کنیم
+        const weeklyFoodData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        document.addEventListener('DOMContentLoaded', function () {
+            renderWeeklyFood(weeklyFoodData);
+        });
+
+
+        //// نمونه داده برای تست - این داده‌ها از کنترلر شما خواهد آمد
+        //const sampleData = [
+        //    // شنبه
+        //    {
+        //        Date: "2024-01-15T00:00:00",
+        //        DayTitle: "شنبه",
+        //        MealTitle: "صبحانه",
+        //        MainFood: "نان و پنیر و گردو",
+        //        Dessert: "مربا",
+        //        SideDish: "چای"
+        //    },
+        //    {
+        //        Date: "2024-01-15T00:00:00",
+        //        DayTitle: "شنبه",
+        //        MealTitle: "ناهار",
+        //        MainFood: "قورمه سبزی با برنج",
+        //        Dessert: "فالوده",
+        //        SideDish: "سالاد شیرازی"
+        //    },
+        //    {
+        //        Date: "2024-01-15T00:00:00",
+        //        DayTitle: "شنبه",
+        //        MealTitle: "شام",
+        //        MainFood: "کوکو سبزی",
+        //        Dessert: "ماست",
+        //        SideDish: "نان"
+        //    },
+        //    // یکشنبه
+        //    {
+        //        Date: "2024-01-16T00:00:00",
+        //        DayTitle: "یکشنبه",
+        //        MealTitle: "صبحانه",
+        //        MainFood: "کشک و بادمجان",
+        //        Dessert: "-",
+        //        SideDish: "نان تازه"
+        //    },
+        //    {
+        //        Date: "2024-01-16T00:00:00",
+        //        DayTitle: "یکشنبه",
+        //        MealTitle: "ناهار",
+        //        MainFood: "کباب کوبیده با برنج",
+        //        Dessert: "بستنی وانیلی",
+        //        SideDish: "ماست و خیار"
+        //    },
+        //    {
+        //        Date: "2024-01-16T00:00:00",
+        //        DayTitle: "یکشنبه",
+        //        MealTitle: "شام",
+        //        MainFood: "آش رشته",
+        //        Dessert: "دوغ",
+        //        SideDish: "نان سنگک"
+        //    },
+        //    // دوشنبه
+        //    {
+        //        Date: "2024-01-17T00:00:00",
+        //        DayTitle: "دوشنبه",
+        //        MealTitle: "صبحانه",
+        //        MainFood: "املت",
+        //        Dessert: "عسل",
+        //        SideDish: "نان و چای"
+        //    },
+        //    {
+        //        Date: "2024-01-17T00:00:00",
+        //        DayTitle: "دوشنبه",
+        //        MealTitle: "ناهار",
+        //        MainFood: "خورش فسنجان",
+        //        Dessert: "شیر برنج",
+        //        SideDish: "سالاد فصل"
+        //    },
+        //    {
+        //        Date: "2024-01-17T00:00:00",
+        //        DayTitle: "دوشنبه",
+        //        MealTitle: "شام",
+        //        MainFood: "کله پاچه",
+        //        Dessert: "-",
+        //        SideDish: "نان و سبزی"
+        //    },
+        //    // سه‌شنبه
+        //    {
+        //        Date: "2024-01-18T00:00:00",
+        //        DayTitle: "سه‌شنبه",
+        //        MealTitle: "صبحانه",
+        //        MainFood: "حلیم",
+        //        Dessert: "شکر",
+        //        SideDish: "چای"
+        //    },
+        //    {
+        //        Date: "2024-01-18T00:00:00",
+        //        DayTitle: "سه‌شنبه",
+        //        MealTitle: "ناهار",
+        //        MainFood: "زرشک پلو با مرغ",
+        //        Dessert: "کیک شکلاتی",
+        //        SideDish: "ترشی مخلوط"
+        //    },
+        //    {
+        //        Date: "2024-01-18T00:00:00",
+        //        DayTitle: "سه‌شنبه",
+        //        MealTitle: "شام",
+        //        MainFood: "سوپ جو",
+        //        Dessert: "ماست",
+        //        SideDish: "نان"
+        //    },
+        //    // چهارشنبه
+        //    {
+        //        Date: "2024-01-19T00:00:00",
+        //        DayTitle: "چهارشنبه",
+        //        MealTitle: "صبحانه",
+        //        MainFood: "نان و کره و مربا",
+        //        Dessert: "شیر",
+        //        SideDish: "چای"
+        //    },
+        //    {
+        //        Date: "2024-01-19T00:00:00",
+        //        DayTitle: "چهارشنبه",
+        //        MealTitle: "ناهار",
+        //        MainFood: "کباب برگ با برنج",
+        //        Dessert: "آب میوه طبیعی",
+        //        SideDish: "سالاد سزار"
+        //    },
+        //    {
+        //        Date: "2024-01-19T00:00:00",
+        //        DayTitle: "چهارشنبه",
+        //        MealTitle: "شام",
+        //        MainFood: "خورش قیمه",
+        //        Dessert: "دوغ",
+        //        SideDish: "برنج"
+        //    }
+        //];
+
+        function getDayStatus(date) {
+            const today = new Date();
+            const mealDate = new Date(date);
+
+            today.setHours(0, 0, 0, 0);
+            mealDate.setHours(0, 0, 0, 0);
+
+            if (mealDate < today) return 'past';
+            if (mealDate.getTime() === today.getTime()) return 'today';
+            return 'future';
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'past': return 'گذشته';
+                case 'today': return 'امروز';
+                case 'future': return 'آتی';
+                default: return '';
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fa-IR');
+        }
+
+        function getMealIcon(mealTitle) {
+            switch (mealTitle) {
+                case 'صبحانه': return '🌅';
+                case 'ناهار': return '🍽️';
+                case 'شام': return '🌙';
+                default: return '🍽️';
+            }
+        }
+
+        function getMealTime(mealTitle) {
+            switch (mealTitle) {
+                case 'صبحانه': return '07:00 - 09:00';
+                case 'ناهار': return '12:00 - 14:00';
+                case 'شام': return '19:00 - 21:00';
+                default: return '';
+            }
+        }
+
+        function getMealClass(mealTitle) {
+            switch (mealTitle) {
+                case 'صبحانه': return 'breakfast';
+                case 'ناهار': return 'lunch';
+                case 'شام': return 'dinner';
+                default: return 'lunch';
+            }
+        }
+
+        function printDay(dayData, dayTitle, date) {
+            const printWindow = window.open('', '_blank');
+            const printContent = `
+                        <!DOCTYPE html>
+                        <html lang="fa" dir="rtl">
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>برنامه غذایی - ${dayTitle}</title>
+                            <style>
+                                body {
+                                    font-family: 'Tahoma', Arial, sans-serif;
+                                    padding: 30px;
+                                    background: white;
+                                    color: #2c3e50;
+                                }
+                                .print-header {
+                                    text-align: center;
+                                    margin-bottom: 40px;
+                                    border-bottom: 3px solid #34495e;
+                                    padding-bottom: 20px;
+                                }
+                                .print-header h1 {
+                                    color: #34495e;
+                                    font-size: 2rem;
+                                    margin: 0 0 10px 0;
+                                }
+                                .meal-section {
+                                    margin: 25px 0;
+                                    padding: 20px;
+                                    border: 2px solid #bdc3c7;
+                                    border-radius: 8px;
+                                }
+                                .meal-header {
+                                    display: flex;
+                                    align-items: center;
+                                    margin-bottom: 15px;
+                                    padding-bottom: 10px;
+                                    border-bottom: 1px solid #ecf0f1;
+                                }
+                                .meal-title {
+                                    font-weight: bold;
+                                    color: #2c3e50;
+                                    font-size: 1.2rem;
+                                    margin-right: 10px;
+                                }
+                                .meal-time {
+                                    color: #7f8c8d;
+                                    font-size: 0.9rem;
+                                    margin-right: auto;
+                                }
+                                .food-item {
+                                    display: flex;
+                                    justify-content: space-between;
+                                    padding: 8px 0;
+                                    border-bottom: 1px dotted #bdc3c7;
+                                }
+                                .food-item:last-child {
+                                    border-bottom: none;
+                                }
+                                .food-label {
+                                    color: #7f8c8d;
+                                    font-weight: 500;
+                                }
+                                .food-name {
+                                    color: #2c3e50;
+                                    font-weight: 600;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="print-header">
+                                <h1>برنامه غذایی - ${dayTitle}</h1>
+                                <p>تاریخ: ${formatDate(date)}</p>
+                            </div>
+                            ${dayData.map(meal => `
+                                <div class="meal-section">
+                                    <div class="meal-header">
+                                        <span style="font-size: 1.5rem;">${getMealIcon(meal.MealTitle)}</span>
+                                        <span class="meal-title">${meal.MealTitle}</span>
+                                        <span class="meal-time">${getMealTime(meal.MealTitle)}</span>
+                                    </div>
+                                    <div class="food-item">
+                                        <span class="food-label">غذای اصلی:</span>
+                                        <span class="food-name">${meal.MainFood}</span>
+                                    </div>
+                                    ${meal.Dessert !== '-' ? `
+                                        <div class="food-item">
+                                            <span class="food-label">دسر:</span>
+                                            <span class="food-name">${meal.Dessert}</span>
+                                        </div>
+                                    ` : ''}
+                                    <div class="food-item">
+                                        <span class="food-label">همراه:</span>
+                                        <span class="food-name">${meal.SideDish}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </body>
+                        </html>
+                    `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function renderWeeklyFood(data) {
+            const container = document.getElementById('weeklyFoodContainer');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>📅 هیچ برنامه غذایی یافت نشد</h2>
+                        <p>برای این هفته هنوز برنامه غذایی تنظیم نشده است</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // گروه‌بندی داده‌ها بر اساس روز
+            const groupedData = {};
+            data.forEach(item => {
+                const dateKey = item.Date.split('T')[0];
+                if (!groupedData[dateKey]) {
+                    groupedData[dateKey] = {
+                        dayTitle: item.DayTitle,
+                        date: item.Date,
+                        meals: []
+                    };
+                }
+                groupedData[dateKey].meals.push(item);
+            });
+
+            // ایجاد جدول هفتگی
+            const weekTable = document.createElement('div');
+            weekTable.className = 'week-table';
+
+            const tableHeader = document.createElement('div');
+            tableHeader.className = 'table-header';
+            tableHeader.innerHTML = '<h2>برنامه غذایی هفتگی</h2>';
+            weekTable.appendChild(tableHeader);
+
+            const daysGrid = document.createElement('div');
+            daysGrid.className = 'days-grid';
+
+            // مرتب‌سازی روزها بر اساس تاریخ
+            const sortedDays = Object.entries(groupedData).sort(([a], [b]) => new Date(a) - new Date(b));
+
+            sortedDays.forEach(([dateKey, dayInfo]) => {
+                const status = getDayStatus(dayInfo.date);
+                const canPrint = status !== 'past';
+
+                // جمع‌آوری همه FoodReserveDetaileId های روز در یک آرایه (فقط مواردی که مقدار دارند)
+                const foodReserveIds = dayInfo.meals
+                    .map(meal => meal.FoodReserveDetaileId)
+                    .filter(id => id !== null && id !== undefined && id !== '');
+
+                // رشته جداشده با کاما برای ارسال به کنترلر
+                const foodReserveIdsParam = foodReserveIds.join(',');
+
+                const dayColumn = document.createElement('div');
+                dayColumn.className = `day-column ${status}-day`;
+
+                // مرتب‌سازی وعده‌ها
+                const sortedMeals = dayInfo.meals.sort((a, b) => {
+                    const mealOrder = { 'صبحانه': 1, 'ناهار': 2, 'شام': 3 };
+                    return mealOrder[a.MealTitle] - mealOrder[b.MealTitle];
+                });
+
+                dayColumn.innerHTML = `
+                    <div class="day-header ${status}">
+                        <div class="day-status ${status}">${getStatusText(status)}</div>
+                        <h3 class="day-title">${dayInfo.dayTitle}</h3>
+                        <p class="day-date">${formatDate(dayInfo.date)}</p>
+                    </div>
+
+                    <div class="meals-container">
+                        ${sortedMeals.map(meal => `
+                            <div class="meal-section ${getMealClass(meal.MealTitle)}">
+                                <div class="meal-header">
+                                    <div class="meal-icon">${getMealIcon(meal.MealTitle)}</div>
+                                    <h4 class="meal-title">${meal.MealTitle}</h4>
+                                    <span class="meal-time">${getMealTime(meal.MealTitle)}</span>
+                                </div>
+
+                                <div class="food-item">
+                                    <span class="food-label">غذای اصلی:</span>
+                                    <span class="food-name">${meal.MainFood}</span>
+                                </div>
+
+                                ${meal.Dessert !== '-' ? `
+                                    <div class="food-item">
+                                        <span class="food-label">دسر:</span>
+                                        <span class="food-name">${meal.Dessert}</span>
+                                    </div>
+                                ` : ''}
+
+                                <div class="food-item">
+                                    <span class="food-label">همراه:</span>
+                                    <span class="food-name">${meal.SideDish}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="print-section">
+                        ${canPrint && foodReserveIds.length > 0 ? `
+                            <button class="print-button" onclick="window.location.href='/ShowReserveManagment/ShowReserve/PrintMeal?foodReserveDetaileIds=${foodReserveIdsParam}'">
+                                🖨️ چاپ کل روز
+                            </button>
+                        ` : `
+                            <button class="print-button" disabled>❌ غیرفعال</button>
+                        `}
+                    </div>
+                `;
+
+                daysGrid.appendChild(dayColumn);
+            });
+
+            weekTable.appendChild(daysGrid);
+            container.appendChild(weekTable);
+        }
+
+
+        // بارگذاری داده‌ها - در پروژه واقعی از API استفاده کنید
+        document.addEventListener('DOMContentLoaded', function () {
+            // شبیه‌سازی دریافت داده از کنترلر
+            // در پروژه واقعی این قسمت را با فراخوانی API جایگزین کنید
+            setTimeout(() => {
+                renderWeeklyFood(sampleData);
+            }, 500);
+        });
+
+        // تابع برای اتصال به کنترلر واقعی
+        async function loadWeeklyFoodFromController(userId) {
+            try {
+                const response = await fetch(`/ShowReserveManagment/ShowReserve/GetWeeklyFoodReserve?userId=${userId}`);
+                const data = await response.json();
+                renderWeeklyFood(data);
+            } catch (error) {
+                console.error('خطا در بارگذاری داده‌ها:', error);
+                document.getElementById('weeklyFoodContainer').innerHTML = `
+                            <div class="empty-state">
+                                <h2>⚠️ خطا در بارگذاری</h2>
+                                <p>امکان دریافت اطلاعات وجود ندارد. لطفاً دوباره تلاش کنید.</p>
+                            </div>
+                        `;
+            }
+        }
+    </script>
+    <script>(function () { function c() { var b = a.contentDocument || a.contentWindow.document; if (b) { var d = b.createElement('script'); d.innerHTML = "window.__CF$cv$params={r:'9871a97d741e18c7',t:'MTc1OTIxMzcyNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);"; b.getElementsByTagName('head')[0].appendChild(d) } } if (document.body) { var a = document.createElement('iframe'); a.height = 1; a.width = 1; a.style.position = 'absolute'; a.style.top = 0; a.style.left = 0; a.style.border = 'none'; a.style.visibility = 'hidden'; document.body.appendChild(a); if ('loading' !== document.readyState) c(); else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c); else { var e = document.onreadystatechange || function () { }; document.onreadystatechange = function (b) { e(b); 'loading' !== document.readyState && (document.onreadystatechange = e, c()) } } } })();</script>
+</body>
+</html>

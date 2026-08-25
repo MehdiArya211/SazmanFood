@@ -1,0 +1,258 @@
+﻿@model DTO.Entities.DiningHallEditDTO
+@using Domain.Enums.Food
+
+<div class="modal-header">
+    <button type="button"
+            class="close"
+            title="بستن پنجره"
+            data-dismiss="modal"
+            aria-label="Close">
+
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h4 class="modal-title" id="modal5-label">
+        ویرایش سالن غذاخوری
+    </h4>
+
+    <div class="text-center">
+        پرکردن فیلدهای ستاره‌دار الزامی است.
+    </div>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+
+        <form asp-action="Edit"
+              asp-route-id="@Model.Id"
+              class="edit-form"
+              onsubmit="return diningHall.edit.save(event)">
+
+            <div class="form-horizontal">
+                <hr />
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger">
+                </div>
+
+                <div class="error text-center text-danger">
+                    @ViewBag.Error
+                </div>
+
+                <input asp-for="Id" type="hidden" />
+
+                <div class="col-md-12">
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="Title"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="Title"
+                                   class="form-control" />
+
+                            <span asp-validation-for="Title"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="OrgId"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <select asp-for="OrgId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.Org">
+
+                                <option value="">
+                                    یگان را انتخاب کنید
+                                </option>
+                            </select>
+
+                            <span asp-validation-for="OrgId"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="ManagerName"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="ManagerName"
+                                   class="form-control" />
+
+                            <span asp-validation-for="ManagerName"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="col-md-12">
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="PhoneNumber"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="PhoneNumber"
+                                   class="form-control phone-number"
+                                   placeholder="شماره تماس" />
+
+                            <span asp-validation-for="PhoneNumber"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="PersonalTypeId"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <select asp-for="PersonalTypeId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.PersonalTypeId">
+
+                                <option value="">
+                                    نوع پرسنل را انتخاب کنید
+                                </option>
+                            </select>
+
+                            <span asp-validation-for="PersonalTypeId"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="UsageType"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                                                <select asp-for="UsageType"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition"
+                                    asp-items="Html.GetEnumSelectList<DiningHallUsageType>()">
+                                                                    <option value="">نوع استفاده را انتخاب کنید</option>
+
+                                      </select>
+
+                            <span asp-validation-for="UsageType"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="col-md-12">
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="HallCapacity"
+                               class="control-label text-right col-md-12">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="HallCapacitySep"
+                                   class="form-control hall-capacity-separator"
+                                   type="text"
+                                   maxlength="15" />
+
+                            <input asp-for="HallCapacity"
+                                   class="hall-capacity"
+                                   type="hidden" />
+
+                            <span asp-validation-for="HallCapacity"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <div class="col-md-12"
+                             style="padding-top:30px">
+
+                            <div class="togglebutton">
+                                <label>
+                                    سالن داخلی یگان باشد
+                                    <input asp-for="IsInternal" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <div class="col-md-12"
+                             style="padding-top:30px">
+
+                            <div class="togglebutton">
+                                <label>
+                                    فعال باشد
+                                    <input asp-for="IsActive" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-12">
+
+                        <label asp-for="Description"
+                               class="control-label text-right col-md-12">
+                        </label>
+
+                        <div class="col-md-12">
+                            <textarea asp-for="Description"
+                                      class="form-control"
+                                      rows="3">
+                            </textarea>
+
+                            <span asp-validation-for="Description"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <div class="btn-group">
+
+                        <button type="submit"
+                                class="btn btn-info">
+
+                            <i class="material-icons">send</i>
+                            ذخیره اطلاعات
+                        </button>
+
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,295 @@
+﻿using BLL;
+using BLL.FoodManag.FoodBL;
+using BLL.Interface;
+using BLL.ReserveManagment;
+using Domain.Entities.FoodManage;
+using Domain.Entities.FoodReservation;
+using DTO.Entities;
+using DTO.Entities.FoodReservation;
+using Filters;
+using Microsoft.AspNetCore.Mvc;
+using Services.RedisService;
+using Services.SessionServices;
+
+namespace Food.Areas.ReserveManagment.Controllers
+{
+    /// <summary>
+    /// مدیریت رزرو غذا - غذا
+    /// </summary>
+    [Area("ReserveManagment")]
+    [UserAuthorize(Area: "ReserveManagment", Controller: "reserve", Action: "index")]
+    public class ReserveController : Controller
+    {
+        private readonly IFoodManager _foodManager;
+        private readonly IFoodPlanDayManager _foodPlanDayManager;
+        private readonly IMealManager _mealManager;
+        private readonly IFoodReserveManager _foodReserveManager;
+        private readonly IFoodReserveDetailManager _foodReserveDetailManager;
+        private readonly IRedisManager _redis;
+
+        public ReserveController(IFoodPlanDayManager foodPlanDayManager, IMealManager mealManager, IFoodManager foodManager
+            , IFoodReserveManager foodReserveManager , IRedisManager redis, IFoodReserveDetailManager foodReserveDetailManager)
+        {
+            _foodPlanDayManager = foodPlanDayManager;
+            _foodManager = foodManager;
+            _mealManager = mealManager;
+            _foodReserveManager = foodReserveManager;
+            _redis = redis;
+            _foodReserveDetailManager = foodReserveDetailManager;
+        }
+
+        public IActionResult Index()
+        {
+            var user = HttpContext.Session.GetUser();
+            long currentUserId = user.Id; // فرض می‌کنیم شناسه کاربر به این شکل است
+
+            // --- محاسبه محدوده زمانی هفته جاری ---
+            var now = DateTime.Now;
+            // محاسبه شروع هفته (فرض: شروع هفته از شنبه)
+            int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
+            DateTime weekStartDate = now.AddDays(-1 * diff).Date;
+            DateTime weekEndDate = weekStartDate.AddDays(6).Date;
+
+            // --- جستجوی رزرو قبلی کاربر در این هفته ---
+            var existingReserve = _foodReserveManager.GetAll()
+                .FirstOrDefault(r => r.UserId == currentUserId &&
+                                     r.WeekStartDate == weekStartDate &&
+                                     r.WeekEndDate == weekEndDate);
+
+            FoodReserve existingFoodReserve = null;
+            List<FoodReserveDetail> existingReserveDetails = null;
+
+            if (existingReserve != null)
+            {
+                existingFoodReserve = existingReserve;
+                // فرض: متد یا خاصیتی برای گرفتن جزئیات رزرو بر اساس FoodReserveId دارید
+                existingReserveDetails = _foodReserveDetailManager.GetAll()
+                    .Where(d => d.FoodReserveId == existingReserve.Id) // فرض می‌کنیم FoodReserveDetail دارای FoodReserveId است
+                    .ToList();
+            }
+            // --------------------------------------
+
+            var allFoods = _foodManager.GetAll().Where(x => x.IsDeleted == false).ToList();
+            var allFoodPlanDays = _foodPlanDayManager.GetAll().Where(x => x.IsDeleted == false);
+
+            // ... (بقیه منطق ساخت دیکشنری‌های غذاها که قبلا داشتید) ...
+            var mainFoodsDict = new Dictionary<(long, long), List<Foods>>();
+            var dessertDict = new Dictionary<(long, long), List<Foods>>();
+            var sideDishDict = new Dictionary<(long, long), List<Foods>>();
+
+            var grouped = allFoodPlanDays.GroupBy(x => new { x.DayId, x.MealId });
+
+            foreach (var group in grouped)
+            {
+                var key = (group.Key.DayId, group.Key.MealId);
+                // ... (منطق پر کردن دیکشنری‌ها) ...
+                mainFoodsDict[key] = group
+                    .Where(x => x.Food != null && x.Food.FoodTypesId == 3)
+                    .Select(x => x.Food)
+                    .Distinct()
+                    .ToList();
+
+                dessertDict[key] = group
+                    .Where(x => x.FoodDesserId.HasValue)
+                    .Select(x => allFoods.FirstOrDefault(f => f.Id == x.FoodDesserId.Value))
+                    .Where(x => x != null)
+                    .Distinct()
+                    .ToList();
+
+                sideDishDict[key] = group
+                    .Where(x => x.FoodDorchinId.HasValue)
+                    .Select(x => allFoods.FirstOrDefault(f => f.Id == x.FoodDorchinId.Value))
+                    .Where(x => x != null)
+                    .Distinct()
+                    .ToList();
+            }
+
+            var model = new FoodPlanReserveDTO
+            {
+                Days = _foodPlanDayManager.GetAllDay().Model,
+                Meals = _mealManager.GetAll().ToList(),
+                MainFoods = mainFoodsDict,
+                Desserts = dessertDict,
+                SideDishes = sideDishDict,
+
+                // تخصیص مقادیر جدید
+                ExistingFoodReserve = existingFoodReserve,
+                ExistingReserveDetails = existingReserveDetails
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public IActionResult Index(IFormCollection form)
+        {
+            var user = HttpContext.Session.GetUser();
+            long userId = user.Id;
+
+            try
+            {
+                var now = DateTime.Now;
+                int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
+                DateTime weekStartDate = now.AddDays(-1 * diff).Date;
+                DateTime weekEndDate = weekStartDate.AddDays(6).Date;
+
+                // جستجوی رزرو قبلی برای هفته جاری
+                //var existingReserve0 = _foodReserveManager.GetAll()
+                //    .FirstOrDefault(r => r.UserId == userId &&
+                //                        r.WeekStartDate == weekStartDate &&
+                //                        r.WeekEndDate == weekEndDate);
+
+                var existingReserveDetail = _foodReserveManager.GetFoodReserveDetail(userId);
+                // اگر رزرو قبلی وجود داشت، حذف تمام جزئیات آن
+                if ( existingReserveDetail.Count!=0)
+                {
+                    var existingReserve = _foodReserveManager.GetById(existingReserveDetail.FirstOrDefault().FoodReserveId);
+
+
+                    foreach (var item in existingReserveDetail)
+                    {
+                        _foodReserveDetailManager.Delete(item.Id);
+
+                    }
+                    _foodReserveManager.Delete(existingReserve.Id);
+
+                }
+
+                // ایجاد شی برنامه غذایی
+                var plan = new FoodReserveDTO
+                {
+                    UserId = userId,
+                    CreatedAt = DateTime.Now,
+                    WeekStartDate = weekStartDate,
+                    WeekEndDate = weekEndDate,
+                    Details = new List<FoodReserveDetailDTO>()
+                };
+
+                // گرفتن روزها و وعده‌ها
+                var days = _foodPlanDayManager.GetAllDay().Model;
+                var meals = _mealManager.GetAll().ToList();
+
+                // پیمایش روزها و وعده‌ها
+                foreach (var day in days)
+                {
+                    foreach (var meal in meals)
+                    {
+                        var key = $"{day.Id}{meal.Id}";
+
+                        var mainFood = form[$"MainFood_{key}"];
+                        var dessert = form[$"Dessert_{key}"];
+                        var sideDish = form[$"SideDish_{key}"];
+
+                        // اگر هیچ چیز انتخاب نشده، ادامه دهید
+                        if (string.IsNullOrEmpty(mainFood) &&
+                            string.IsNullOrEmpty(dessert) &&
+                            string.IsNullOrEmpty(sideDish))
+                            continue;
+
+                        // تبدیل به long
+                        long.TryParse(mainFood, out var mainFoodId);
+                        long.TryParse(dessert, out var dessertId);
+                        long.TryParse(sideDish, out var sideDishId);
+
+                        // اضافه کردن جزئیات
+                        plan.Details.Add(new FoodReserveDetailDTO
+                        {
+                            DayId = day.Id,
+                            MealId = meal.Id,
+                            MainFoodId = mainFoodId != 0 ? mainFoodId : (long?)null,
+                            DessertId = dessertId != 0 ? dessertId : (long?)null,
+                            SideDishId = sideDishId != 0 ? sideDishId : (long?)null
+                        });
+                    }
+                }
+
+                // اگر هیچ جزئیتی وجود نداشت، خطا
+                if (!plan.Details.Any())
+                {
+                    TempData["Error"] = "لطفاً حداقل یک مورد را انتخاب نمایید.";
+                    return RedirectToAction("Create");
+                }
+
+                // اضافه کردن رزرو (اگر قبلی بود، جایگزین می‌شود)
+                var result = _foodReserveManager.AddToReserveAndReserveDetail(plan);
+
+                if (result.Status)
+                {
+                    TempData["Success"] = "برنامه غذایی با موفقیت ثبت شد.";
+                    _redis.db.RefreshUserSession(user.Id, 1, 3);
+                    return RedirectToAction("Index");
+                }
+                else
+                {
+                    TempData["Error"] = "خطا در ثبت برنامه غذایی: " + result.Message;
+                    return RedirectToAction("Index");
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "خطا در ثبت برنامه غذایی: " + ex.Message;
+                return RedirectToAction("Create");
+            }
+        }
+
+        [HttpPost]
+        public IActionResult DeleteDay(long dayId)
+        {
+            var user = HttpContext.Session.GetUser();
+            long userId = user.Id;
+
+            try
+            {
+                // محاسبه محدوده هفته جاری
+                var now = DateTime.Now;
+                int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
+                DateTime weekStartDate = now.AddDays(-1 * diff).Date;
+                DateTime weekEndDate = weekStartDate.AddDays(6).Date;
+
+                // جستجوی رزرو فعلی
+                var existingReserve = _foodReserveManager.GetAll()
+                    .FirstOrDefault(r => r.UserId == userId &&
+                                        r.WeekStartDate == weekStartDate &&
+                                        r.WeekEndDate == weekEndDate);
+
+                if (existingReserve == null)
+                {
+                    return Json(new { success = false, message = "رزرو ایجاد نشده است." });
+                }
+
+                // حذف تمام جزئیات مربوط به این روز
+                var detailsToDelete = _foodReserveDetailManager.GetAll()
+                    .Where(d => d.FoodReserveId == existingReserve.Id && d.DayId == dayId)
+                    .ToList();
+
+                foreach (var detail in detailsToDelete)
+                {
+                    _foodReserveDetailManager.Delete(detail.Id);
+                }
+
+                // اگر هیچ جزئیاتی برای این رزرو باقی نماند، رزرو را حذف کن
+                var remainingDetails = _foodReserveDetailManager.GetAll()
+                    .Where(d => d.FoodReserveId == existingReserve.Id)
+                    .ToList();
+
+                if (!remainingDetails.Any())
+                {
+                    _foodReserveManager.Delete(existingReserve.Id);
+                }
+
+                return Json(new { success = true, message = "روز با موفقیت حذف شد." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+
+
+
+
+
+    }
+}

@@ -1,0 +1,40 @@
+﻿@model List<FoodReserve>
+
+<h2>لیست رزروهای من</h2>
+
+@foreach (var reserve in Model)
+{
+    <div class="card my-3 p-3 border rounded shadow-sm">
+        <h5>هفته از @reserve.WeekStartDate.ToShortDateString() تا @reserve.WeekEndDate.ToShortDateString()</h5>
+        <table class="table table-bordered mt-2">
+            <thead>
+                <tr>
+                    <th>روز</th>
+                    <th>وعده</th>
+                    <th>غذا</th>
+                    <th>دسر</th>
+                    <th>دورچین</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var detail in reserve.Details.OrderBy(x => x.DayId).ThenBy(x => x.MealId))
+                {
+                    <tr>
+                        <td>@detail.Day.Title</td>
+                        <td>@detail.Meal.Title</td>
+                        <td>@detail.MainFood?.Title ?? "-"</td>
+                        <td>@detail.Dessert?.Title ?? "بدون دسر"</td>
+                        <td>@detail.SideDish?.Title ?? "بدون دورچین"</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <form asp-action="EditReserve" method="get" asp-route-reserveId="@reserve.Id" class="d-inline">
+            <button class="btn btn-warning">ویرایش</button>
+        </form>
+        <form asp-action="DeleteReserve" method="post" asp-route-reserveId="@reserve.Id" class="d-inline" onsubmit="return confirm('آیا از حذف این رزرو مطمئن هستید؟');">
+            <button class="btn btn-danger">حذف</button>
+        </form>
+    </div>
+}

@@ -1,0 +1,87 @@
+﻿@model DTO.Entities.Kitchen.KitchenCreateDTO
+
+<div class="modal-header">
+    <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h4 class="modal-title" id="modal5-label">
+        افزودن آشپزخانه
+    </h4>
+
+    <div class="text-center">
+        پرکردن فیلدهای ستاره دار الزامی است.
+    </div>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <form asp-action="Create" class="create-form" onsubmit="return softwares.create.save(event)">
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+                <hr />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="error text-center text-danger">@ViewBag.Error</div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-3">
+                        <label asp-for="Title" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <input asp-for="Title" class="form-control" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label asp-for="OrgId" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <select id="OrgId" asp-for="OrgId" class="selectpicker" data-live-search="true" data-size="7"
+                                    data-style="select-with-transition" asp-items="ViewBag.Org">
+                                <option value="">انتخاب کنید</option>
+                            </select>
+                            <span asp-validation-for="OrgId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label class="control-label text-right col-md-12">ظرفیت پخت</label>
+                        <div class="col-md-12">
+                            <input asp-for="CookingCapacitySep" type="text" id="CookingCapacitySep" class="form-control numeric-separator" onkeypress="return isNumberKey(event)" maxlength="15" />
+                            <input asp-for="CookingCapacity" id="CookingCapacity" type="hidden" class="form-control" />
+                            <span asp-validation-for="CookingCapacitySep" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label asp-for="IsActive" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <input asp-for="IsActive" class="form-control" />
+                            <span asp-validation-for="IsActive" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-12">
+                        <label asp-for="Description" class="control-label text-right col-md-12"></label>
+                        <div class="col-md-12">
+                            <input asp-for="Description" class="form-control" />
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-info">
+                            <i class="material-icons">send</i>
+                            ذخیره اطلاعات
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

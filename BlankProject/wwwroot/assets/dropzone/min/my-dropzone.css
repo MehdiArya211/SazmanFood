@@ -1,0 +1,222 @@
+﻿/**************************/
+/**** استایل dropzone ****/
+/*********************** */
+.upload { 
+text-align: right; 
+border:solid 5px #CBCAC6;
+background-color:#f9f9f9;
+padding: 20px 20px 40px 20px; 
+} 
+select
+{
+width: 400px;
+}
+fieldset
+{
+	background-color:White;
+}
+
+
+.upload p{
+    font-size:13px;
+}
+
+
+.upload form{
+    text-align:center;
+}
+
+.upload button:first-of-type{
+    background-color: #4caf50;
+color: #FFFFFF;
+border: none;
+border-radius: 3px;
+position: relative;
+padding: 12px 40px;
+margin: 20px 1px;
+font-size: 13px;
+font-weight: 400;
+text-transform: uppercase;
+letter-spacing: 0;
+will-change: box-shadow, transform;
+transition: box-shadow 0.2s cubic-bezier(0.4, 0, 1, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+box-shadow: 0 2px 2px 0 rgba(76, 175, 80, 0.14), 0 3px 1px -2px rgba(76, 175, 80, 0.2), 0 1px 5px 0 rgba(76, 175, 80, 0.12);
+}
+
+
+
+.upload button:not(:first-of-type){
+    background-color: #ff0000;
+color: #FFFFFF;
+border: none;
+border-radius: 3px;
+position: relative;
+padding: 5px 20px;
+margin: 10px 1px;
+font-size: 13px;
+font-weight: 400;
+text-transform: uppercase;
+letter-spacing: 0;
+will-change: box-shadow, transform;
+transition: box-shadow 0.2s cubic-bezier(0.4, 0, 1, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+box-shadow: 0 2px 2px 0 rgba(76, 175, 80, 0.14), 0 3px 1px -2px rgba(76, 175, 80, 0.2), 0 1px 5px 0 rgba(76, 175, 80, 0.12);
+}
+
+
+.uploadergrid , .uploaderprogresstable{
+    margin:10px auto !important;
+}
+
+.upload .content{
+    min-height:unset !important;
+}
+
+.upload upload-message{
+    margin-bottom:50px;
+}
+
+.video-container{
+    text-align:center;
+}
+video{
+    max-width:100%;
+    max-height:300px;
+    margin:0px auto;
+}
+
+
+.upload-item{
+    margin-top:50px;
+}
+
+.upload-item.about{
+    margin-top:10px;
+}
+
+.upload-item .file-title{
+    padding-bottom:10px;
+}
+
+.dz-error-message{
+    top:-50px !important;
+    text-align:center;
+}
+
+
+.dropzone .dz-preview .dz-error-message:after {
+    content: '';
+    position: absolute;
+    bottom: -6px !important;
+    top:unset !important;
+    left: 64px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #be2626 !important;
+    border-bottom: none !important;
+}
+
+
+form.MainFile {
+    background: url('/Areas/PodcastSystem/Content/img/video-and-audio.jpg');
+    background-repeat : no-repeat;
+    background-position:center center;
+    background-size:100%;
+}
+
+
+form.TextFileFa {
+    background: url('/Areas/PodcastSystem/Content/img/text1.png');
+    background-repeat : no-repeat;
+    background-position:center center;
+    background-size:100%;
+}
+
+
+form.TextFileEn {
+    background: url('/Areas/PodcastSystem/Content/img/text1.png');
+    background-repeat : no-repeat;
+    background-position:center center;
+    background-size:100%;
+}
+
+
+form.slider-file {
+    background: url('/Areas/PodcastSystem/Content/img/video-picture.png');
+    background-repeat : no-repeat;
+    background-position:center center;
+    background-size:100%;
+}
+
+
+form.about-video {
+    background: url('../../img/video.png');
+    background-repeat : no-repeat;
+    background-position:center center;
+    background-size:100%;
+}
+
+
+
+form.dropzone{
+    width:200px;
+    height:200px;
+    margin:10px auto;
+    text-align:center;
+}
+
+
+.dropzone .dz-message{
+    /*background:#fff;
+    width:100%;
+    display:block;*/
+    display:none;
+}
+
+.dz-image{
+    box-shadow:0px 0px 5px #ccc;
+}
+
+.dz-preview {
+    margin:0px !important;
+}
+
+.dz-remove{
+    background:red;
+    color:#fff !important;
+    border-radius:5px;
+    text-decoration:none !important;
+    margin-top:10px;
+    padding:5px ;
+    width:auto;
+}
+
+
+.upload-resault{
+    display:none;
+}
+
+.upload-resault.show{
+    display:block;
+}
+
+.upload-resault.show{
+    display:block;
+}
+
+.delete{
+    display:none;
+}
+
+
+.upload-resault.show + div > .delete{
+    display:inline-block;
+}
+
+
+
+.upload-resault * {
+    width:auto !important;
+    max-width:100%;
+}

@@ -1,0 +1,157 @@
+﻿.sweet-overlay{
+    z-index: 1050 !important;
+}
+
+/*input file*/
+.fileinput-preview , .fileinput-new.thumbnail{
+    max-width:100%;
+    /*width:250px;*/
+    height:167px;
+    line-height: 167px;
+}
+
+    .fileinput-preview > img , .fileinput-new > img{
+        display:inline-block;
+        max-width:100%;
+        max-height:100%;
+        width:auto;
+    }
+
+
+/*refresh modal album*/
+.search .refresh a{
+    cursor:pointer;
+    display:inline-block;
+    color:orange;
+}
+
+.search .refresh a > span{
+    display:inline-block;
+    float:right;
+}
+.search .refresh a > span:last-child{
+    padding-right: 5px;
+    transition:500ms;
+    width:30px;
+    height:30px;
+}
+
+.search .refresh a > span.rotate{
+    background:url("/Areas/Admin/assets/img/refresh.gif") no-repeat center center;
+    background-size:23px;
+}
+
+/*modal album*/
+.modal .modal-dialog {
+    margin-top: 0px;
+    margin:0 !important;
+    padding:0 !important;
+}
+
+.modal-lg {
+    width: 100%;
+}
+
+.modal-lg > .modal-content{
+    padding:20px;
+    border-radius:0;
+}
+
+.modal-lg > .modal-content > .header{
+    border-bottom:2px solid #ccc;
+}
+
+
+.modal-lg > .modal-content > .header .card{
+    box-shadow:unset;
+    padding-bottom:10px;
+}
+
+#AlbumPics{
+    padding-top:30px;
+}
+
+.search{
+    margin-bottom:0px;
+}
+
+.search .card-title{
+font-weight:bold;
+color:orange;
+}
+
+.search > .card-content{
+    padding:0;
+}
+
+.search > .card-content > *{
+    margin:0px;
+}
+
+.notification.show{
+    top:0px;
+    min-height:1px;
+    height:30px;
+    padding:0px 10px;
+    background:#fff;
+    color:green;
+    text-align:center;
+    box-shadow:unset;
+    border:none;
+    transition:300ms;
+    display:inline-block;
+    width:auto;
+}
+
+.notification.show > .notification-icon{
+    position:relative;
+    display:inline-block;
+    top:auto;
+    right:auto;
+    transition:300ms;
+}
+
+.notification.show > .notification-text{
+    position:relative;
+    display:inline-block;
+    width:auto;
+    min-height:1px;
+    padding:0;
+    padding-right:10px;
+    transition:300ms;
+}
+
+.close-modal{
+    cursor:pointer;
+}
+
+#AlbumModal{
+    overflow:hidden;
+}
+
+#AlbumModal .modal-content{
+    height:calc(100vh - 0px);
+    overflow:hidden;
+} 
+
+
+#AlbumModal .modal-content #AlbumPics{
+    height:calc(100vh - 40px - 110px);
+    overflow:auto;
+}
+
+ 
+.picture-addresses{
+    margin-bottom:0;
+}
+
+
+
+
+
+
+
+
+
+
+

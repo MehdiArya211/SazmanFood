@@ -1,0 +1,373 @@
+﻿@using Services.SessionServices
+@using Domain.Resources
+@{
+    var CController = ViewContext.RouteData.Values["Controller"]?.ToString()?.ToLower();
+    var CAction = ViewContext.RouteData.Values["Action"]?.ToString()?.ToLower();
+
+    var User = Context.Session.GetUser();
+}
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="apple-touch-icon" sizes="76x76" href="~/assets/img/favicon.ico" />
+    <link rel="icon" type="image/png" href="~/assets/img/favicon.ico" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <title> پنل کاربری @Config.SiteNameFa </title>
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <meta name="viewport" content="width=device-width" />
+
+    <!--Bootstrap core CSS-->
+    <link href="~/assets/css/bootstrap.min.css" rel="stylesheet" />
+
+    <link href="~/assets/Custom-Scrollbar/jquery.mCustomScrollbar.min.css" rel="stylesheet" />
+
+    <!--Material Dashboard CSS    -->
+    <link href="~/assets/css/material-dashboard.css" rel="stylesheet" />
+    <!--CSS for Demo Purpose, don't include it in your project-->
+    <link href="~/assets/css/demo.css" rel="stylesheet" />
+    <!--Fonts and icons-->
+    <link href="~/assets/fonts/font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet" />
+    <link href="~/assets/css/googleapis.css?materialIcon" rel="stylesheet" />
+    <link href="~/assets/css/bootstrap-rtl.min.css" rel="stylesheet" />
+    <link href="~/assets/css/my-rtl-custom-style.css" rel="stylesheet" />
+    <link href="~/assets/animate/animate.css" rel="stylesheet" />
+
+    <script src="~/assets/js/jquery-3.1.1.min.js" type="text/javascript"></script>
+    <style>
+        footer {
+            padding: 0;
+        }
+    </style>
+    @RenderSection("styles", required: false)
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="sidebar" data-active-color="rose" data-background-color="black" data-image="/assets/img/sidebar-1.jpg">
+
+            <div class="logo">
+                <a href="/" class="simple-text logo-mini" style="width:unset;">
+                    <img src="~/assets/img/sazeman.png" alt="logo" style="border-radius: 100%;" />
+                </a>
+                <a href="/" class="simple-text logo-normal">
+                    @Config.SiteNameFa
+                </a>
+            </div>
+
+
+
+            <div class="sidebar-wrapper">
+                <div class="user">
+                    <div class="photo">
+                        <img src="@Url.Content(@*User.Pic ??*@ "~/assets/img/user-icon.svg")" />
+                    </div>
+                    <div class="user-info">
+                        <a data-toggle="collapse" href="#profile" class="username @(CController == "profile" ? "" : "collapsed")" aria-expanded="@(CController == "profile" ? "true" : "false")">
+                            <span>
+                                @User.FullName
+                                <b class="caret"></b>
+                            </span>
+                        </a>
+                        <div class="collapse @(CController == "profile" ? "in" : "")" id="profile" style="">
+                            <ul class="nav">
+                                <li class="nav-item @(CController == "profile" && CAction == "edit" ? "active" : "")">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Profile" asp-action="Edit">
+                                        <span class="sidebar-mini"> <span class="material-icons">account_box</span> </span>
+                                        <span class="sidebar-normal"> ویرایش پروفایل</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item @(CController == "profile" && CAction == "changepassword" ? "active" : "")">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Profile" asp-action="ChangePassword">
+                                        <span class="sidebar-mini"> <span class="material-icons">lock</span> </span>
+                                        <span class="sidebar-normal"> تغییر کلمه عبور </span>
+                                    </a>
+                                </li>
+                                <li class="nav-item @(CController == "profile" && CAction == "loginlog" ? "active" : "")">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Profile" asp-action="LoginLog">
+                                        <span class="sidebar-mini"> <span class="material-icons">compare_arrows</span> </span>
+                                        <span class="sidebar-normal"> لاگ ورود و خروج </span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Authentication" asp-action="Logout">
+                                        <span class="sidebar-mini"><span class="material-icons">exit_to_app</span></span>
+                                        <span class="sidebar-normal"> خروج </span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+
+                <ul class="nav main-nav">
+                </ul>
+            </div>
+        </div>
+        <div class="main-panel">
+            <nav class="navbar navbar-transparent navbar-absolute">
+                <div class="container-fluid">
+                    <div class="navbar-minimize">
+                        <button id="minimizeSidebar" class="btn btn-round btn-white btn-fill btn-just-icon">
+                            <i class="material-icons visible-on-sidebar-regular">more_vert</i>
+                            <i class="material-icons visible-on-sidebar-mini">view_list</i>
+                        </button>
+                    </div>
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle" data-toggle="collapse">
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+
+                    </div>
+                    <div class="collapse navbar-collapse">
+
+                        <!--پلاگین تغییر تم-->
+                        <div class="fixed-plugin">
+                            <div class="dropdown show-dropdown">
+                                <a href="#" data-toggle="dropdown">
+                                    <i class="fa fa-cog fa-2x" title="تنظیمات" data-toggle="tooltip" data-placement="bottom"> </i>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li class="header-title">تنظیمات</li>
+                                    <li class="adjustments-line">
+                                        <a href="javascript:void(0)" class="switch-trigger active-color">
+                                            <div class="badge-colors text-center" id="setting-sidebar-active-color">
+                                                <span class="badge filter badge-purple" data-color="purple"></span>
+                                                <span class="badge filter badge-blue" data-color="blue"></span>
+                                                <span class="badge filter badge-green" data-color="green"></span>
+                                                <span class="badge filter badge-orange" data-color="orange"></span>
+                                                <span class="badge filter badge-red" data-color="red"></span>
+                                                <span class="badge filter badge-rose active" data-color="rose"></span>
+                                            </div>
+                                            <div class="clearfix"></div>
+                                        </a>
+                                    </li>
+                                    <li class="header-title">رنگ زمینه منو</li>
+                                    <li class="adjustments-line">
+                                        <a href="javascript:void(0)" class="switch-trigger background-color">
+                                            <div class="text-center" id="setting-sidebar-bg-color">
+                                                <span class="badge filter badge-white" data-color="white"></span>
+                                                <span class="badge filter badge-black active" data-color="black"></span>
+                                            </div>
+                                            <div class="clearfix"></div>
+                                        </a>
+                                    </li>
+                                    <li class="adjustments-line">
+                                        <a href="javascript:void(0)" class="switch-trigger">
+                                            <p>منو کوچک</p>
+                                            <div class="togglebutton switch-sidebar-mini">
+                                                <label>
+                                                    <input type="checkbox" id="setting-switch-sidebar-mini">
+                                                </label>
+                                            </div>
+                                            <div class="clearfix"></div>
+                                        </a>
+                                    </li>
+                                    <li class="adjustments-line">
+                                        <a href="javascript:void(0)" class="switch-trigger">
+                                            <p>منو با تصویر زمینه</p>
+                                            <div class="togglebutton switch-sidebar-image">
+                                                <label>
+                                                    <input type="checkbox" id="setting-switch-sidebar-image">
+                                                </label>
+                                            </div>
+                                            <div class="clearfix"></div>
+                                        </a>
+                                    </li>
+                                    <li class="header-title">تصویر</li>
+                                    <li class="active setting-sidebar-bg-image">
+                                        <a class="img-holder switch-trigger" href="javascript:void(0)">
+                                            <img src="~/assets/img/sidebar-1.jpg" />
+                                        </a>
+                                    </li>
+                                    <li class="setting-sidebar-bg-image">
+                                        <a class="img-holder switch-trigger" href="javascript:void(0)">
+                                            <img src="~/assets/img/sidebar-2.jpg" />
+                                        </a>
+                                    </li>
+                                    <li class="setting-sidebar-bg-image">
+                                        <a class="img-holder switch-trigger" href="javascript:void(0)">
+                                            <img src="~/assets/img/sidebar-3.jpg" />
+                                        </a>
+                                    </li>
+                                    <li class="setting-sidebar-bg-image">
+                                        <a class="img-holder switch-trigger" href="javascript:void(0)">
+                                            <img src="~/assets/img/sidebar-4.jpg" />
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+
+
+                        <!--breadcrumb-->
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb"></ol>
+                        </nav>
+
+
+
+
+                        <ul class="nav navbar-nav navbar-right">
+
+                            <!--پاک کردن کش-->
+                            @*<li class="nav-item dropdown">
+                                <a asp-area="Admin" asp-controller="Dashboard" asp-action="ClearCache">
+                                    <i class="material-icons" data-toggle="tooltip" data-placement="bottom" title="پاک کردن کش">cached</i>
+                                    <p class="hidden-lg hidden-md">
+                                        پاک کردن کش
+                                    </p>
+                                </a>
+                            </li>*@
+                            
+                            <!--نوتیفیکیشن ثبت سفارش-->
+                            @*<li class="nav-item dropdown">
+                                <a href="#" class="dropdown-toggle order-trigger" data-toggle="dropdown">
+                                    <i class="material-icons">notifications</i>
+                                    <span class="notification order-count" style="display:none">0</span>
+                                    <p class="hidden-lg hidden-md">
+                                        اعلان ها
+                                        <b class="caret"></b>
+                                    </p>
+                                </a>
+                                <div class="">
+                                    <ul class="dropdown-menu order-list"> <li><a> سفارش جدید ثبت نشده است.</a></li></ul>
+                                </div>
+                            </li>*@
+
+                            <!--نوتیفیکیشن تیکت ها-->
+                            @*<li class="nav-item dropdown">
+                                <a href="#" class="dropdown-toggle ticket-trigger" data-toggle="dropdown" title="تیکت های جدید" aria-expanded="false">
+                                    <i class="material-icons">email</i>
+                                    <span class="notification ticket-count" style="display:none"></span>
+                                    <p class="hidden-lg hidden-md">
+                                        تیکت های جدید
+                                        <b class="caret"></b>
+                                    </p>
+                                    <div class="ripple-container"></div>
+                                </a>
+                                <div class="">
+                                    <ul class="dropdown-menu ticket-list"> <li><a>تیکت تازه ای ندارید</a></li></ul>
+                                </div>
+                            </li>*@
+
+                            <!--نوتیفیکیشن کامنت ها-->
+                            @*<li class="nav-item dropdown">
+                                <a href="#" class="dropdown-toggle comment-trigger" data-toggle="dropdown" title="کامنت های جدید" aria-expanded="false">
+                                    <i class="material-icons">comment</i>
+                                    <span class="notification comment-count" style="display:none"></span>
+                                    <p class="hidden-lg hidden-md">
+                                        کامنت های جدید
+                                        <b class="caret"></b>
+                                    </p>
+                                    <div class="ripple-container"></div>
+                                </a>
+                                <div class="">
+                                    <ul class="dropdown-menu comment-list"> <li><a>نظر جدیدی ثبت نشده است.</a></li></ul>
+                                </div>
+                            </li>*@
+
+                            <!--نوتیفیکیشن تماس با ما-->
+                            @*<li class="nav-item dropdown">
+                                <a href="#" class="dropdown-toggle contact-trigger" data-toggle="dropdown" data-toggle="tooltip" data-placement="bottom" title="پیام های تماس با ما" aria-expanded="false">
+                                    <i class="material-icons">perm_phone_msg</i>
+                                    <span class="notification contactUs-count" style="display:none"></span>
+                                    <p class="hidden-lg hidden-md">
+                                        پیام های تماس با ما
+                                        <b class="caret"></b>
+                                    </p>
+                                    <div class="ripple-container"></div>
+                                </a>
+                                <div class="">
+                                    <ul class="dropdown-menu contactUs-list"> <li><a>پیام تازه ای ندارید</a></li></ul>
+                                </div>
+                            </li>*@
+
+
+                            <!--لاگ اوت-->
+                            <li class="nav-item">
+                                <a asp-area="" asp-controller="Authentication" asp-action="logout" title="خروج" data-toggle="tooltip" data-placement="bottom">
+                                    <i class="material-icons">power_settings_new</i>
+                                    <p class="hidden-lg hidden-md">خروج از حساب کاربری</p>
+                                </a>
+                            </li>
+
+                            <li class="separator hidden-lg hidden-md"></li>
+                        </ul>
+
+                    </div>
+                </div>
+            </nav>
+
+
+            <div class="content main-content">
+                <div class="row">
+                                <!-- تصویر خوش آمد -->
+
+                    @RenderBody()
+
+                </div>
+            </div>
+            <footer class="footer">
+                <div class="container-fluid">
+                    <p class="copyright pull-right">
+                        &copy;
+                        <script>
+                            document.write(new Date().getFullYear())
+                        </script>
+                        <a href="#">سازمان فناوری اطلاعات نزاجا</a>
+                    </p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!--   Core JS Files   -->
+    <script src="~/assets/js/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="~/assets/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="~/assets/js/material.min.js" type="text/javascript"></script>
+    @*<script src="~/assets/js/perfect-scrollbar.jquery.min.js" type="text/javascript"></script>*@
+    @*<script src="~/assets/perfect-scrollbar/dist/perfect-scrollbar.js"></script>*@
+    <script src="~/assets/Custom-Scrollbar/jquery.mCustomScrollbar.concat.min.js"></script>
+
+    <!-- Forms Validations Plugin -->
+    <script src="~/assets/js/jquery.validate.min.js"></script>
+    <script src="~/assets/js/jquery.validate.error-messages.js"></script>
+
+    <!--  Notifications Plugin    -->
+    <script src="~/assets/js/bootstrap-notify.js"></script>
+    <!-- Select Plugin -->
+    <script src="~/assets/js/jquery.select-bootstrap.js"></script>
+    <!-- Sweet Alert 2 plugin -->
+    <script src="~/assets/js/sweetalert2.js"></script>
+    <!--	Plugin for Fileupload, full documentation here: http://www.jasny.net/bootstrap/javascript/#fileinput -->
+    <script src="~/assets/js/jasny-bootstrap.min.js"></script>
+    <!-- TagsInput Plugin -->
+    <script src="~/assets/js/jquery.tagsinput.js"></script>
+    <!-- Material Dashboard javascript methods -->
+    <script src="~/assets/js/material-dashboard.js"></script>
+    <script src="~/assets/js/demo.js"></script>
+
+    <script>
+        var controller = '@(CController)';
+        var action = '@(CAction)';
+        var UserId = '@(User.Id)';
+    </script>
+
+    <script src="~/assets/main.js"></script>
+
+    @RenderSection("Scripts", required: false)
+
+
+    <script src="~/assets/ETS-panel.js"></script>
+
+
+</body>
+</html>

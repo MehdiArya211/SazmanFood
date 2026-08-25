@@ -1,0 +1,162 @@
+﻿@model DTO.Entities.UnitCalendarCreateDTO
+
+@{
+    var initialDate = Model.CalendarDate.HasValue
+        ? Model.CalendarDate.Value.ToString("yyyy-MM-dd")
+        : DateTime.Now.ToString("yyyy-MM-dd");
+}
+
+<div class="modal-header">
+
+    <button type="button"
+            class="close"
+            title="بستن پنجره"
+            data-dismiss="modal"
+            aria-label="Close">
+
+        <span aria-hidden="true">
+            &times;
+        </span>
+    </button>
+
+    <h4 class="modal-title">
+        ثبت وضعیت روز
+    </h4>
+
+    <div class="text-center">
+        تاریخ را به‌صورت شمسی انتخاب کنید.
+    </div>
+
+</div>
+
+<div class="modal-body row">
+
+    <div class="col-md-12">
+
+        <form asp-action="Create"
+              class="create-form"
+              onsubmit="return unitCalendar.create.save(event)">
+
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+
+                <hr />
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger">
+                </div>
+
+                <div class="error text-center text-danger">
+                </div>
+
+                <div class="col-md-12">
+
+                    <!-- تاریخ شمسی -->
+                    <div class="form-group col-md-4">
+
+                        <label class="control-label text-right col-md-12 required">
+                            تاریخ
+                        </label>
+
+                        <div class="col-md-12">
+
+                            <div id="VueUnitCalendarDate"
+                                 class="unit-calendar-date-picker"
+                                 data-initial-date="@initialDate">
+
+                                <date-picker
+                                    v-model="date"
+                                    type="date"
+                                    editable="true"
+                                    auto-submit="true"
+                                    input-class="form-control"
+                                    alt-format="YYYY-MM-DD HH:mm:ss"
+                                    alt-name="CalendarDate"
+                                    @@close="onClose">
+                                </date-picker>
+
+                            </div>
+
+                            <span asp-validation-for="CalendarDate"
+                                  class="text-danger">
+                            </span>
+
+                        </div>
+                    </div>
+
+                    <!-- نوع روز -->
+                    <div class="form-group col-md-4">
+
+                        <label asp-for="DayType"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+
+                            <select asp-for="DayType"
+                                    asp-items="ViewBag.DayTypes"
+                                    class="selectpicker"
+                                    data-size="7"
+                                    data-style="select-with-transition">
+
+                                <option value="">
+                                    انتخاب کنید
+                                </option>
+
+                            </select>
+
+                            <span asp-validation-for="DayType"
+                                  class="text-danger">
+                            </span>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- توضیحات -->
+                <div class="col-md-12">
+
+                    <div class="form-group col-md-12">
+
+                        <label asp-for="Description"
+                               class="control-label text-right col-md-12">
+                        </label>
+
+                        <div class="col-md-12">
+
+                            <textarea asp-for="Description"
+                                      class="form-control"
+                                      rows="3"
+                                      maxlength="500">
+                            </textarea>
+
+                            <span asp-validation-for="Description"
+                                  class="text-danger">
+                            </span>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+
+                    <button type="submit"
+                            class="btn btn-info">
+
+                        <i class="material-icons">
+                            save
+                        </i>
+
+                        ذخیره اطلاعات
+
+                    </button>
+
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>

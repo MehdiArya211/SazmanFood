@@ -1,0 +1,117 @@
+﻿@model DTO.Entities.FoodPlanReserveDTO
+@using DTO.Entities
+@using Domain.Entities.FoodManage
+@using Services.SessionServices
+
+@{
+    ViewData["Title"] = "ثبت برنامه غذایی";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var Admin = Context.Session.GetUser();
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-action="Create" method="post" style="background-color:white">
+    <div class="container">
+        <h2 class="form-title">ثبت برنامه غذایی هفته</h2>
+
+        <table class="table table-bordered meal-table">
+            <thead>
+                <tr>
+                    <th>روز</th>
+                    <th>وعده</th>
+                    <th>غذا</th>
+                    <th>دسر</th>
+                    <th>دورچین</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var day in Model.Days)
+                {
+                    foreach (var meal in Model.Meals)
+                    {
+                        <tr>
+                            <td>@day.Title</td>
+                            <td>@meal.Title</td>
+
+                            <!-- غذای اصلی -->
+                            <td>
+                                @foreach (var food in GetFoodListForMeal(day.Id, meal.Id, Model))
+                                {
+                                    <div class="food-item">
+                                        <input type="radio" name="MainFood_@day.Id@meal.Id" value="@food.Id" />
+                                        <label>@food.Title</label>
+                                    </div>
+                                }
+                            </td>
+
+                            <!-- دسر -->
+                            <td>
+                                @foreach (var dessert in GetDessertListForMeal(day.Id, meal.Id, Model))
+                                {
+                                    <div class="food-item">
+                                        <input type="radio" name="Dessert_@day.Id@meal.Id" value="@dessert.Id" />
+                                        <label>@dessert.Title</label>
+                                    </div>
+                                }
+                                <div class="food-item">
+                                    <input type="radio" name="Dessert_@day.Id@meal.Id" value="" checked />
+                                    <label>بدون دسر</label>
+                                </div>
+                            </td>
+
+                            <!-- دورچین -->
+                            <td>
+                                @foreach (var side in GetSideDishListForMeal(day.Id, meal.Id, Model))
+                                {
+                                    <div class="food-item">
+                                        <input type="radio" name="SideDish_@day.Id@meal.Id" value="@side.Id" />
+                                        <label>@side.Title</label>
+                                    </div>
+                                }
+                                <div class="food-item">
+                                    <input type="radio" name="SideDish_@day.Id@meal.Id" value="" checked />
+                                    <label>بدون دورچین</label>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-submit">ثبت برنامه غذایی هفته</button>
+        </div>
+    </div>
+</form>
+
+@functions {
+    public List<Foods> GetFoodListForMeal(long dayId, long mealId, FoodPlanReserveDTO model)
+    {
+        if (model.MainFoods.TryGetValue((dayId, mealId), out var foods))
+            return foods;
+        return new List<Foods>();
+    }
+
+    public List<Foods> GetDessertListForMeal(long dayId, long mealId, FoodPlanReserveDTO model)
+    {
+        if (model.Desserts.TryGetValue((dayId, mealId), out var desserts))
+            return desserts;
+        return new List<Foods>();
+    }
+
+    public List<Foods> GetSideDishListForMeal(long dayId, long mealId, FoodPlanReserveDTO model)
+    {
+        if (model.SideDishes.TryGetValue((dayId, mealId), out var sides))
+            return sides;
+        return new List<Foods>();
+    }
+}

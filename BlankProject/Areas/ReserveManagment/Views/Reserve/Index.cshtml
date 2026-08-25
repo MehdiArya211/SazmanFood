@@ -1,0 +1,507 @@
+﻿@model DTO.Entities.FoodPlanReserveDTO
+@using DTO.Entities
+@using Domain.Entities.FoodManage
+@using Services.SessionServices
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "ثبت برنامه غذایی";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var Admin = Context.Session.GetUser();
+
+    DateTime weekStartDate = ViewBag.WeekStartDate != null
+        ? (DateTime)ViewBag.WeekStartDate
+        : DateTime.Now.Date;
+
+    var pc = new PersianCalendar();
+    string Shamsi(DateTime dt) => $"{pc.GetYear(dt):0000}/{pc.GetMonth(dt):00}/{pc.GetDayOfMonth(dt):00}";
+}
+
+@section styles {
+    <style>
+        /* ========== Food Reserve UI (Bootstrap3 + Material Dashboard) ========== */
+        .reserve-container {
+            max-width: 1200px;
+            margin: 18px auto;
+            font-family: Vazirmatn, IRANSans, Arial, sans-serif;
+        }
+
+        .reserve-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.06);
+            border: 1px solid rgba(0,0,0,.06);
+            padding: 15px;
+        }
+
+        .reserve-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f1f1;
+            margin-bottom: 12px;
+        }
+
+        .reserve-title {
+            margin: 0;
+            font-weight: 900;
+            color: #2d2d2d;
+        }
+
+        .reserve-hint {
+            margin-top: 6px;
+            font-size: 13px;
+            color: #d35400;
+        }
+
+        .reserve-week {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 20px;
+            background: #f6f8ff;
+            border: 1px solid #e6eaff;
+            color: #34495e;
+            white-space: nowrap;
+        }
+
+        .reserve-table-wrap {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,.06);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .reserve-table {
+            margin: 0;
+        }
+
+            .reserve-table thead th {
+                background: #fafafa;
+                font-weight: 900;
+                font-size: 13px;
+                color: #444;
+                border-bottom: 2px solid #eee !important;
+            }
+
+            .reserve-table td, .reserve-table th {
+                vertical-align: middle !important;
+            }
+
+            .reserve-table td {
+                font-size: 13px;
+            }
+
+        /* day header row */
+        .day-header-row td {
+            padding: 0 !important;
+            border: none !important;
+        }
+
+        .day-header {
+            background: linear-gradient(90deg,#ec407a,#ab47bc);
+            color: #fff;
+            padding: 10px 12px !important;
+            border-radius: 8px;
+        }
+
+        .day-header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .day-title {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .day-name {
+            font-weight: 900;
+            font-size: 14px;
+        }
+
+        .day-date {
+            display: inline-block;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: rgba(255,255,255,.16);
+            border: 1px solid rgba(255,255,255,.25);
+        }
+
+        /* meal badge */
+        .meal-badge {
+            display: inline-block;
+            background: #f5f5f5;
+            border: 1px solid #eee;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 13px;
+            color: #333;
+        }
+
+        /* chips (radio) */
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip-item {
+            display: inline-flex;
+        }
+
+        .chip-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .chip {
+            display: inline-block;
+            cursor: pointer;
+            user-select: none;
+            padding: 6px 10px;
+            border-radius: 20px;
+            border: 1px solid #e6e6e6;
+            background: #fafafa;
+            font-size: 13px;
+            color: #444;
+            transition: .15s;
+        }
+
+            .chip:hover {
+                background: #f2f2f2;
+            }
+
+        .chip-input:checked + .chip {
+            background: #e8f0ff;
+            border-color: #bcd3ff;
+            color: #1565c0;
+            font-weight: 900;
+        }
+
+        .chip-muted {
+            background: #fff7ed;
+            border-color: #ffd7aa;
+            color: #9a3412;
+        }
+
+        /* sticky submit */
+        .reserve-sticky {
+            position: sticky;
+            bottom: 0;
+            z-index: 30;
+            margin-top: 12px;
+            padding-top: 10px;
+        }
+
+        .reserve-sticky-inner {
+            background: rgba(255,255,255,.95);
+            border: 1px solid rgba(0,0,0,.06);
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .reserve-sticky-text {
+            font-size: 13px;
+            color: #777;
+        }
+
+        /* responsive */
+        @@media (max-width: 992px) {
+            .reserve-head
+
+        {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .reserve-week {
+            white-space: normal;
+        }
+
+        }
+    </style>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form method="post" class="reserve-form">
+
+    <div class="container reserve-container">
+        <div class="reserve-card">
+
+            <div class="reserve-head">
+                <div>
+                    <h2 class="reserve-title">ثبت برنامه غذایی</h2>
+                    <div class="reserve-hint">لطفاً تمامی روزهای مورد نظر را انتخاب کنید و در انتهای صفحه ثبت نهایی را بزنید.</div>
+                </div>
+                <div class="reserve-week">
+                    هفته: @Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))
+                </div>
+            </div>
+
+            <div class="table-responsive reserve-table-wrap">
+                <table class="table table-bordered reserve-table">
+                    <thead>
+                        <tr>
+                            <th style="width:140px">وعده</th>
+                            <th>غذا</th>
+                            <th>دسر</th>
+                            <th>دورچین</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @{
+                            var dayIndex = 0;
+                        }
+                        @foreach (var day in Model.Days)
+                        {
+                            var dayDate = weekStartDate.AddDays(dayIndex);
+                            dayIndex++;
+
+                            <tr class="day-header-row">
+                                <td colspan="4" class="day-header">
+                                    <div class="day-header-inner">
+                                        <div class="day-title">
+                                            <span class="day-name">@day.Title</span>
+                                            <span class="day-date">@Shamsi(dayDate)</span>
+                                        </div>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-danger delete-day-btn"
+                                                data-day-id="@day.Id"
+                                                data-day-title="@day.Title">
+                                            حذف روز
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            @foreach (var meal in Model.Meals)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="meal-badge">@meal.Title</span>
+                                    </td>
+
+                                    <!-- غذا -->
+                                    <td>
+                                        <div class="chips">
+                                            @foreach (var food in GetFoodListForMeal(day.Id, meal.Id, Model))
+                                            {
+                                                var id = $"Main_{day.Id}_{meal.Id}_{food.Id}";
+                                                <span class="chip-item">
+                                                    <input class="chip-input" type="radio" id="@id"
+                                                           name="MainFood_@day.Id@meal.Id"
+                                                           value="@food.Id"
+                                                           @(IsFoodSelected(day.Id, meal.Id, food.Id, "Main", Model) ? "checked" : "") />
+                                                    <label class="chip" for="@id">@food.Title</label>
+                                                </span>
+                                            }
+                                        </div>
+                                    </td>
+
+                                    <!-- دسر -->
+                                    <td>
+                                        <div class="chips">
+                                            @foreach (var dessert in GetDessertListForMeal(day.Id, meal.Id, Model))
+                                            {
+                                                var id = $"Dessert_{day.Id}_{meal.Id}_{dessert.Id}";
+                                                <span class="chip-item">
+                                                    <input class="chip-input" type="radio" id="@id"
+                                                           name="Dessert_@day.Id@meal.Id"
+                                                           value="@dessert.Id"
+                                                           @(IsFoodSelected(day.Id, meal.Id, dessert.Id, "Dessert", Model) ? "checked" : "") />
+                                                    <label class="chip" for="@id">@dessert.Title</label>
+                                                </span>
+                                            }
+
+                                            @{
+                                                var noneDessertId = $"Dessert_{day.Id}_{meal.Id}_none";
+                                                var dessertNoneChecked =
+                                                Model.ExistingReserveDetails != null &&
+                                                Model.ExistingReserveDetails.Any(d => d.DayId == day.Id && d.MealId == meal.Id && !d.DessertId.HasValue);
+                                            }
+                                            <span class="chip-item">
+                                                <input class="chip-input" type="radio" id="@noneDessertId"
+                                                       name="Dessert_@day.Id@meal.Id" value=""
+                                                       @(dessertNoneChecked ? "checked" : "") />
+                                                <label class="chip chip-muted" for="@noneDessertId">بدون دسر</label>
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <!-- دورچین -->
+                                    <td>
+                                        <div class="chips">
+                                            @foreach (var side in GetSideDishListForMeal(day.Id, meal.Id, Model))
+                                            {
+                                                var id = $"SideDish_{day.Id}_{meal.Id}_{side.Id}";
+                                                <span class="chip-item">
+                                                    <input class="chip-input" type="radio" id="@id"
+                                                           name="SideDish_@day.Id@meal.Id"
+                                                           value="@side.Id"
+                                                           @(IsFoodSelected(day.Id, meal.Id, side.Id, "SideDish", Model) ? "checked" : "") />
+                                                    <label class="chip" for="@id">@side.Title</label>
+                                                </span>
+                                            }
+
+                                            @{
+                                                var noneSideId = $"SideDish_{day.Id}_{meal.Id}_none";
+                                                var sideNoneChecked =
+                                                Model.ExistingReserveDetails != null &&
+                                                Model.ExistingReserveDetails.Any(d => d.DayId == day.Id && d.MealId == meal.Id && !d.SideDishId.HasValue);
+                                            }
+                                            <span class="chip-item">
+                                                <input class="chip-input" type="radio" id="@noneSideId"
+                                                       name="SideDish_@day.Id@meal.Id" value=""
+                                                       @(sideNoneChecked ? "checked" : "") />
+                                                <label class="chip chip-muted" for="@noneSideId">بدون دورچین</label>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="reserve-sticky">
+                <div class="reserve-sticky-inner">
+                    <div class="reserve-sticky-text">انتخاب‌ها را بررسی کنید و سپس ثبت نهایی را انجام دهید.</div>
+                    <button type="submit" class="btn btn-rose btn-lg">ثبت نهایی برنامه غذایی</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</form>
+
+@functions {
+    public List<Foods> GetFoodListForMeal(long dayId, long mealId, FoodPlanReserveDTO model)
+    {
+        if (model.MainFoods.TryGetValue((dayId, mealId), out var foods))
+            return foods;
+        return new List<Foods>();
+    }
+
+    public List<Foods> GetDessertListForMeal(long dayId, long mealId, FoodPlanReserveDTO model)
+    {
+        if (model.Desserts.TryGetValue((dayId, mealId), out var desserts))
+            return desserts;
+        return new List<Foods>();
+    }
+
+    public List<Foods> GetSideDishListForMeal(long dayId, long mealId, FoodPlanReserveDTO model)
+    {
+        if (model.SideDishes.TryGetValue((dayId, mealId), out var sides))
+            return sides;
+        return new List<Foods>();
+    }
+
+    public bool IsFoodSelected(long dayId, long mealId, long foodId, string foodType, FoodPlanReserveDTO model)
+    {
+        if (model.ExistingReserveDetails == null || !model.ExistingReserveDetails.Any())
+            return false;
+
+        var detail = model.ExistingReserveDetails.FirstOrDefault(d => d.DayId == dayId && d.MealId == mealId);
+        if (detail == null)
+            return false;
+
+        switch (foodType)
+        {
+            case "Main": return detail.MainFoodId == foodId;
+            case "Dessert": return detail.DessertId == foodId;
+            case "SideDish": return detail.SideDishId == foodId;
+            default: return false;
+        }
+    }
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.delete-day-btn').on('click', function () {
+                var dayId = $(this).data('day-id');
+                var dayTitle = $(this).data('day-title');
+
+                // SweetAlert2 (در Layout شما هست)
+                swal({
+                    title: 'حذف روز',
+                    text: 'آیا از حذف برنامه غذایی روز ' + dayTitle + ' اطمینان دارید؟',
+                    type: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'بله، حذف کن',
+                    cancelButtonText: 'انصراف',
+                    confirmButtonClass: 'btn btn-danger',
+                    cancelButtonClass: 'btn btn-default',
+                    buttonsStyling: false
+                }).then(function () {
+
+                    $.ajax({
+                        url: '@Url.Action("DeleteDay", "Reserve")',
+                        type: 'POST',
+                        data: { dayId: dayId },
+                        success: function (response) {
+                            if (response.success) {
+                                swal({
+                                    title: 'انجام شد',
+                                    text: 'برنامه غذایی روز حذف شد.',
+                                    type: 'success',
+                                    confirmButtonText: 'باشه',
+                                    confirmButtonClass: 'btn btn-success',
+                                    buttonsStyling: false
+                                }).then(function () {
+                                    location.reload();
+                                });
+                            } else {
+                                swal({
+                                    title: 'خطا',
+                                    text: response.message || 'خطا در حذف روز',
+                                    type: 'error',
+                                    confirmButtonText: 'باشه',
+                                    confirmButtonClass: 'btn btn-danger',
+                                    buttonsStyling: false
+                                });
+                            }
+                        },
+                        error: function () {
+                            swal({
+                                title: 'خطا',
+                                text: 'خطا در ارتباط با سرور.',
+                                type: 'error',
+                                confirmButtonText: 'باشه',
+                                confirmButtonClass: 'btn btn-danger',
+                                buttonsStyling: false
+                            });
+                        }
+                    });
+
+                }).catch(function () { });
+            });
+        });
+    </script>
+}

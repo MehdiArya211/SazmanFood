@@ -1,0 +1,108 @@
+﻿@model DTO.Entities.Garrison.PersonDTO
+@using Services.SessionServices
+
+@{
+    var Admin = Context.Session.GetUser();
+    var organGarrisonId = ViewBag.OrganGarrisonId;
+}
+
+<div class="modal-header">
+    <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h4 class="modal-title" id="modal5-label">
+        افزودن پرسنل یگان
+    </h4>
+
+    <div class="text-center">
+        پرکردن فیلدهای ستاره دار الزامی است.
+    </div>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <form asp-action="AddPerson" class="person-create-form" onsubmit="return orgGari.person.save(event)">
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+                <hr />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="error text-center text-danger person-error">@ViewBag.Error</div>
+
+                <input asp-for="OrganGarrisonId" type="hidden" id="OrganGarrisonId" value="@organGarrisonId" />
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-3">
+                        <label asp-for="PersonTypeId" class="control-label text-right col-md-12 required">نوع پرسنل</label>
+                        <div class="col-md-12">
+<select asp-for="PersonTypeId"
+        id="PersonTypeId"
+        data-live-search="true"
+        data-size="7"
+        tabindex="-98"
+        class="selectpicker"
+        asp-items="ViewBag.PersonType"
+        data-style="select-with-transition">
+    <option value="">لطفا انتخاب کنید</option>
+</select>
+                            <span asp-validation-for="PersonTypeId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div id="personCodeBox" style="display:none" class="form-group col-md-3">
+                        <label asp-for="PersonCode" class="control-label text-right col-md-12 required">شماره پرسنلی</label>
+                        <div class="col-md-12">
+                            <input id="PersonCode" maxlength="8" asp-for="PersonCode" class="form-control" onkeypress="return isNumberKey(event)" />
+                            <span id="person-not-found" class="text-danger" style="display:none">کاربر مورد نظر یافت نشد</span>
+                            <span asp-validation-for="PersonCode" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div id="nationalCodeBox" style="display:none" class="form-group col-md-3">
+                        <label asp-for="NationalCode" class="control-label text-right col-md-12 required">کد ملی</label>
+                        <div class="col-md-12">
+                            <input id="NationalCode" maxlength="10" asp-for="NationalCode" class="form-control" onkeypress="return isNumberKey(event)" />
+                            <span asp-validation-for="NationalCode" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label asp-for="FullName" class="control-label text-right col-md-12 required">نام و نشان</label>
+                        <div class="col-md-12">
+                            <input id="FullName" asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-12 text-center">
+                        <button type="submit" class="btn btn-success">
+                            <i class="material-icons">send</i>
+                            ذخیره اطلاعات
+                        </button>
+
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">
+                            بستن
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="material-datatables">
+            <table id="datatables2" class="table table-striped table-no-bordered table-hover" cellspacing="0" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>ردیف</th>
+                        <th>نام و نشان</th>
+                        <th>نوع پرسنل</th>
+                        <th>شماره پرسنلی / کد ملی</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>

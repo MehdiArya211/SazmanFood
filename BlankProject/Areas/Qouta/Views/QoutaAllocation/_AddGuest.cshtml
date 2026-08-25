@@ -1,0 +1,92 @@
+﻿@model DTO.Entities.GuestFoodCreateDTO
+
+<div class="modal-header">
+    <button type="button" class="close" title="بستن پنجره" onclick="modal.close('#third-modal')" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h5 class="modal-title">
+        ثبت غذای مهمان
+    </h5>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <form asp-action="CreateGuestFood" class="guest-food-form" onsubmit="return qoutaAllocation.guest.save(event)">
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+                <hr />
+
+                <div class="error text-center text-danger">@ViewBag.Error</div>
+
+                <input asp-for="QoutaAllocationId" type="hidden" />
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label asp-for="Count" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <input asp-for="Count" class="form-control" onkeypress="return isNumberKey(event)" />
+                            <span asp-validation-for="Count" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="FoodTokenTypeId" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <select asp-for="FoodTokenTypeId" class="form-control">
+                                <option value="1">عادی</option>
+                                <option value="2">مدیریتی</option>
+                            </select>
+                            <span asp-validation-for="FoodTokenTypeId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="MainFoodId" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <select asp-for="MainFoodId" class="form-control" asp-items="@ViewBag.AvailableMainFoods">
+                                <option value="">انتخاب غذا</option>
+                            </select>
+                            <span asp-validation-for="MainFoodId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label asp-for="FName" class="control-label text-right col-md-12"></label>
+                        <div class="col-md-12">
+                            <input asp-for="FName" class="form-control" placeholder="مثلاً مهمان" />
+                            <span asp-validation-for="FName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="LName" class="control-label text-right col-md-12"></label>
+                        <div class="col-md-12">
+                            <input asp-for="LName" class="form-control" placeholder="مثلاً شماره 1" />
+                            <span asp-validation-for="LName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="Description" class="control-label text-right col-md-12"></label>
+                        <div class="col-md-12">
+                            <input asp-for="Description" class="form-control" />
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-success">
+                        <i class="material-icons">save</i>
+                        ثبت مهمان
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>

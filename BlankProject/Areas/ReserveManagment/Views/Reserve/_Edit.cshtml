@@ -1,0 +1,143 @@
+﻿@model EditReserveDTO
+
+@{
+    ViewData["Title"] = "ویرایش برنامه غذایی";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form method="post">
+    <div class="container">
+        <h2 class="form-title">ویرایش برنامه غذایی هفته</h2>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>روز</th>
+                    <th>وعده</th>
+                    <th>غذا</th>
+                    <th>دسر</th>
+                    <th>دورچین</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var day in Model.Days)
+                {
+                    foreach (var meal in Model.Meals)
+                    {
+                        var key = (day.Id, meal.Id);
+                        var foodSet = Model.FoodsByDayAndMeal.ContainsKey(key) ? Model.FoodsByDayAndMeal[key] : null;
+                        var existing = Model.UserReserves.ContainsKey(key) ? Model.UserReserves[key] : null;
+
+                        <tr>
+                            <td>@day.Title</td>
+                            <td>@meal.Title</td>
+
+                            <!-- غذای اصلی -->
+                            <td>
+                                @if (foodSet?.MainFoods != null)
+                                {
+                                    foreach (var food in foodSet.MainFoods)
+                                    {
+                                        <div class="food-item">
+                                            <input type="radio" name="MainFood_@day.Id@meal.Id" value="@food.Id"
+                                            @(existing?.MainFoodId == food.Id ? "checked" : "") />
+                                            <label>@food.Title</label>
+                                        </div>
+                                    }
+                                }
+                            </td>
+
+                            <!-- دسر -->
+                            <td>
+                                @if (foodSet?.Desserts != null)
+                                {
+                                    foreach (var food in foodSet.Desserts)
+                                    {
+                                        <div class="food-item">
+                                            <input type="radio" name="Dessert_@day.Id@meal.Id" value="@food.Id"
+                                            @(existing?.DessertId == food.Id ? "checked" : "") />
+                                            <label>@food.Title</label>
+                                        </div>
+                                    }
+                                    <div class="food-item">
+                                        <input type="radio" name="Dessert_@day.Id@meal.Id" value=""
+                                        @(existing?.DessertId == null ? "checked" : "") />
+                                        <label>بدون دسر</label>
+                                    </div>
+                                }
+                            </td>
+
+                            <!-- دورچین -->
+                            <td>
+                                @if (foodSet?.SideDishes != null)
+                                {
+                                    foreach (var food in foodSet.SideDishes)
+                                    {
+                                        <div class="food-item">
+                                            <input type="radio" name="SideDish_@day.Id@meal.Id" value="@food.Id"
+                                            @(existing?.SideDishId == food.Id ? "checked" : "") />
+                                            <label>@food.Title</label>
+                                        </div>
+                                    }
+                                    <div class="food-item">
+                                        <input type="radio" name="SideDish_@day.Id@meal.Id" value=""
+                                        @(existing?.SideDishId == null ? "checked" : "") />
+                                        <label>بدون دورچین</label>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        </div>
+    </div>
+</form>
+
+<style>
+    .container {
+        max-width: 1200px;
+        margin: 30px auto;
+        font-family: "Vazir", sans-serif;
+    }
+
+    .form-title {
+        text-align: center;
+        color: #2c3e50;
+        font-size: 24px;
+        margin-bottom: 30px;
+    }
+
+    .food-item {
+        margin-bottom: 6px;
+    }
+
+        .food-item label {
+            margin-right: 8px;
+        }
+
+    .btn-primary {
+        background-color: #3498db;
+        color: white;
+        padding: 10px 25px;
+        border: none;
+        border-radius: 6px;
+        transition: background-color 0.3s ease;
+    }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+</style>

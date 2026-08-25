@@ -1,0 +1,72 @@
+﻿using DAL.Interface;
+using Domain.Entities.FoodManage;
+using DTO.DataTable;
+using DTO.Entities.FoodMang;
+using LinqKit;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Z.EntityFramework.Plus;
+using System.Linq.Dynamic.Core;
+
+namespace DAL
+{
+    public class FoodRepository : Repository<Foods>, IFoodRepository
+    {
+        public FoodRepository(DbContext _Context) : base(_Context)
+        {
+
+        }
+
+        public DataTableResponseDTO<FoodDTO> GetDataTableDTO(DataTableSearchDTO searchData, FoodFilterDTO filters)
+        {
+            var model = new DataTableResponseDTO<FoodDTO>();
+
+            var recordTotal = Entities.DeferredCount().FutureValue();
+
+            #region شرط ها
+
+            var filter = PredicateBuilder.New<Foods>(true).And(d => d.IsDeleted == false);
+
+
+
+            //// نام کاربری
+            //if (!string.IsNullOrEmpty(filters.Username))
+            //    filter.And(x => x.Username.Contains(filters.Username));
+
+            ////فعال
+            //if (filters.IsEnabled != null)
+            //    filter.And(x => x.IsEnabled == filters.IsEnabled);
+
+
+            //search
+            if (!string.IsNullOrEmpty(searchData.searchValue))
+            {
+                var srch = searchData.searchValue;
+                filter.And(s => s.Title.Contains(srch));
+            }
+
+
+            #endregion
+
+            var recordsFiltered = Entities.DeferredCount(filter).FutureValue();
+
+            //sorting and paging
+            var sortCol = searchData.sortColumnName;
+            var selectedModel = Entities.Where(filter)
+                                        .OrderBy(sortCol + " " + searchData.sortDirection)
+                                        .Skip(searchData.start)
+                                        .Take(searchData.length)
+                                        .Select(FoodDTO.Selector)
+                                        .Future();
+
+            model.data = selectedModel.ToList();
+            model.recordsTotal = recordTotal.Value;
+            model.recordsFiltered = recordsFiltered.Value;
+            model.draw = searchData.draw;
+            return model;
+        }
+    }
+}

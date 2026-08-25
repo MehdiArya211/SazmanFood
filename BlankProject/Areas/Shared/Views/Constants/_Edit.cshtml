@@ -1,0 +1,51 @@
+﻿@model Domain.Entities.Constant
+@using Utilities.Extentions
+
+<div class="modal-header">
+    <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title" id="modal5-label">
+        ویرایش اطلاعات <b>@Model.Title</b>
+    </h4>
+</div>
+
+<div class="modal-body row">
+
+    <div class="col-md-12">
+        <form asp-action="Edit" class="edit-form" onsubmit="return entity.edit.save(event)">
+            <div class="form-horizontal">
+
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CreateDate" />
+                <input type="hidden" asp-for="Type" />
+                <input type="hidden" asp-for="Title" />
+
+                <hr />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="error text-center text-danger edit-error">@ViewBag.Error</div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-12">
+                        <label asp-for="Value" class="control-label text-right col-md-12 required"></label>
+                        <div class="col-md-12">
+                            <constant constant-for="Value" constant-type="Type" ></constant>
+                            <span asp-validation-for="Value" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>                
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-success">
+                        <i class="material-icons">send</i>
+                        ذخیره اطلاعات
+                    </button>
+
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">بستن</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+

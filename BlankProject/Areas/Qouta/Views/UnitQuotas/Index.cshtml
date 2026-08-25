@@ -1,0 +1,171 @@
+﻿@model IEnumerable<DTO.Entities.UnitQuotaDTO>
+
+@{
+    ViewData["Title"] = "نمایش سهمیه‌بندی";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+
+    var canViewAll = ViewBag.CanViewAllOrganizations == true;
+    var currentOrgId = Convert.ToInt32(ViewBag.CurrentOrgId ?? 0);
+}
+
+@if (canViewAll)
+{
+    <div class="col-md-12">
+        <div class="card filter">
+            <div class="col-md-12">
+                <div class="col-md-12 text-center filter-caption">
+                    <a class="btn btn-simple btn-icon pull-right slide-filter"
+                       onclick="searchFilter.toggle(this)">
+                        <i class="material-icons">arrow_drop_down</i>
+                    </a>
+                    یگان مورد نظر را انتخاب کرده و روی دکمه
+                    <b>جستجو</b>
+                    کلیک کنید.
+                </div>
+
+                <div class="row filter-container">
+                    <div class="col-md-12">
+                        <div class="col-md-4 form-group">
+                            <label class="label-control">یگان:</label>
+
+                            <select id="FilterOrgId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.Organizations">
+                                <option value="">همه یگان‌ها</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-1 form-group">
+                            <a class="btn btn-just-icon btn-success filter-search-btn"
+                               title="جستجو"
+                               data-toggle="tooltip"
+                               onclick="unitQuota.list.reload()">
+                                <i class="material-icons">search</i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-header card-header-icon"
+             data-background-color="purple">
+            <i class="material-icons">assignment</i>
+        </div>
+
+        <div class="card-content">
+            <h4 class="card-title">لیست سهمیه‌بندی یگان‌ها</h4>
+
+            <div class="material-datatables">
+                <table id="datatables"
+                       class="table table-striped table-no-bordered table-hover"
+                       cellspacing="0"
+                       style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>ردیف</th>
+                            <th>یگان</th>
+                            <th>نوع سهمیه</th>
+                            <th>وعده</th>
+                            <th>نوع روز</th>
+                            <th>تعداد</th>
+                            <th class="disabled-sorting">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade"
+     id="base-modal"
+     tabindex="-1"
+     role="dialog"
+     data-backdrop="static"
+     data-keyboard="false">
+    <div class="modal-dialog"
+         style="width:90%"
+         role="document">
+        <div class="modal-content" id="modal-form"></div>
+    </div>
+</div>
+
+<form id="operation-token-form">
+    @Html.AntiForgeryToken()
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        var unitQuotaPermissions = {
+            canViewAllOrganizations: @canViewAll.ToString().ToLower(),
+            currentOrgId: @currentOrgId
+        };
+    </script>
+
+    <script src="~/assets/js/jquery.datatables.js"></script>
+    <script src="~/assets/selectize/selectize.min.js"></script>
+    <script src="~/Areas/unitQuota/UnitQuota.js"
+            asp-append-version="true"></script>
+}
+
+@section styles {
+    <link href="~/assets/selectize/selectize.bootstrap3.css"
+          rel="stylesheet" />
+
+    <style>
+        .quota-summary {
+            background:#f7f7f7;
+            border:1px solid #ddd;
+            border-radius:4px;
+            padding:12px;
+            margin-bottom:15px;
+        }
+
+        .quota-summary-item {
+            margin-bottom:8px;
+        }
+
+        .quota-person-table {
+            margin-top:20px;
+        }
+
+        .quota-person-result {
+            min-height:25px;
+            margin-top:8px;
+        }
+
+        .quota-capacity {
+            font-weight:bold;
+        }
+
+        .quota-capacity-success {
+            color:#4caf50;
+        }
+
+        .quota-capacity-danger {
+            color:#f44336;
+        }
+
+        .quota-modal-notification {
+            display:none;
+            margin-bottom:15px;
+        }
+
+        .operation-button {
+            cursor:pointer;
+        }
+    </style>
+}

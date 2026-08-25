@@ -1,0 +1,96 @@
+﻿@model DTO.User.UserEditProfileDTO
+
+@{
+    ViewData["Title"] = "Edit";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
+
+
+
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-header card-header-icon" data-background-color="purple">
+            <i class="material-icons">account_box</i>
+        </div>
+        <div class="card-content">
+            <h4 class="card-title"> ویرایش پروفایل </h4>
+
+            <div class="col-md-12">
+                <form asp-action="Edit" class="edit-profile-form" onsubmit="return user.editProfile.save(event)">
+                    <div class="form-horizontal">
+                        <hr />
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <div class="error text-center text-danger">@ViewBag.Error</div>
+                        <div class="success text-center text-success"></div>
+                        <input asp-for="Id" type="hidden" />
+
+
+                        <div class="col-md-12">
+                            <div class="form-group col-md-4">
+                                <label asp-for="Username" class="control-label text-right col-md-12 required"></label>
+                                <div class="col-md-12">
+                                    <input asp-for="Username" class="form-control" />
+                                    <span asp-validation-for="Username" class="text-danger"></span>
+                                </div>
+                            </div>
+
+
+                            <div class="form-group col-md-4">
+                                <label asp-for="Name" class="control-label text-right col-md-12 required"></label>
+                                <div class="col-md-12">
+                                    <input asp-for="Name" class="form-control" />
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group col-md-4">
+                                <label asp-for="Mobile" class="control-label text-right col-md-12 required"></label>
+                                <div class="col-md-12">
+                                    <input asp-for="Mobile" class="form-control" placeholder="09*********" style="direction:ltr; text-align:right" />
+                                    <span asp-validation-for="Mobile" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                              
+                        <div class="col-md-12">
+                            <div class="form-group col-md-12">
+                                <label asp-for="ChangePasswordCycle" class="control-label text-right col-md-12"></label>
+                                <div class="col-md-4">
+                                    <input asp-for="ChangePasswordCycle" class="form-control" placeholder="به روز" />
+                                    <span asp-validation-for="ChangePasswordCycle" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="control-label text-right">
+                                        در صورتی که تمایل دارید سیستم در یک بازه زمانی مشخص، تغییر کلمه عبور را به شما یادآور شود،
+                                        تعداد روز های بازه مد نظر را در فیلد فوق وارد کنید.
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-md-12 text-center">
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-info">
+                                    <i class="material-icons">send</i>
+                                    ذخیره اطلاعات
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end content-->
+    </div>
+    <!--  end card  -->
+</div>
+
+
+
+
+@section Scripts{
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script src="~/Areas/AuthSystem/js/User.js" asp-append-version="true"></script>
+
+}

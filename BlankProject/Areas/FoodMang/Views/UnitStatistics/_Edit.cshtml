@@ -1,0 +1,106 @@
+﻿@model DTO.Entities.UnitStatisticEditDTO
+@using Domain.Enums
+
+<div class="modal-header">
+    <button type="button"
+            class="close"
+            title="بستن پنجره"
+            data-dismiss="modal"
+            aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h4 class="modal-title">
+        ویرایش آمار یگان
+    </h4>
+
+    <div class="text-center">
+        آمار تأیید نهایی شده قابل ویرایش نیست.
+    </div>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <form asp-action="Edit"
+              class="edit-form"
+              onsubmit="return unitStatistic.edit.save(event)">
+            @Html.AntiForgeryToken()
+
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="OrgId" type="hidden" />
+            <input asp-for="OrgTitle" type="hidden" />
+            <input asp-for="Status" type="hidden" />
+
+            <div class="form-horizontal">
+                <hr />
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger"></div>
+
+                <div class="error text-center text-danger"></div>
+
+                @if (Model.Status == UnitStatisticStatus.Sent)
+                {
+                    <div class="col-md-12">
+                        <div class="alert alert-warning">
+                            این آمار ارسال شده است. با ویرایش آن، وضعیت به ثبت اولیه برمی‌گردد و باید مجدداً ارسال شود.
+                        </div>
+                    </div>
+                }
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label class="control-label text-right col-md-12">
+                            یگان
+                        </label>
+
+                        <div class="col-md-12">
+                            <input value="@Model.OrgTitle"
+                                   class="form-control"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="TotalOfficialCount"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="TotalOfficialCount"
+                                   class="form-control"
+                                   type="number"
+                                   min="0" />
+
+                            <span asp-validation-for="TotalOfficialCount"
+                                  class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="TotalDutyCount"
+                               class="control-label text-right col-md-12 required">
+                        </label>
+
+                        <div class="col-md-12">
+                            <input asp-for="TotalDutyCount"
+                                   class="form-control"
+                                   type="number"
+                                   min="0" />
+
+                            <span asp-validation-for="TotalDutyCount"
+                                  class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-info">
+                        <i class="material-icons">save</i>
+                        ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,212 @@
+﻿@model IEnumerable<DTO.Entities.GuestExtraFoodRequestDTO>
+
+@{
+    ViewData["Title"] = "درخواست غذای مهمان / مازاد بر سهمیه";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+
+    var canViewAll = ViewBag.CanViewAllOrganizations == true;
+    var canApprove = ViewBag.CanApprove == true;
+    var canPrintGuest = ViewBag.CanPrintGuest == true;
+}
+
+<div class="col-md-12">
+    <div class="card filter">
+        <div class="col-md-12">
+            <div class="col-md-12 text-center filter-caption">
+                <a class="btn btn-simple btn-icon pull-right slide-filter"
+                   onclick="searchFilter.toggle(this)">
+                    <i class="material-icons">arrow_drop_down</i>
+                </a>
+                فیلترهای مورد نظر را انتخاب کرده و سپس روی دکمه
+                <b>جستجو</b>
+                کلیک کنید.
+            </div>
+
+            <div class="row filter-container">
+                <div class="col-md-12">
+                    <div class="col-md-3 form-group">
+                        <label class="label-control">یگان:</label>
+                        <select id="FilterOrgId"
+                                class="selectpicker"
+                                data-live-search="true"
+                                data-size="7"
+                                data-style="select-with-transition"
+                                asp-items="ViewBag.Organizations">
+                            <option value="">همه</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 form-group">
+                        <label class="label-control">وعده:</label>
+                        <select id="FilterMealId"
+                                class="selectpicker"
+                                data-size="7"
+                                data-style="select-with-transition"
+                                asp-items="ViewBag.Meals">
+                            <option value="">همه</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 form-group">
+                        <label class="label-control">نوع پرسنل:</label>
+                        <select id="FilterPersonalTypeId"
+                                class="selectpicker"
+                                data-size="7"
+                                data-style="select-with-transition"
+                                asp-items="ViewBag.PersonalTypes">
+                            <option value="">همه</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 form-group">
+                        <label class="label-control">نوع خدمت:</label>
+                        <select id="FilterYeganTypeId"
+                                class="selectpicker"
+                                data-size="7"
+                                data-style="select-with-transition"
+                                asp-items="ViewBag.YeganTypes">
+                            <option value="">همه</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 form-group">
+                        <label class="label-control">وضعیت:</label>
+                        <select id="FilterStatus"
+                                class="selectpicker"
+                                data-size="7"
+                                data-style="select-with-transition">
+                            <option value="">همه</option>
+                            <option value="1">ثبت اولیه</option>
+                            <option value="2">ارسال شده</option>
+                            <option value="3">تأیید شده</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-1 form-group">
+                        <a class="btn btn-just-icon btn-success filter-search-btn"
+                           title="جستجو"
+                           data-toggle="tooltip"
+                           onclick="guestExtraFoodRequest.list.reload()">
+                            <i class="material-icons">search</i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-header card-header-icon"
+             data-background-color="purple">
+            <i class="material-icons">assignment</i>
+        </div>
+
+        <div class="card-content">
+            <h4 class="card-title">
+                لیست درخواست غذای مهمان / مازاد بر سهمیه
+            </h4>
+
+            <div class="toolbar">
+                <p>
+                    <a onclick="guestExtraFoodRequest.create.loadForm()"
+                       class="btn btn-sm btn-success">
+                        <i class="material-icons">add_circle_outline</i>
+                        ثبت درخواست جدید
+                    </a>
+                </p>
+            </div>
+
+            <div class="material-datatables">
+                <table id="datatables"
+                       class="table table-striped table-no-bordered table-hover"
+                       cellspacing="0"
+                       style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>ردیف</th>
+                            <th>یگان</th>
+                            <th>وعده</th>
+                            <th>نوع پرسنل</th>
+                            <th>نوع خدمت</th>
+                            <th>از تاریخ</th>
+                            <th>تا تاریخ</th>
+                            <th>تعداد مهمان</th>
+                            <th>تعداد مازاد</th>
+                            <th>وضعیت</th>
+                            <th class="disabled-sorting">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade"
+     id="base-modal"
+     tabindex="-1"
+     role="dialog"
+     data-backdrop="static"
+     data-keyboard="false">
+    <div class="modal-dialog"
+         style="width:75%"
+         role="document">
+        <div class="modal-content" id="modal-form"></div>
+    </div>
+</div>
+
+<form id="operation-token-form">
+    @Html.AntiForgeryToken()
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        var guestExtraFoodRequestPermissions = {
+            canViewAllOrganizations: @canViewAll.ToString().ToLower(),
+            canApprove: @canApprove.ToString().ToLower(),
+            canPrintGuest: @canPrintGuest.ToString().ToLower()
+        };
+    </script>
+
+    <script src="~/assets/js/jquery.datatables.js"></script>
+    <script src="~/assets/selectize/selectize.min.js"></script>
+
+    <script src="~/assets/VuePersianDateTimePicker/vue.min.js"></script>
+    <script src="~/assets/VuePersianDateTimePicker/moment/moment.min.js"></script>
+    <script src="~/assets/VuePersianDateTimePicker/moment/moment-jalaali.js"></script>
+    <script src="~/assets/VuePersianDateTimePicker/dist/vue-persian-datetime-picker-browser.js"></script>
+
+    <script src="~/Areas/FoodPlan/GuestExtraFoodRequest.js"
+            asp-append-version="true"></script>
+}
+
+@section styles {
+    <link href="~/assets/selectize/selectize.bootstrap3.css"
+          rel="stylesheet" />
+
+    <style>
+        .operation-button {
+            cursor:pointer;
+        }
+
+        .attachment-list {
+            margin-top:20px;
+        }
+
+        .guest-token {
+            border:1px dashed #777;
+            padding:12px;
+            margin:8px;
+            width:260px;
+            display:inline-block;
+            vertical-align:top;
+        }
+    </style>
+}

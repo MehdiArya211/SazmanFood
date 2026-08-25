@@ -1,0 +1,254 @@
+﻿@model DTO.UserLog.UserActionLogDataTableDTO
+
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
+
+
+<!--فیلتر ها-->
+<div class="col-md-12">
+    <div class="card filter">
+        <div class="col-md-12">
+            <div class="col-md-12 text-center filter-caption">
+                <a class="btn btn-simple btn-icon pull-right slide-filter" onclick="searchFilter.toggle(this)">
+                    <i class="material-icons">arrow_drop_down</i>
+                </a>
+                ابتدا فیلتر های زیر را انتخاب کرده و سپس بر روی دکمه <b>"جستجو"</b> کلیک کنید.
+            </div>
+
+            <div class="row filter-container">
+                <div class="col-md-12">
+
+                    <div class="form-group col-md-2">
+                        <label class="label-control">ایجاد از تاریخ :</label>
+                        <div style="display: block">
+                            <div id="VueCreateStartDate" style="display:block;">
+                                <date-picker v-model="date"
+                                             type="date"
+                                             editable="true"
+                                             auto-submit="true"
+                                             input-class="form-control"
+                                             alt-format="YYYY-MM-DD HH:mm:ss"
+                                             alt-name="FilterCreateStartDate"
+                                             @@close="onClose">
+                                </date-picker>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        <label class="label-control">ایجاد تا تاریخ :</label>
+                        <div style="display: block">
+                            <div id="VueCreateEndDate" style="display:block;">
+                                <date-picker v-model="date"
+                                             type="date"
+                                             editable="true"
+                                             auto-submit="true"
+                                             input-class="form-control"
+                                             alt-format="YYYY-MM-DD HH:mm:ss"
+                                             alt-name="FilterCreateEndDate"
+                                             @@close="onClose">
+                                </date-picker>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        <label class="label-control">نام کاربر :</label>
+                        <div>
+                            <input id="FilterUserName" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        <label class="label-control">آی پی کاربر :</label>
+                        <div>
+                            <input id="FilterUserIp" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-2 form-group">
+                        <label class="label-control">فعالیت :</label>
+                        <div>
+                            <select id="FilterActionType"
+                                    class="selectpicker"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition"
+                                    asp-items="@ViewBag.ActionType">
+                                <option value="">همه</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2 form-group">
+                        <label class="label-control">حوزه :</label>
+                        <div>
+                            <select id="FilterMenuType"
+                                    class="selectpicker"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition"
+                                    asp-items="@ViewBag.MenuType">                                    
+                                <option value="">همه</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="col-md-12">
+
+                    <div class="col-md-2 form-group">
+                        <label class="label-control">وضعیت :</label>
+                        <div>
+                            <select id="FilterIsSuccess"
+                                    class="selectpicker"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition">
+                                <option value="">همه</option>
+                                <option value="True">موفق</option>
+                                <option value="False">ناموفق</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- دکمه جستجو-->
+                    <div class="col-md-1 col-sm-4 col-xs-6 form-group">
+                        <div>
+                            <a class="btn btn-just-icon btn-success filter-search-btn"
+                               title="جستجو"
+                               data-toggle="tooltip"
+                               onclick="entity.list.reload(true)">
+                                <i class="material-icons">search</i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- خروجی اکسل -->
+                    <div class="col-md-1 col-sm-4 col-xs-6 form-group">
+                        <div>
+                            <a href="#" class=""
+                               title="خروجی اکسل"
+                               data-toggle="tooltip"
+                               onclick="entity.excelExport()">
+                                <img alt="Microsoft Excel icon" src="~/assets/img/excel-96.png">
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-header card-header-icon" data-background-color="purple">
+            <i class="material-icons">assignment</i>
+        </div>
+        <div class="card-content">
+            <h4 class="card-title"> لاگ فعالیت کاربران </h4>
+            <div class="toolbar">
+            </div>
+
+            <div class="material-datatables">
+                <table id="datatables" class="table table-striped table-no-bordered table-hover" cellspacing="0" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>
+                                @Html.DisplayNameFor(model => model.UserName)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.UserIp)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.CreateDate)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.ActionName)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.MenuName)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.TargetId)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Description)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.IsSuccess)
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+
+                </table>
+            </div>
+        </div>
+        <!-- end content-->
+    </div>
+    <!--  end card  -->
+</div>
+
+
+
+
+
+<!-- چارچوب مدال برای فرم ها -->
+<div class="modal fade modal small-modal" id="base-modal" tabindex="-1" role="dialog" aria-labelledby="modal5-label" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="modal-form">
+
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+@section Scripts{
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/assets/js/jquery.datatables.js"></script>
+
+    <!--For DateTimePicker-->
+    <script src="~/assets/VuePersianDateTimePicker/vue.min.js"></script>
+    <script src="~/assets/VuePersianDateTimePicker/moment/moment.min.js"></script>
+    <script src="~/assets/VuePersianDateTimePicker/moment/moment-jalaali.js"></script>
+    <script src="~/assets/VuePersianDateTimePicker/dist/vue-persian-datetime-picker-browser.js"></script>
+
+    <!--For Selectize-->
+    <script src="~/assets/selectize/selectize.min.js"></script>
+
+    <script src="~/Areas/LogSystem/js/ActionLog.js" asp-append-version="true"></script>
+}
+
+
+
+@section styles{
+    <link href="~/assets/selectize/selectize.bootstrap3.css" rel="stylesheet" />
+    <style>
+
+        .bg-danger {
+            background-color: #f2dede !important;
+        }
+
+        .table-hover > tbody > tr.bg-danger:hover {
+            background-color: #ffd5d5 !important;
+        }
+
+        tr{
+            height: 50px;
+        }
+    </style>
+}

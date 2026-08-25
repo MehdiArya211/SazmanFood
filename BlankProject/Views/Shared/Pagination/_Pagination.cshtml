@@ -1,0 +1,70 @@
+﻿@{
+    int PageCount = (int)(ViewBag.PageCount as int?);
+    int CurrentPage = (int)(ViewBag.CurrentPage as int?);
+}
+
+<div class="row">
+    <div class="col-sm-12">
+        <!-- start pager  -->
+        <div class="text-center margin-60px-top sm-margin-40px-top">
+            <div class="pagination text-small text-uppercase text-extra-dark-gray">
+                <ul class="page_nav d-flex flex-row ltr">
+
+                    <partial name="~/Views/Shared/Pagination/_PrevArrow.cshtml" />
+
+                    @if (PageCount <= 7)
+                    {
+                        for (int i = 1; i <= PageCount; i++)
+                        {
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="i" />
+                        }
+                    }
+                    else
+                    {
+                        //اگه صفحه فعال تو 5 تای اول بود
+                        if (CurrentPage < 5)
+                        {
+                            for (int i = 1; i <= 5; i++)
+                            {
+                                <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="i" />
+                            }
+                            <partial name="~/Views/Shared/Pagination/_Seperator.cshtml" />
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="PageCount" />
+                        }
+                        //اگه صفحه فعال تو 5 تای آخر بود
+                        else if (CurrentPage > PageCount - 4)
+                        {
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="1" />
+                            <partial name="~/Views/Shared/Pagination/_Seperator.cshtml" />
+                            for (int i = PageCount - 4; i <= PageCount; i++)
+                            {
+                                <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="i" />
+                            }
+
+                        }
+                        //اگه صفحه فعال وسط بود
+                        else
+                        {
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="1" />
+                            <partial name="~/Views/Shared/Pagination/_Seperator.cshtml" />
+
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="CurrentPage - 1" />
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="CurrentPage" />
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="CurrentPage + 1" />
+
+                            <partial name="~/Views/Shared/Pagination/_Seperator.cshtml" />
+                            <partial name="~/Views/Shared/Pagination/_PaginationItem.cshtml" model="PageCount" />
+                        }
+                    }
+
+                    <partial name="~/Views/Shared/Pagination/_NextArrow.cshtml" />
+
+
+                </ul>
+            </div>
+        </div>
+        <!-- end pager -->
+    </div>
+</div>
+
+

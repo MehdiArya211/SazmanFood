@@ -1,0 +1,88 @@
+﻿@using Domain.Entities.LogSystem
+@using Domain.Enums
+@model DTO.Entities.LogSystem.UserChangeLogEvent.UserChagneLogEventDTO
+
+@{
+
+}
+
+<div class="modal-header">
+    <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title" id="modal5-label">
+        مشاهده جزئیات
+    </h4>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <div class="form-horizontal">
+
+            <div>
+                @if (Model.TrackEventType == TrackEventType.Modified)
+                {
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div>
+                                <h4>
+                                    مقادیر قبلی
+                                </h4>
+                            </div>
+                            <div id="oldData-json-renderer" style="text-align: left;direction: ltr;">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div>
+                                <h4>
+                                    مقادیر فعلی
+                                </h4>
+                            </div>
+                            <div id="newData-json-renderer" style="text-align: left;direction: ltr;">
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div>
+                                <h4>
+                                    مقادیر فعلی
+                                </h4>
+                            </div>
+                            <div id="newData-json-renderer" style="text-align: left;direction: ltr;">
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.NewData))
+{
+    <script>
+        $('#newData-json-renderer').jsonViewer(@Html.Raw(Model.NewData.TrimStart('\"').TrimEnd('\"')), {
+            collapsed: false,
+            rootCollapsable: true,
+            withQuotes: true,
+            withLinks: true
+        });
+    </script>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.OldData))
+{
+    <script>
+        $('#oldData-json-renderer').jsonViewer(@Html.Raw(Model.OldData.TrimStart('\"').TrimEnd('\"')), {
+            collapsed: false,
+            rootCollapsable: true,
+            withQuotes: true,
+            withLinks: true
+        });
+    </script>
+}

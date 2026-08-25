@@ -1,0 +1,16 @@
+﻿@model IEnumerable<DTO.Menu.MenuSessionDTO>
+
+@if (Model != null)
+{
+    @foreach (var item in Model)
+    {
+        if (item.SubMenus == null || item.SubMenus.Count() == 0)
+        {
+            <partial name="_SingleMenuItem" model="item" />
+        }
+        else
+        {
+            <partial name="_MenuWithSubmenu" model="item" />
+        }
+    }
+}

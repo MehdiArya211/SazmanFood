@@ -1,0 +1,130 @@
+﻿@using Domain.Resources
+@{
+    Layout = "/Views/Shared/_AuthLayout.cshtml";
+    ViewBag.Title = Config.SiteNameFa + " | ورود به سایت";
+    var API_BASE_URL = "https://localhost:44385";
+    var InvalidLogin = ViewBag.InvalidLogin == null ? false : ViewBag.InvalidLogin;
+}
+
+<!--فرم لاگین-->
+<div class="@(ViewBag.captcha != null ? "col-md-6 col-md-offset-3" : "col-md-4 col-md-offset-4")">
+    <form asp-action="index"
+          asp-route-RetUrl="@(Context.Request.Query["RetUrl"])"
+          asp-route-MenuId="@(Context.Request.Query["mid"])"
+          class="form-horizontal"
+          role="form"
+          onsubmit="return Validate();">
+        <div class="card card-login card-hidden">
+            <div class="card-header text-center" data-background-color="rose">
+                <h4 class="card-title">ورود به @Config.SiteNameFa</h4>
+            </div>
+            <p class="category text-center">
+                نام کاربری و کلمه عبور خود را وارد کنید.
+            </p>
+            <p class="category text-center text-danger error">
+                @Html.Raw(ViewBag.Error)
+            </p>
+            <div class="card-content" style="padding:30px 15px;">
+                @* <input type="text" id="RetUrl" name="RetUrl" value="@(Context.Request.Query["RetUrl"])" />
+                <input type="text" id="MenuId" name="MenuId" value="@(Context.Request.Query["mid"])" />*@
+
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="material-icons">account_circle</i>
+                    </span>
+                    <div class="form-group label-floating">
+                        <label class="control-label" style="display:block;">نام کاربری</label>
+                        <input type="text" id="Mobile" name="Mobile" class="form-control required">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="material-icons">lock_outline</i>
+                    </span>
+                    <div class="form-group label-floating">
+                        <label class="control-label" style="display:block;">کلمه عبور</label>
+                        <input type="password" id="Password" name="Password" class="form-control required">
+                    </div>
+                </div>
+
+                @if (ViewBag.captcha != null)
+                {
+                    <div class="form-group text-center">
+                        <div class="">
+                            @*<label class="control-label">کد امنیتی</label>*@
+                            <img alt="Captcha" id="imgcpatcha" src="@Url.Action("CaptchaImage","Captcha")" style="width: auto; height:60px;" />
+                            <br /><small>با کلیک روی عکس، کد امنیتی بازنشانی می شود</small>
+                        </div>
+                    </div>
+                    <div class="input-group text-center">
+                        <span class="input-group-addon">
+                            <i class="material-icons">security</i>
+                        </span>
+                        <div class="form-group label-floating">
+                            <label class="control-label" style="display:block;">کد امنیتی</label>
+                            <input type="number" id="captcha" name="captcha" class="form-control required">
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="footer text-center">
+                <button type="submit" class="btn btn-rose btn-wd btn-lg">ورود به سایت</button>
+            </div>
+            <div class="text-center text-green">
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts{
+
+<script>
+    // آدرس واقعی سرویس SignalR/API
+    window.API_BASE_URL = "https://10.128.151.141:44385";
+</script>
+<script src="~/assets/signalr/signalr2.js"></script>
+<script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
+
+
+    @if (!string.IsNullOrEmpty(Context.Request.Query["newlogin"]))
+    {
+        <script>
+            showNotification('به دلیل ورود شخصی دیگر با این حساب کاربری، شما از حساب کاربری خود خارج شدید!', 'danger');
+        </script>
+    }
+
+    <script src="~/assets/VuePersianDateTimePicker/moment/moment.min.js"></script>
+@*     <script src="~/Areas/Root/js/Login.js" asp-append-version="true"></script> *@
+    <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
+
+    <script>
+        const KIOSK_KEY = "kioskId";
+
+        function generateKioskId() {
+            return Math.floor(100000 + Math.random() * 900000);
+        }
+
+        function getOrCreateKioskId() {
+            let kioskId = Number(localStorage.getItem(KIOSK_KEY));
+
+            if (!Number.isInteger(kioskId) || kioskId <= 0) {
+                kioskId = generateKioskId();
+                localStorage.setItem(KIOSK_KEY, String(kioskId));
+            }
+
+            console.log("kioskId:", kioskId);
+            return kioskId;
+        }
+
+        const kioskId = getOrCreateKioskId();
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${API_BASE_URL}/kioskHub`)
+            .withAutomaticReconnect()
+            .build();
+
+        connection.start()
+            .then(() => connection.invoke("Register", kioskId))
+            .catch(err => console.error(err));
+    </script>
+}

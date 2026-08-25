@@ -1,0 +1,31 @@
+﻿@model int
+
+@{
+    int CurrentPage = (int)(ViewBag.CurrentPage as int?);
+
+    string srch = Context.Request.Query["srch"];
+
+    string url = "javascript:void(0);";
+    if (CurrentPage != Model)
+    {
+        url = Context.Request.Path;
+        var index = url.IndexOf("?");
+        if (index > 0)
+        {
+            url = url.Substring(0, index);
+        }
+        url += "?page=" + Model;
+        if (!string.IsNullOrEmpty(srch))
+        {
+            url += "&srch=" + srch;
+        }
+    }
+}
+
+<li class="page-item @(CurrentPage == Model ? "active" : "")">
+    <a href="@url" class="page-link page-number" rel="@(Model)">@Model</a>
+</li>
+
+
+
+

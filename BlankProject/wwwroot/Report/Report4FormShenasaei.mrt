@@ -1,0 +1,943 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="0" />
+    <DataSources isList="true" count="0" />
+    <Relations isList="true" count="0" />
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>e55208ecc1c64648bd37900b381978fd</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page2 Ref="2" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>[255:255:255]</Brush>
+      <Components isList="true" count="93">
+        <Text1 Ref="3" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>6.9,0.1,3.5,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text1</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>قرارگاه مرکزی مهارت آموزی کارکنان وظیفه آجا</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text1>
+        <Text2 Ref="4" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>5.7,0.1,0.8,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>2d97f79c07b24cf086de60a9cfb317f7</Guid>
+          <HorAlignment>Right</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text2</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>: نیرو/یگان</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text2>
+        <Text3 Ref="5" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>1.4,0.1,1,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>cc0ea7b32dab492db908c0562a164a76</Guid>
+          <HorAlignment>Right</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text3</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>: تاریخ تکمیل</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text3>
+        <Text5 Ref="6" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>5.6,0.7,4.4,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>21bf814102d74ea8b6065e5fe2676f6d</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text5</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>آمار کارکنان وظیفه ای که نیاز به طی  دوره‌های مهارت‌آموزی ندارند</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text5>
+        <Text6 Ref="7" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>3.8,0.7,0.6,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>32b7939491d34cbab91c81076c2abce4</Guid>
+          <HorAlignment>Right</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text6</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>: یگان</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text6>
+        <Text7 Ref="8" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>1.6,0.7,0.6,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>bd0bc2d07bb34042be303cdd616ae743</Guid>
+          <HorAlignment>Right</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text7</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>: نیرو</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text7>
+        <Text8 Ref="9" type="Text" isKey="true">
+          <Brush>[191:191:191]</Brush>
+          <ClientRectangle>10.2,1.1,0.4,0.4</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,10,Bold</Font>
+          <Guid>b14dabed284f4bdc916d1d799790a645</Guid>
+          <HorAlignment>Right</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text8</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>ردیف</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text8>
+        <Text9 Ref="10" type="Text" isKey="true">
+          <Brush>[191:191:191]</Brush>
+          <ClientRectangle>4.8,1.1,5.4,0.4</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,10,Bold</Font>
+          <Guid>3451e722f85046f588e739e5a8c86983</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text9</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>عناوین</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text9>
+        <Text10 Ref="11" type="Text" isKey="true">
+          <Brush>[191:191:191]</Brush>
+          <ClientRectangle>3.6,1.1,1.2,0.4</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,10,Bold</Font>
+          <Guid>4f75e129ee524df1849d2d0774315273</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text10</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>تعداد نفرات</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text10>
+        <Text11 Ref="12" type="Text" isKey="true">
+          <Brush>[191:191:191]</Brush>
+          <ClientRectangle>0,1.1,3.6,0.4</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,10,Bold</Font>
+          <Guid>2692ac3439d54caf9d199934403e1aeb</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text11</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>توضیحات</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text11>
+        <Text12 Ref="13" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>10.2,1.6,0.4,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,10,Bold</Font>
+          <Guid>f4747c37ed344e7eb5396d6e776fe694</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text12</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>1</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text12>
+        <Text13 Ref="14" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>10.2,2.1,0.4,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,10,Bold</Font>
+          <Guid>24f717853af74e81bfcfdbea5fe12962</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text13</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>2</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text13>
+        <Text14 Ref="15" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>10.2,2.6,0.4,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,10,Bold</Font>
+          <Guid>f0f1b1646a7f413188bb82049b84bd5d</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text14</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>3</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text14>
+        <Text16 Ref="16" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>5.1,1.6,5,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,12,Bold</Font>
+          <Guid>db935192fc2a4a3abb34a91ea38c00c8</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text16</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>کارکنان وظیفه دارای مدرک تحصیلی کارشناسی ارشد ، دکتری تخصصی و پزشکی</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text16>
+        <Text18 Ref="17" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>5.1,2.6,5,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,12,Bold</Font>
+          <Guid>fc24b1f0ddf14a56bb644bc77a2ec640</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text18</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>کارکنان وظیفه دارای مدرک تحصیلی دیپلم و فوق دیپلم فنی و کارودانش می باشند</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text18>
+        <Text19 Ref="18" type="Text" isKey="true">
+          <Brush>[191:191:191]</Brush>
+          <ClientRectangle>4.8,3,5.4,0.5</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,12,Bold</Font>
+          <Guid>2ca0e16374264dc6a722ae9356ae7e8a</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text19</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>جمع کل </Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text19>
+        <Text17 Ref="19" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>5.1,2.1,5,0.3</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,12,Bold</Font>
+          <Guid>25af0a602a9d47658e56048ab8fb16f9</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text17</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>کارکنان وظیفه دارای مدرک کارشناسی که برابر رشته تحصیلی به کارگیری بهینه شدند</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text17>
+        <Text20 Ref="20" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>6.7,3.6,3.5,0.6</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,12,Bold</Font>
+          <Guid>1f030c60a0ab45048c5a25276387cade</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text20</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>: نام و نام خانوادگی مسئول مهارت آموزی-مهر و امضاء </Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text20>
+        <Text21 Ref="21" type="Text" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0.7,3.6,4,0.5</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>82b8ba32d9bc4a1ea6a41a71eacca067</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text21</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <Text>: مشخصات مسئول رکن یکم/نیروی انسانی-مهر و امضاء</Text>
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text21>
+        <Text4 Ref="22" type="Text" isKey="true">
+          <Brush>[191:191:191]</Brush>
+          <ClientRectangle>3.6,3,1.2,0.5</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>288eca4dc0c14d62bae303116b28960f</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text4</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text4>
+        <Text15 Ref="23" type="Text" isKey="true">
+          <Brush>[191:191:191]</Brush>
+          <ClientRectangle>0,3,3.6,0.5</ClientRectangle>
+          <Conditions isList="true" count="0" />
+          <Font>B Nazanin,14,Bold</Font>
+          <Guid>3e77a85ea2724649aa55acf6dba6ca8b</Guid>
+          <HorAlignment>Center</HorAlignment>
+          <Margins>0,0,0,0</Margins>
+          <Name>Text15</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <TextBrush>Black</TextBrush>
+          <Type>Expression</Type>
+          <VertAlignment>Center</VertAlignment>
+        </Text15>
+        <RectanglePrimitive1 Ref="24" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>6.6,0,4,0.6</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>b9947b86193f46568023d38699c7b147</Guid>
+          <Name>RectanglePrimitive1</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive1>
+        <StartPointPrimitive1 Ref="25" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>6.6,0,0,0</ClientRectangle>
+          <Name>StartPointPrimitive1</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>b9947b86193f46568023d38699c7b147</ReferenceToGuid>
+        </StartPointPrimitive1>
+        <EndPointPrimitive1 Ref="26" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,0.6,0,0</ClientRectangle>
+          <Name>EndPointPrimitive1</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>b9947b86193f46568023d38699c7b147</ReferenceToGuid>
+        </EndPointPrimitive1>
+        <RectanglePrimitive2 Ref="27" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>4.8,0.6,5.8,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>f09937e1e80742f4bf65e44d7e25aa1d</Guid>
+          <Name>RectanglePrimitive2</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive2>
+        <StartPointPrimitive2 Ref="28" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,0.6,0,0</ClientRectangle>
+          <Name>StartPointPrimitive2</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>f09937e1e80742f4bf65e44d7e25aa1d</ReferenceToGuid>
+        </StartPointPrimitive2>
+        <EndPointPrimitive2 Ref="29" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,1.1,0,0</ClientRectangle>
+          <Name>EndPointPrimitive2</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>f09937e1e80742f4bf65e44d7e25aa1d</ReferenceToGuid>
+        </EndPointPrimitive2>
+        <RectanglePrimitive3 Ref="30" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>2.5,0,4.1,0.6</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>a1f8710aa3304eac93e49a9b2611fc66</Guid>
+          <Name>RectanglePrimitive3</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive3>
+        <StartPointPrimitive3 Ref="31" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>2.5,0,0,0</ClientRectangle>
+          <Name>StartPointPrimitive3</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>a1f8710aa3304eac93e49a9b2611fc66</ReferenceToGuid>
+        </StartPointPrimitive3>
+        <EndPointPrimitive3 Ref="32" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>6.6,0.6,0,0</ClientRectangle>
+          <Name>EndPointPrimitive3</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>a1f8710aa3304eac93e49a9b2611fc66</ReferenceToGuid>
+        </EndPointPrimitive3>
+        <RectanglePrimitive4 Ref="33" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,0,2.5,0.6</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>f6b7f012a4d44d358c39cbc4ef206d67</Guid>
+          <Name>RectanglePrimitive4</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive4>
+        <StartPointPrimitive4 Ref="34" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,0,0,0</ClientRectangle>
+          <Name>StartPointPrimitive4</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>f6b7f012a4d44d358c39cbc4ef206d67</ReferenceToGuid>
+        </StartPointPrimitive4>
+        <EndPointPrimitive4 Ref="35" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>2.5,0.6,0,0</ClientRectangle>
+          <Name>EndPointPrimitive4</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>f6b7f012a4d44d358c39cbc4ef206d67</ReferenceToGuid>
+        </EndPointPrimitive4>
+        <RectanglePrimitive5 Ref="36" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>2.3,0.6,2.5,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>25fe63ea76fa4da38c8972623d6d3001</Guid>
+          <Name>RectanglePrimitive5</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive5>
+        <StartPointPrimitive5 Ref="37" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>2.3,0.6,0,0</ClientRectangle>
+          <Name>StartPointPrimitive5</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>25fe63ea76fa4da38c8972623d6d3001</ReferenceToGuid>
+        </StartPointPrimitive5>
+        <EndPointPrimitive5 Ref="38" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,1.1,0,0</ClientRectangle>
+          <Name>EndPointPrimitive5</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>25fe63ea76fa4da38c8972623d6d3001</ReferenceToGuid>
+        </EndPointPrimitive5>
+        <RectanglePrimitive6 Ref="39" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,0.6,2.3,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>2d0ad22bf6e443bfa632c9279d3e05b0</Guid>
+          <Name>RectanglePrimitive6</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive6>
+        <StartPointPrimitive6 Ref="40" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,0.6,0,0</ClientRectangle>
+          <Name>StartPointPrimitive6</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>2d0ad22bf6e443bfa632c9279d3e05b0</ReferenceToGuid>
+        </StartPointPrimitive6>
+        <EndPointPrimitive6 Ref="41" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>2.3,1.1,0,0</ClientRectangle>
+          <Name>EndPointPrimitive6</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>2d0ad22bf6e443bfa632c9279d3e05b0</ReferenceToGuid>
+        </EndPointPrimitive6>
+        <RectanglePrimitive7 Ref="42" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>4.8,1.1,5.8,0.4</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>7ea9e84ea129446385feed36acca8676</Guid>
+          <Name>RectanglePrimitive7</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive7>
+        <StartPointPrimitive7 Ref="43" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,1.1,0,0</ClientRectangle>
+          <Name>StartPointPrimitive7</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>7ea9e84ea129446385feed36acca8676</ReferenceToGuid>
+        </StartPointPrimitive7>
+        <EndPointPrimitive7 Ref="44" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,1.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive7</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>7ea9e84ea129446385feed36acca8676</ReferenceToGuid>
+        </EndPointPrimitive7>
+        <RectanglePrimitive8 Ref="45" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>3.6,1.1,1.2,0.4</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>15a112072b96444bbd9df5a877c3c6a7</Guid>
+          <Name>RectanglePrimitive8</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive8>
+        <StartPointPrimitive8 Ref="46" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,1.1,0,0</ClientRectangle>
+          <Name>StartPointPrimitive8</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>15a112072b96444bbd9df5a877c3c6a7</ReferenceToGuid>
+        </StartPointPrimitive8>
+        <EndPointPrimitive8 Ref="47" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,1.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive8</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>15a112072b96444bbd9df5a877c3c6a7</ReferenceToGuid>
+        </EndPointPrimitive8>
+        <RectanglePrimitive9 Ref="48" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,1.1,3.6,0.4</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>73821c8d62874d2b976b32df1f2d9e4e</Guid>
+          <Name>RectanglePrimitive9</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive9>
+        <StartPointPrimitive9 Ref="49" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,1.1,0,0</ClientRectangle>
+          <Name>StartPointPrimitive9</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>73821c8d62874d2b976b32df1f2d9e4e</ReferenceToGuid>
+        </StartPointPrimitive9>
+        <EndPointPrimitive9 Ref="50" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,1.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive9</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>73821c8d62874d2b976b32df1f2d9e4e</ReferenceToGuid>
+        </EndPointPrimitive9>
+        <RectanglePrimitive10 Ref="51" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>4.8,1.5,5.8,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>cfb8f9693aa44606ae16601d1284d6b4</Guid>
+          <Name>RectanglePrimitive10</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive10>
+        <StartPointPrimitive10 Ref="52" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,1.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive10</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>cfb8f9693aa44606ae16601d1284d6b4</ReferenceToGuid>
+        </StartPointPrimitive10>
+        <EndPointPrimitive10 Ref="53" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,2,0,0</ClientRectangle>
+          <Name>EndPointPrimitive10</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>cfb8f9693aa44606ae16601d1284d6b4</ReferenceToGuid>
+        </EndPointPrimitive10>
+        <RectanglePrimitive11 Ref="54" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>4.8,2,5.8,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>68c44b1713b7490c87d420ac8b5c8e7b</Guid>
+          <Name>RectanglePrimitive11</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive11>
+        <StartPointPrimitive11 Ref="55" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,2,0,0</ClientRectangle>
+          <Name>StartPointPrimitive11</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>68c44b1713b7490c87d420ac8b5c8e7b</ReferenceToGuid>
+        </StartPointPrimitive11>
+        <EndPointPrimitive11 Ref="56" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,2.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive11</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>68c44b1713b7490c87d420ac8b5c8e7b</ReferenceToGuid>
+        </EndPointPrimitive11>
+        <RectanglePrimitive12 Ref="57" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>4.8,2.5,5.8,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>d6d2ee40b0e04089b0e6b32951df2f64</Guid>
+          <Name>RectanglePrimitive12</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive12>
+        <StartPointPrimitive12 Ref="58" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,2.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive12</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>d6d2ee40b0e04089b0e6b32951df2f64</ReferenceToGuid>
+        </StartPointPrimitive12>
+        <EndPointPrimitive12 Ref="59" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,3,0,0</ClientRectangle>
+          <Name>EndPointPrimitive12</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>d6d2ee40b0e04089b0e6b32951df2f64</ReferenceToGuid>
+        </EndPointPrimitive12>
+        <RectanglePrimitive13 Ref="60" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>4.8,3,5.8,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>86ba0dfc827d4677b0d73002ff9139e8</Guid>
+          <Name>RectanglePrimitive13</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive13>
+        <StartPointPrimitive13 Ref="61" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,3,0,0</ClientRectangle>
+          <Name>StartPointPrimitive13</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>86ba0dfc827d4677b0d73002ff9139e8</ReferenceToGuid>
+        </StartPointPrimitive13>
+        <EndPointPrimitive13 Ref="62" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,3.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive13</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>86ba0dfc827d4677b0d73002ff9139e8</ReferenceToGuid>
+        </EndPointPrimitive13>
+        <VerticalLinePrimitive1 Ref="63" type="VerticalLinePrimitive" isKey="true">
+          <ClientRectangle>10.2,1.1,0.01,2.4</ClientRectangle>
+          <Color>Black</Color>
+          <EndCap Ref="64" type="Cap" isKey="true">
+            <Color>Black</Color>
+          </EndCap>
+          <Guid>7ad23f4bd6c84aada595cdbe4582440d</Guid>
+          <Name>VerticalLinePrimitive1</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <StartCap Ref="65" type="Cap" isKey="true">
+            <Color>Black</Color>
+          </StartCap>
+        </VerticalLinePrimitive1>
+        <StartPointPrimitive14 Ref="66" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>10.2,1.1,0,0</ClientRectangle>
+          <Name>StartPointPrimitive14</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>7ad23f4bd6c84aada595cdbe4582440d</ReferenceToGuid>
+        </StartPointPrimitive14>
+        <EndPointPrimitive14 Ref="67" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.2,3.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive14</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>7ad23f4bd6c84aada595cdbe4582440d</ReferenceToGuid>
+        </EndPointPrimitive14>
+        <RectanglePrimitive14 Ref="68" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>4.8,3.5,5.8,1</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>77bc6964aea84c0997011f43d6efb80f</Guid>
+          <Name>RectanglePrimitive14</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive14>
+        <StartPointPrimitive15 Ref="69" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,3.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive15</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>77bc6964aea84c0997011f43d6efb80f</ReferenceToGuid>
+        </StartPointPrimitive15>
+        <EndPointPrimitive15 Ref="70" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>10.6,4.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive15</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>77bc6964aea84c0997011f43d6efb80f</ReferenceToGuid>
+        </EndPointPrimitive15>
+        <RectanglePrimitive15 Ref="71" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>3.6,1.5,1.2,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>b53f366d16e64c60b8ba4964844b1298</Guid>
+          <Name>RectanglePrimitive15</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive15>
+        <StartPointPrimitive16 Ref="72" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,1.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive16</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>b53f366d16e64c60b8ba4964844b1298</ReferenceToGuid>
+        </StartPointPrimitive16>
+        <EndPointPrimitive16 Ref="73" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,2,0,0</ClientRectangle>
+          <Name>EndPointPrimitive16</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>b53f366d16e64c60b8ba4964844b1298</ReferenceToGuid>
+        </EndPointPrimitive16>
+        <RectanglePrimitive16 Ref="74" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>3.6,2,1.2,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>f25523da47f94e8d857f96948af29fb8</Guid>
+          <Name>RectanglePrimitive16</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive16>
+        <StartPointPrimitive17 Ref="75" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,2,0,0</ClientRectangle>
+          <Name>StartPointPrimitive17</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>f25523da47f94e8d857f96948af29fb8</ReferenceToGuid>
+        </StartPointPrimitive17>
+        <EndPointPrimitive17 Ref="76" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,2.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive17</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>f25523da47f94e8d857f96948af29fb8</ReferenceToGuid>
+        </EndPointPrimitive17>
+        <RectanglePrimitive17 Ref="77" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>3.6,2.5,1.2,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>9d8011a9024d4ac7ab54b2670cc34dcd</Guid>
+          <Name>RectanglePrimitive17</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive17>
+        <StartPointPrimitive18 Ref="78" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,2.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive18</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>9d8011a9024d4ac7ab54b2670cc34dcd</ReferenceToGuid>
+        </StartPointPrimitive18>
+        <EndPointPrimitive18 Ref="79" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,3,0,0</ClientRectangle>
+          <Name>EndPointPrimitive18</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>9d8011a9024d4ac7ab54b2670cc34dcd</ReferenceToGuid>
+        </EndPointPrimitive18>
+        <RectanglePrimitive18 Ref="80" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>3.6,3,1.2,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>2dc5166a4dd44c2ca5a3abf918d0d2d9</Guid>
+          <Name>RectanglePrimitive18</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive18>
+        <StartPointPrimitive19 Ref="81" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,3,0,0</ClientRectangle>
+          <Name>StartPointPrimitive19</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>2dc5166a4dd44c2ca5a3abf918d0d2d9</ReferenceToGuid>
+        </StartPointPrimitive19>
+        <EndPointPrimitive19 Ref="82" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,3.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive19</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>2dc5166a4dd44c2ca5a3abf918d0d2d9</ReferenceToGuid>
+        </EndPointPrimitive19>
+        <RectanglePrimitive19 Ref="83" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,3.5,4.8,1</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>fd81270b850f4fceb4a66e3731fef7b7</Guid>
+          <Name>RectanglePrimitive19</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive19>
+        <StartPointPrimitive20 Ref="84" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,3.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive20</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>fd81270b850f4fceb4a66e3731fef7b7</ReferenceToGuid>
+        </StartPointPrimitive20>
+        <EndPointPrimitive20 Ref="85" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>4.8,4.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive20</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>fd81270b850f4fceb4a66e3731fef7b7</ReferenceToGuid>
+        </EndPointPrimitive20>
+        <RectanglePrimitive20 Ref="86" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,1.5,3.6,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>bb673dbfb7984325aafc81a69aa38aab</Guid>
+          <Name>RectanglePrimitive20</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive20>
+        <StartPointPrimitive21 Ref="87" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,1.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive21</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>bb673dbfb7984325aafc81a69aa38aab</ReferenceToGuid>
+        </StartPointPrimitive21>
+        <EndPointPrimitive21 Ref="88" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,2,0,0</ClientRectangle>
+          <Name>EndPointPrimitive21</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>bb673dbfb7984325aafc81a69aa38aab</ReferenceToGuid>
+        </EndPointPrimitive21>
+        <RectanglePrimitive21 Ref="89" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,2,3.6,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>01042491be9e444bbffb5146bf9fb049</Guid>
+          <Name>RectanglePrimitive21</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive21>
+        <StartPointPrimitive22 Ref="90" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,2,0,0</ClientRectangle>
+          <Name>StartPointPrimitive22</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>01042491be9e444bbffb5146bf9fb049</ReferenceToGuid>
+        </StartPointPrimitive22>
+        <EndPointPrimitive22 Ref="91" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,2.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive22</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>01042491be9e444bbffb5146bf9fb049</ReferenceToGuid>
+        </EndPointPrimitive22>
+        <RectanglePrimitive22 Ref="92" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,2.5,3.6,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>afd3ff2d2d604838b90d7b0207bbd1aa</Guid>
+          <Name>RectanglePrimitive22</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive22>
+        <StartPointPrimitive23 Ref="93" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,2.5,0,0</ClientRectangle>
+          <Name>StartPointPrimitive23</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>afd3ff2d2d604838b90d7b0207bbd1aa</ReferenceToGuid>
+        </StartPointPrimitive23>
+        <EndPointPrimitive23 Ref="94" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,3,0,0</ClientRectangle>
+          <Name>EndPointPrimitive23</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>afd3ff2d2d604838b90d7b0207bbd1aa</ReferenceToGuid>
+        </EndPointPrimitive23>
+        <RectanglePrimitive23 Ref="95" type="RectanglePrimitive" isKey="true">
+          <ClientRectangle>0,3,3.6,0.5</ClientRectangle>
+          <Color>Black</Color>
+          <Guid>76c342f281e34d26ae693d7e1fcd6df9</Guid>
+          <Name>RectanglePrimitive23</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+        </RectanglePrimitive23>
+        <StartPointPrimitive24 Ref="96" type="Stimulsoft.Report.Components.StiStartPointPrimitive" isKey="true">
+          <ClientRectangle>0,3,0,0</ClientRectangle>
+          <Name>StartPointPrimitive24</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>76c342f281e34d26ae693d7e1fcd6df9</ReferenceToGuid>
+        </StartPointPrimitive24>
+        <EndPointPrimitive24 Ref="97" type="Stimulsoft.Report.Components.StiEndPointPrimitive" isKey="true">
+          <ClientRectangle>3.6,3.5,0,0</ClientRectangle>
+          <Name>EndPointPrimitive24</Name>
+          <Page isRef="2" />
+          <Parent isRef="2" />
+          <ReferenceToGuid>76c342f281e34d26ae693d7e1fcd6df9</ReferenceToGuid>
+        </EndPointPrimitive24>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Guid>a6da5218ec5242c5bee50f923fba4353</Guid>
+      <Margins>0.2,0.2,0.2,0.2</Margins>
+      <Name>Page2</Name>
+      <Orientation>Landscape</Orientation>
+      <PageHeight>8.5</PageHeight>
+      <PageWidth>11</PageWidth>
+      <PaperSize>Letter</PaperSize>
+      <Report isRef="0" />
+    </Page2>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>9/27/2023 12:24:12 PM</ReportChanged>
+  <ReportCreated>6/4/2023 4:50:12 AM</ReportCreated>
+  <ReportFile>C:\Users\95003254\Desktop\Report Skil\Report4FormShenasaei.mrt</ReportFile>
+  <ReportGuid>993d8d077da34fdd95426ed5efd19c76</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Inches</ReportUnit>
+  <ReportVersion>2019.2.1.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+		#endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>

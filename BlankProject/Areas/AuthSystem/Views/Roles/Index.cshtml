@@ -1,0 +1,159 @@
+﻿@model IEnumerable<Domain.Entities.Role>
+
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
+
+
+
+<div class="col-md-10 col-md-offset-1">
+    <div class="card">
+        <div class="card-header card-header-icon" data-background-color="purple">
+            <i class="material-icons">assignment</i>
+        </div>
+        <div class="card-content">
+            <h4 class="card-title"> لیست نقش ها </h4>
+            <div class="toolbar">
+                <p>
+                    <a onclick="roles.create.loadForm()" class="btn btn-success"><i class="material-icons">add_circle_outline</i> افزودن نقش جدید</a>
+                </p>
+            </div>
+
+            <div class="material-datatables">
+                <table id="datatables" class="table table-striped table-no-bordered table-hover" cellspacing="0" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Id)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Title)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Description)
+                            </th>
+                            <td>
+                                وضعیت
+                            </td>
+                            <th class="disabled-sorting"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+
+                </table>
+            </div>
+        </div>
+        <!-- end content-->
+    </div>
+    <!--  end card  -->
+</div>
+
+
+
+
+
+<!-- چارچوب مدال برای فرم ها -->
+<div class="modal fade small-modal" id="base-modal" tabindex="-1" role="dialog" aria-labelledby="modal5-label" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="modal-form">
+
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- مدال برای تری ویو منو ها -->
+<div class="modal fade small-modal" id="menu-modal" tabindex="-1" role="dialog" aria-labelledby="modal5-label" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="modal-form">
+
+            <div class="modal-header">
+                <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal5-label">
+                    دسترسی های نقش <span class="text-success role-title"></span>
+                </h4>
+            </div>
+
+            <div class="modal-body row">
+                <div class="hide">
+                    <input type="checkbox" id="ApplyNewAccess" />
+                    <input type="hidden" id="RoleId" />
+                </div>
+                <div class="col-md-12">
+                    <div id="chip-holder" style="margin-bottom:10px;"></div>
+                    <div class="treeview-holder">
+                        <div id="treeview"></div>
+                    </div>
+                </div>
+
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="button" onclick="roles.access.checkApplyAccess()" class="btn btn-success">
+                        <i class="material-icons">send</i>
+                        ذخیره اطلاعات
+                    </button>
+
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">بستن</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+@section Scripts{
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/assets/bootstrap-treeview/bootstrap-treeview.min.js"></script>
+    <script src="~/assets/js/jquery.datatables.js"></script>
+    <script src="~/Areas/AuthSystem/js/Role.js" asp-append-version="true"></script>
+}
+
+
+
+@section styles{
+    <link href="~/assets/bootstrap-treeview/bootstrap-treeview.min.css" rel="stylesheet" />
+    <style>
+        .treeview .list-group-item {
+            overflow: hidden;
+        }
+
+            .treeview .list-group-item i,
+            .treeview .list-group-item span.node-title {
+                display: inline-block;
+                float: right;
+                margin-left: 5px;
+            }
+
+        .parameters-section .delete {
+            transform: translateY(15px);
+        }
+
+            .parameters-section .delete i {
+                font-size: 24px
+            }
+
+            #treeview{
+                padding:0px !important;
+            }
+            #treeview .list-group{
+                margin-bottom:0px;
+            }
+            .treeview-holder{
+                max-height:400px;
+                background:#eee;
+                border-radius:5px;
+                padding:10px !important;
+                border:1px solid #ddd;
+            }
+    </style>
+}

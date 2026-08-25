@@ -1,0 +1,89 @@
+﻿        label{
+            color:#000;
+            font-size:12px;
+            width:100%;
+            text-align:center;
+            padding:0 !important
+        }
+
+        label span{
+            display:inline-block;
+            width:35px;
+            height:25px;
+            transform:translateY(9px);
+            padding-left:10px;
+        }
+
+            label span.unchecked {
+                background: url('/Areas/Admin/assets/img/unchecked.png') no-repeat center center;
+                background-size: 100%;
+            }
+
+        label span.checked {
+            background: url('/Areas/Admin/assets/img/checked.png') no-repeat center center;
+            background-size:100%;
+        }
+
+    .modal > p .form-group {
+      display: initial !important;
+    }
+
+    .modal .text-muted{
+        overflow:hidden;
+    }
+
+    .modal .RelationType{
+        margin-bottom:10px;
+        padding-top:10px;
+    }
+
+    .modal .RelationType > div{
+        margin-bottom:10px;
+    }
+
+    .modal .RelationType .form-group{
+        margin-top:0;
+    }
+
+    .modal .RelationType label{
+        line-height:45px;
+    }
+
+    .modal .RelationType .checkbox{
+        margin:0;
+        margin-top:12px;
+    }
+
+
+
+    .modal input[name='RelType']{
+        width:20px;
+        height:20px;
+        cursor:pointer;
+        float:right !important;
+        position:relative;
+        z-index:1;
+        opacity:1;
+        margin:0;
+    }
+
+    .modal input[name='RelType'] + label{
+        cursor:pointer;
+        text-align:right;
+        line-height:21px;
+        position:relative;
+        z-index:1;
+        padding-right:10px;
+    }
+
+    .modal .Order + span{
+        display: block;
+        font-size: 12px;
+        text-align: right;
+        line-height: 30px;
+    }
+
+
+
+
+

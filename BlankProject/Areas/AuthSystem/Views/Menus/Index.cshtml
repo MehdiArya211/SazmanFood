@@ -1,0 +1,88 @@
+﻿@model IEnumerable<Domain.Entities.Menu>
+
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
+
+
+
+<!--منو ها-->
+<div class="row">
+    <div class="col-md-6 col-md-offset-3">
+        <div class="card">
+            <div class="card-header card-header-icon" data-background-color="rose">
+                <i class="material-icons">list</i>
+            </div>
+            <div class="card-content">
+                <h4 class="card-title">مدیریت منو ها</h4>
+                <div class="toolbar">
+                    <section class="row">
+                        <a class="btn btn-success create-btn" onclick="menu.create.loadForm()">افزودن منو جدید</a>
+                        <a class="btn btn-info edit-btn hide" onclick="menu.edit.loadForm()">ویرایش منو</a>
+                        <a class="btn btn-danger delete-btn hide" onclick="menu.delete.loadForm()">حذف منو</a>
+                    </section>
+
+                </div>
+
+                <!--تری ویو-->
+                <div id="treeview"></div>
+            </div>
+
+
+            <!-- end content-->
+        </div>
+        <!-- end card -->
+
+    </div>
+</div>
+
+
+
+
+
+<!-- چارچوب مدال -->
+<div class="modal fade" id="base-modal" tabindex="-1" role="dialog" aria-labelledby="modal5-label" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="modal-form">
+
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+@section scripts{
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/assets/bootstrap-treeview/bootstrap-treeview.min.js"></script>
+    <script src="~/assets/js/jquery.datatables.js"></script>
+    <script src="~/Areas/AuthSystem/js/Menu.js" asp-append-version="true"></script>
+}
+
+
+@section styles{
+    <link href="~/assets/bootstrap-treeview/bootstrap-treeview.min.css" rel="stylesheet" />
+    <style>
+        .treeview .list-group-item{
+            overflow:hidden;
+        }
+
+        .treeview .list-group-item i,
+        .treeview .list-group-item span.node-title{
+            display:inline-block;
+            float:right;
+            margin-left:5px;
+        }
+
+        .parameters-section .delete{
+            transform:translateY(15px);
+        }
+        .parameters-section .delete i{
+            font-size:24px
+        }
+    </style>
+}

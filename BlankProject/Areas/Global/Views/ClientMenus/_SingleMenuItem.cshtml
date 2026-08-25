@@ -1,0 +1,20 @@
+﻿@model DTO.Menu.MenuSessionDTO
+@using Newtonsoft.Json
+
+@{
+    string CController = ViewBag.Controller;
+    string CAction = ViewBag.Action;
+    Dictionary<string, string> route = null;
+    if(!string.IsNullOrEmpty(Model.Parameters)){
+        route = JsonConvert.DeserializeObject<Dictionary<string, string>>(Model.Parameters);
+    }
+}
+
+
+<li class="nav-item @(CController == Model.Controller ? "active" : "")" rel="@Model.Id">
+    <a class="nav-link" asp-area="@Model.Area" asp-controller="@Model.Controller" asp-action="@Model.Action" asp-all-route-data="route">
+        <i class="@(Model.Icon == null ? "" : "material-icons")">@(Model.Icon ?? Model.Title.Substring(0,3))</i>
+        <p>@Model.Title</p>
+    </a>
+</li>
+

@@ -1,0 +1,101 @@
+﻿@model DTO.OrganGarrisonDTO
+@using Services.SessionServices
+
+@{
+    var Admin = Context.Session.GetUser();
+}
+
+<div class="modal-header">
+    <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+
+    <h4 class="modal-title" id="modal5-label">
+        ویرایش یگان
+    </h4>
+
+    <div class="text-center">
+        پرکردن فیلدهای ستاره دار الزامی است.
+    </div>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <form asp-action="Edit" class="edit-form" onsubmit="return orgGari.edit.save(event)">
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+                <input asp-for="Id" type="hidden" />
+
+                <hr />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="error text-center text-danger edit-error">@ViewBag.Error</div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-6">
+                        <label asp-for="ParentId" class="control-label text-right col-md-12">پادگان</label>
+                        <div class="col-md-12">
+                            <select asp-for="ParentId" id="ParentId" data-live-search="true" class="selectpicker"
+                                    asp-items="ViewBag.ParentId" data-style="select-with-transition">
+                                <option value="">لطفا انتخاب کنید</option>
+                            </select>
+                            <span asp-validation-for="ParentId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label asp-for="OrgId" class="control-label text-right col-md-12 required">یگان</label>
+                        <div class="col-md-12">
+                            <select asp-for="OrgId" id="OrgId" data-live-search="true" class="selectpicker"
+                                    asp-items="ViewBag.OrgId" data-style="select-with-transition">
+                                <option value="">لطفا انتخاب کنید</option>
+                            </select>
+                            <span asp-validation-for="OrgId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        <label asp-for="OrganGarrisonTypeId" class="control-label text-right col-md-12 required">نوع یگان</label>
+                        <div class="col-md-12">
+                            <select asp-for="OrganGarrisonTypeId" id="OrganGarrisonTypeId" data-live-search="true" class="selectpicker"
+                                    asp-items="ViewBag.GarsionType" data-style="select-with-transition">
+                                <option value="">لطفا انتخاب کنید</option>
+                            </select>
+                            <span asp-validation-for="OrganGarrisonTypeId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label asp-for="EstedadKadr" class="control-label text-right col-md-12 required">استعداد کادر</label>
+                        <div class="col-md-12">
+                            <input asp-for="EstedadKadr" class="form-control" onkeypress="return isNumberKey(event)" />
+                            <span asp-validation-for="EstedadKadr" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label asp-for="EstedadVazife" class="control-label text-right col-md-12 required">استعداد وظیفه</label>
+                        <div class="col-md-12">
+                            <input asp-for="EstedadVazife" class="form-control" onkeypress="return isNumberKey(event)" />
+                            <span asp-validation-for="EstedadVazife" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-12 text-center">
+                    <button type="submit" class="btn btn-success">
+                        <i class="material-icons">send</i>
+                        ذخیره اطلاعات
+                    </button>
+
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">
+                        بستن
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

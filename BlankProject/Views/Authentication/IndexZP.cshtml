@@ -1,0 +1,52 @@
+﻿@using Domain.Resources
+
+@{
+    Layout = "/Views/Shared/_AuthLayout.cshtml";
+    ViewBag.Title = Config.SiteNameFa + " | ورود با تشخیص چهره";
+
+   // var API_BASE_URL = "http://10.128.151.141:5000";
+   var API_BASE_URL = "http://10.128.155.213:6053";
+   // var API_BASE_URL = "https://10.128.155.213:7777";
+}
+
+<div class="col-md-6 col-md-offset-3">
+    <div class="card card-login">
+        <div class="card-header text-center" data-background-color="rose">
+            <h4 class="card-title">ورود با تشخیص چهره</h4>
+        </div>
+
+        <div class="card-content text-center" style="padding:40px">
+
+            <i class="material-icons" style="font-size:80px;color:#e91e63">face</i>
+
+            <h4 style="margin-top:20px">لطفاً مقابل دستگاه بایستید</h4>
+
+            <p class="text-muted">سیستم در حال انتظار برای تشخیص چهره شماست...</p>
+
+            <div id="connectionStatus" style="margin-top:20px;color:#999">
+                در حال اتصال به دستگاه...
+            </div>
+            <div style="margin-top:30px">
+
+                <a href="@Url.Action("Index", "Authentication")"
+                   class="btn btn-rose btn-wd btn-lg" style="text-align:center">
+
+                    <i class="material-icons">login</i>
+                    ورود با نام کاربری
+                </a>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    <script>
+        // ✅ آدرس وب‌سرویس دارای Hub
+        window.API_BASE_URL = "@API_BASE_URL";
+    </script>
+     <script src="~/assets/signalr/signalr2.js"></script> 
+@*     <script src="~/assets/signalr/signalr2client.js"></script>
+ *@     <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
+}
