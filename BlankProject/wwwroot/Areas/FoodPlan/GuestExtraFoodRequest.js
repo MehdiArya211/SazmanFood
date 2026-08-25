@@ -56,7 +56,19 @@ var guestExtraFoodRequest = {
                             if (row.status == 5)
                                 cls = "text-danger";
 
-                            return '<span class="' + cls + '">' + data + '</span>';
+                            var description = "";
+
+                            if (row.status == 4)
+                                description = row.returnReason || "";
+
+                            if (row.status == 5)
+                                description = row.cancelReason || "";
+
+                            var title = description
+                                ? " title='" + $("<div>").text(description).html() + "' data-toggle='tooltip'"
+                                : "";
+
+                            return '<span class="' + cls + '"' + title + '>' + data + '</span>';
                         }
                     },
                     {
