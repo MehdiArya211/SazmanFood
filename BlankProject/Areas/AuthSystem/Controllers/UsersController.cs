@@ -12,7 +12,7 @@ using Services.RedisService;
 using Services.SessionServices;
 using Utilities.Extentions;
 
-namespace Food.Areas.Admin.Controllers
+namespace Food.Areas.AuthSystem.Controllers
 {
 
     /// <summary>
