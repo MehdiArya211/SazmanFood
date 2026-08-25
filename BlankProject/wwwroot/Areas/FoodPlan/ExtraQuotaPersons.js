@@ -122,7 +122,7 @@ var extraQuotaPersons = {
                 return;
             }
 
-            $.get("/AuthSystem/Users/GetPersonByPersonCode?personCode=" + personCode, function (res) {
+            $.get("/FoodPlan/ExtraQuotaPersons/GetOfficialPerson?personCode=" + encodeURIComponent(personCode), function (res) {
                 if (res.status) {
                     var model = res.model;
 
