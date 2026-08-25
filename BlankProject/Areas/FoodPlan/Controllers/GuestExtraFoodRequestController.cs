@@ -62,10 +62,16 @@ namespace Food.Areas.FoodPlan.Controllers
                 status = x.Status,
                 statusTitle = x.StatusTitle,
                 attachmentCount = x.AttachmentCount,
-                canEdit = x.Status == GuestExtraFoodRequestStatus.Draft,
-                canDelete = x.Status == GuestExtraFoodRequestStatus.Draft,
+                returnReason = x.ReturnReason,
+                cancelReason = x.CancelReason,
+                canEdit = x.Status == GuestExtraFoodRequestStatus.Draft ||
+                          x.Status == GuestExtraFoodRequestStatus.Returned,
+                canDelete = x.Status == GuestExtraFoodRequestStatus.Draft ||
+                            x.Status == GuestExtraFoodRequestStatus.Returned,
                 canSend = x.Status == GuestExtraFoodRequestStatus.Draft,
                 canApprove = x.Status == GuestExtraFoodRequestStatus.Sent && canApprove,
+                canReturn = x.Status == GuestExtraFoodRequestStatus.Sent && canApprove,
+                canCancel = x.Status == GuestExtraFoodRequestStatus.Sent && canApprove,
                 canPrintGuest = x.Status == GuestExtraFoodRequestStatus.Approved &&
                                 x.GuestCount > 0 &&
                                 canPrintGuest
@@ -300,6 +306,36 @@ namespace Food.Areas.FoodPlan.Controllers
             }
 
             return Json(manager.Approve(id));
+        }
+
+        #endregion
+
+        #region عودت و لغو درخواست
+
+        /// <summary>
+        /// عودت درخواست برای اصلاح
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Return(long id, string reason)
+        {
+            if (!manager.CanApprove())
+                return AccessDenied("شما مجوز عودت درخواست را ندارید.");
+
+            return Json(manager.Return(id, reason));
+        }
+
+        /// <summary>
+        /// لغو درخواست با حفظ سابقه
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Cancel(long id, string reason)
+        {
+            if (!manager.CanApprove())
+                return AccessDenied("شما مجوز لغو درخواست را ندارید.");
+
+            return Json(manager.Cancel(id, reason));
         }
 
         #endregion
