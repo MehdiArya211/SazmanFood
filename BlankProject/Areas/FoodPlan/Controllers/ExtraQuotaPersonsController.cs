@@ -50,6 +50,9 @@ namespace Food.Areas.FoodPlan.Controllers
             ViewBag.CanViewAllOrganizations =
                 CanViewAllOrganizations();
 
+            ViewBag.CanManagePersons =
+                CanManagePersons();
+
             return View();
         }
 
@@ -100,6 +103,9 @@ namespace Food.Areas.FoodPlan.Controllers
             if (model == null)
                 return NotFound();
 
+            ViewBag.CanManagePersons =
+                CanManagePersons();
+
             ViewBag.DiningHalls =
                 unitQuotaManager.GetDiningHalls(
                     model.OrgId,
@@ -113,8 +119,8 @@ namespace Food.Areas.FoodPlan.Controllers
         public IActionResult CreateOfficial(
             ExtraQuotaOfficialPersonCreateDTO model)
         {
-            if (!CanView())
-                return AccessDenied();
+            if (!CanManagePersons())
+                return AccessDenied("شما مجوز تعیین پرسنل بن مازاد را ندارید.");
 
             if (!ModelState.IsValid)
                 return ModelStateError();
@@ -132,8 +138,8 @@ namespace Food.Areas.FoodPlan.Controllers
         public IActionResult CreateDuty(
             ExtraQuotaDutyPersonCreateDTO model)
         {
-            if (!CanView())
-                return AccessDenied();
+            if (!CanManagePersons())
+                return AccessDenied("شما مجوز تعیین پرسنل بن مازاد را ندارید.");
 
             if (!ModelState.IsValid)
                 return ModelStateError();
@@ -150,8 +156,8 @@ namespace Food.Areas.FoodPlan.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult DeletePerson(long id)
         {
-            if (!CanView())
-                return AccessDenied();
+            if (!CanManagePersons())
+                return AccessDenied("شما مجوز حذف پرسنل بن مازاد را ندارید.");
 
             var result =
                 manager.DeletePerson(
@@ -179,6 +185,29 @@ namespace Food.Areas.FoodPlan.Controllers
                    role == RegistrarRole ||
                    role == ApproverRole ||
                    role == OfficeRole;
+        }
+
+        /// <summary>
+        /// تعیین و حذف پرسنل فقط توسط اداری یگان
+        /// یا رکن چهار پشتیبانی مجاز است.
+        /// </summary>
+        private bool CanManagePersons()
+        {
+            var user = GetCurrentUser();
+
+            if (user == null || !user.IsEnabled)
+                return false;
+
+            var role = user.Role?.Trim();
+
+            return string.Equals(
+                       role,
+                       OfficeRole,
+                       StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(
+                       role,
+                       SupportRole,
+                       StringComparison.OrdinalIgnoreCase);
         }
 
         private bool CanViewAllOrganizations()
