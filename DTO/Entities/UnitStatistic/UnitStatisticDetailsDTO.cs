@@ -22,6 +22,24 @@ public class UnitStatisticDetailsDTO
     [Display(Name = "وضعیت")]
     public UnitStatisticStatus Status { get; set; }
 
+    [Display(Name = "عودت‌کننده")]
+    public string ReturnerFullName { get; set; }
+
+    [Display(Name = "تاریخ عودت")]
+    public DateTime? ReturnDate { get; set; }
+
+    [Display(Name = "دلیل عودت")]
+    public string ReturnReason { get; set; }
+
+    [Display(Name = "لغوکننده")]
+    public string CancelerFullName { get; set; }
+
+    [Display(Name = "تاریخ لغو")]
+    public DateTime? CancelDate { get; set; }
+
+    [Display(Name = "دلیل لغو")]
+    public string CancelReason { get; set; }
+
     /// <summary>
     /// جزئیات کادر
     /// </summary>
