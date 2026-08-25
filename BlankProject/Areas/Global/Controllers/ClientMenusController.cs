@@ -4,7 +4,7 @@ using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Services.SessionServices;
 
-namespace LearningSkill.Areas.Global.Controllers
+namespace Food.Areas.Global.Controllers
 {
     [UserAuthorize(IsPublic: true, CheckPasswordChange: false)]
     [Area("Global")]
