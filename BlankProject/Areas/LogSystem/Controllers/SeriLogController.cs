@@ -6,7 +6,7 @@ using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace LearningSkill.Areas.LogSystem.Controllers
+namespace Food.Areas.LogSystem.Controllers
 {
     [Area("LogSystem")]
     [UserAuthorize(Area: "LogSystem", Controller: "SeriLog", Action: "index")]
