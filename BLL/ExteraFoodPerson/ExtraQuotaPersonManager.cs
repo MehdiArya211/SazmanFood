@@ -453,12 +453,16 @@ namespace BLL
             var today =
                 DateTime.Now.Date;
 
-            if (request.FromDate.Date > today ||
-                request.ToDate.Date < today)
+            /*
+             * تعیین نفرات از زمان تأیید درخواست مجاز است؛
+             * حتی اگر تاریخ شروع مربوط به آینده باشد.
+             * فقط درخواست منقضی‌شده قابل تخصیص نیست.
+             */
+            if (request.ToDate.Date < today)
             {
                 return new(
                     false,
-                    "بازه زمانی این درخواست فعال نیست.");
+                    "بازه زمانی این درخواست به پایان رسیده است.");
             }
 
             return new(true, null);
