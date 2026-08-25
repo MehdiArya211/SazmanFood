@@ -4,7 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Services.CookieServices;
 using Services.RedisService;
 
-public class FaceAuthController : Controller
+namespace Food.Controllers
+{
+    /// <summary>
+    /// ورود کاربران از طریق تشخیص چهره
+    /// </summary>
+    public class FaceAuthController : Controller
 {
     private readonly IUserManager _userManager;
     private readonly IAuthManager AuthManager;
@@ -110,4 +115,5 @@ public class FaceAuthController : Controller
     }
 
 
+}
 }
