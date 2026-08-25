@@ -349,6 +349,8 @@ namespace Food.Areas.FoodPlan.Controllers
 
             var attachments = manager.GetAttachments(id);
             ViewBag.RequestId = id;
+            ViewBag.CanManageAttachments =
+                manager.GetEditDTO(id) != null;
 
             return PartialView("_Attachments", attachments);
         }
