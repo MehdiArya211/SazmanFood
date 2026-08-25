@@ -337,7 +337,8 @@ namespace Food.Areas.FoodMang.Controllers
                     "شما اجازه ویرایش آمار این یگان را ندارید.");
             }
 
-            if (model.Status == UnitStatisticStatus.Approved)
+            if (model.Status == UnitStatisticStatus.Approved ||
+                model.Status == UnitStatisticStatus.Canceled)
             {
                 return BadRequest(new
                 {
@@ -392,12 +393,15 @@ namespace Food.Areas.FoodMang.Controllers
                         "شما اجازه ویرایش آمار این یگان را ندارید.");
                 }
 
-                if (current.Status == UnitStatisticStatus.Approved)
+                if (current.Status == UnitStatisticStatus.Approved ||
+                    current.Status == UnitStatisticStatus.Canceled)
                 {
                     return Json(new
                     {
                         Status = false,
-                        Message = "آمار تأیید نهایی شده قابل ویرایش نیست."
+                        Message = model.Status == UnitStatisticStatus.Canceled
+                            ? "آمار لغوشده قابل ویرایش نیست."
+                            : "آمار تأیید نهایی شده قابل ویرایش نیست."
                     });
                 }
 
@@ -459,7 +463,8 @@ namespace Food.Areas.FoodMang.Controllers
 
             ViewBag.CanRegister =
                 IsRegistrar() &&
-                model.Status != UnitStatisticStatus.Approved;
+                model.Status != UnitStatisticStatus.Approved &&
+                model.Status != UnitStatisticStatus.Canceled;
 
             ViewBag.CanApprove =
                 IsApprover() &&
@@ -734,5 +739,138 @@ namespace Food.Areas.FoodMang.Controllers
         }
 
         #endregion
+
+        #region عودت
+
+        /// <summary>
+        /// عودت آمار ارسال‌شده برای اصلاح
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Return(long id, string reason)
+        {
+            try
+            {
+                if (!IsApprover())
+                    return AccessDenied("فقط تأییدکننده آمار اجازه عودت را دارد.");
+
+                if (id <= 0)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "شناسه آمار معتبر نیست."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(reason))
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "ثبت دلیل عودت الزامی است."
+                    });
+                }
+
+                var current = unitStatisticManager.GetDetailsDTO(id);
+
+                if (current == null)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "آمار مورد نظر یافت نشد."
+                    });
+                }
+
+                if (current.Status != UnitStatisticStatus.Sent)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "فقط آمار ارسال‌شده قابل عودت است."
+                    });
+                }
+
+                return Json(unitStatisticManager.Return(id, reason));
+            }
+            catch
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message = "عودت آمار با خطا همراه بوده است."
+                });
+            }
+        }
+
+        #endregion
+
+        #region لغو
+
+        /// <summary>
+        /// لغو آمار ارسال‌شده
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Cancel(long id, string reason)
+        {
+            try
+            {
+                if (!IsApprover())
+                    return AccessDenied("فقط تأییدکننده آمار اجازه لغو را دارد.");
+
+                if (id <= 0)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "شناسه آمار معتبر نیست."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(reason))
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "ثبت دلیل لغو الزامی است."
+                    });
+                }
+
+                var current = unitStatisticManager.GetDetailsDTO(id);
+
+                if (current == null)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "آمار مورد نظر یافت نشد."
+                    });
+                }
+
+                if (current.Status != UnitStatisticStatus.Sent)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "فقط آمار ارسال‌شده قابل لغو است."
+                    });
+                }
+
+                return Json(unitStatisticManager.Cancel(id, reason));
+            }
+            catch
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message = "لغو آمار با خطا همراه بوده است."
+                });
+            }
+        }
+
+        #endregion
+
     }
 }
