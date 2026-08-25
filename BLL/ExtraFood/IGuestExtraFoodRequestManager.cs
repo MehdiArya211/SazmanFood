@@ -35,6 +35,8 @@ public interface IGuestExtraFoodRequestManager
     BaseResult DeleteRequest(long id);
     BaseResult Send(long id);
     BaseResult Approve(long id);
+    BaseResult Return(long id, string reason);
+    BaseResult Cancel(long id, string reason);
 
     #endregion
 
