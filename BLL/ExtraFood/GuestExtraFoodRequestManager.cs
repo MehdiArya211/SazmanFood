@@ -294,7 +294,13 @@ namespace BLL
                 GuestCount = x.GuestCount,
                 ExtraQuotaCount = x.ExtraQuotaCount,
                 Status = x.Status,
-                AttachmentCount = attachments.Count(a => a.GuestExtraFoodRequestId == x.Id)
+                AttachmentCount = attachments.Count(a => a.GuestExtraFoodRequestId == x.Id),
+                ReturnerFullName = x.ReturnerFullName,
+                ReturnDate = x.ReturnDate,
+                ReturnReason = x.ReturnReason,
+                CancelerFullName = x.CancelerFullName,
+                CancelDate = x.CancelDate,
+                CancelReason = x.CancelReason
             }).ToList();
         }
 
@@ -306,7 +312,9 @@ namespace BLL
         {
             var request = GetAuthorizedRequest(id);
 
-            if (request == null || request.Status != GuestExtraFoodRequestStatus.Draft)
+            if (request == null ||
+                (request.Status != GuestExtraFoodRequestStatus.Draft &&
+                 request.Status != GuestExtraFoodRequestStatus.Returned))
                 return null;
 
             return new GuestExtraFoodRequestEditDTO
@@ -396,8 +404,9 @@ namespace BLL
             if (entity == null)
                 return new BaseResult(false, "درخواست یافت نشد یا شما به آن دسترسی ندارید.");
 
-            if (entity.Status != GuestExtraFoodRequestStatus.Draft)
-                return new BaseResult(false, "فقط درخواست ثبت اولیه قابل ویرایش است.");
+            if (entity.Status != GuestExtraFoodRequestStatus.Draft &&
+                entity.Status != GuestExtraFoodRequestStatus.Returned)
+                return new BaseResult(false, "فقط درخواست ثبت اولیه یا عودت‌شده قابل ویرایش است.");
 
             var orgId = canViewAll
                 ? model.OrgId.Value
@@ -416,6 +425,7 @@ namespace BLL
             entity.ToDate = model.ToDate.Value.Date;
             entity.GuestCount = model.GuestCount;
             entity.ExtraQuotaCount = model.ExtraQuotaCount;
+            entity.Status = GuestExtraFoodRequestStatus.Draft;
             entity.LastEditUserId = user.Id;
             entity.LastEditDate = DateTime.Now;
 
@@ -444,8 +454,9 @@ namespace BLL
             if (entity == null)
                 return new BaseResult(false, "درخواست یافت نشد یا شما به آن دسترسی ندارید.");
 
-            if (entity.Status != GuestExtraFoodRequestStatus.Draft)
-                return new BaseResult(false, "فقط درخواست ثبت اولیه قابل حذف است.");
+            if (entity.Status != GuestExtraFoodRequestStatus.Draft &&
+                entity.Status != GuestExtraFoodRequestStatus.Returned)
+                return new BaseResult(false, "فقط درخواست ثبت اولیه یا عودت‌شده قابل حذف است.");
 
             entity.IsDeleted = true;
             entity.LastEditUserId = user.Id;
@@ -541,6 +552,114 @@ namespace BLL
 
         #endregion
 
+        #region Return
+
+        /// <summary>
+        /// عودت درخواست ارسال‌شده برای اصلاح
+        /// </summary>
+        public BaseResult Return(long id, string reason)
+        {
+            if (!CanApprove())
+                return new BaseResult(false, "شما مجوز عودت درخواست را ندارید.");
+
+            var user = GetCurrentUser();
+
+            if (user == null)
+                return new BaseResult(false, "اطلاعات کاربر یافت نشد.");
+
+            reason = reason?.Trim();
+
+            if (string.IsNullOrWhiteSpace(reason))
+                return new BaseResult(false, "ثبت توضیحات و دلیل عودت الزامی است.");
+
+            if (reason.Length > 1000)
+                return new BaseResult(false, "توضیحات عودت نمی‌تواند بیشتر از 1000 کاراکتر باشد.");
+
+            var entity = GetAuthorizedRequest(id);
+
+            if (entity == null)
+                return new BaseResult(false, "درخواست یافت نشد یا شما به آن دسترسی ندارید.");
+
+            if (entity.Status != GuestExtraFoodRequestStatus.Sent)
+                return new BaseResult(false, "فقط درخواست ارسال‌شده قابل عودت است.");
+
+            var now = DateTime.Now;
+
+            entity.Status = GuestExtraFoodRequestStatus.Returned;
+            entity.ReturnerId = user.Id;
+            entity.ReturnerFullName = user.FullName;
+            entity.ReturnDate = now;
+            entity.ReturnReason = reason;
+            entity.LastEditUserId = user.Id;
+            entity.LastEditDate = now;
+
+            UOW.GuestExtraFoodRequest.Update(entity);
+
+            var success = UOW.Commit();
+
+            return new BaseResult(
+                success,
+                success
+                    ? "درخواست برای اصلاح عودت داده شد."
+                    : "عودت درخواست با خطا همراه بود.");
+        }
+
+        #endregion
+
+        #region Cancel
+
+        /// <summary>
+        /// لغو درخواست ارسال‌شده با حفظ سابقه
+        /// </summary>
+        public BaseResult Cancel(long id, string reason)
+        {
+            if (!CanApprove())
+                return new BaseResult(false, "شما مجوز لغو درخواست را ندارید.");
+
+            var user = GetCurrentUser();
+
+            if (user == null)
+                return new BaseResult(false, "اطلاعات کاربر یافت نشد.");
+
+            reason = reason?.Trim();
+
+            if (string.IsNullOrWhiteSpace(reason))
+                return new BaseResult(false, "ثبت توضیحات و دلیل لغو الزامی است.");
+
+            if (reason.Length > 1000)
+                return new BaseResult(false, "توضیحات لغو نمی‌تواند بیشتر از 1000 کاراکتر باشد.");
+
+            var entity = GetAuthorizedRequest(id);
+
+            if (entity == null)
+                return new BaseResult(false, "درخواست یافت نشد یا شما به آن دسترسی ندارید.");
+
+            if (entity.Status != GuestExtraFoodRequestStatus.Sent)
+                return new BaseResult(false, "فقط درخواست ارسال‌شده قابل لغو است.");
+
+            var now = DateTime.Now;
+
+            entity.Status = GuestExtraFoodRequestStatus.Canceled;
+            entity.CancelerId = user.Id;
+            entity.CancelerFullName = user.FullName;
+            entity.CancelDate = now;
+            entity.CancelReason = reason;
+            entity.LastEditUserId = user.Id;
+            entity.LastEditDate = now;
+
+            UOW.GuestExtraFoodRequest.Update(entity);
+
+            var success = UOW.Commit();
+
+            return new BaseResult(
+                success,
+                success
+                    ? "درخواست با موفقیت لغو شد."
+                    : "لغو درخواست با خطا همراه بود.");
+        }
+
+        #endregion
+
         #region Attachments
 
         public List<GuestExtraFoodRequestAttachmentDTO> GetAttachments(long requestId)
@@ -560,7 +679,8 @@ namespace BLL
                     FileSize = x.FileSize,
                     UploaderFullName = x.UploaderFullName,
                     UploadDate = x.UploadDate,
-                    CanDelete = request.Status != GuestExtraFoodRequestStatus.Approved
+                    CanDelete = request.Status == GuestExtraFoodRequestStatus.Draft ||
+                                request.Status == GuestExtraFoodRequestStatus.Returned
                 })
                 .ToList();
         }
@@ -578,8 +698,9 @@ namespace BLL
             if (request == null)
                 return new BaseResult(false, "درخواست یافت نشد یا شما به آن دسترسی ندارید.");
 
-            if (request.Status == GuestExtraFoodRequestStatus.Approved)
-                return new BaseResult(false, "پیوست درخواست تأییدشده قابل تغییر نیست.");
+            if (request.Status != GuestExtraFoodRequestStatus.Draft &&
+                request.Status != GuestExtraFoodRequestStatus.Returned)
+                return new BaseResult(false, "پیوست فقط در وضعیت ثبت اولیه یا عودت‌شده قابل تغییر است.");
 
             var fileValidation = ValidateAttachment(file);
             if (!fileValidation.Status)
@@ -641,8 +762,9 @@ namespace BLL
             if (request == null)
                 return new BaseResult(false, "درخواست یافت نشد یا شما به آن دسترسی ندارید.");
 
-            if (request.Status == GuestExtraFoodRequestStatus.Approved)
-                return new BaseResult(false, "پیوست درخواست تأییدشده قابل حذف نیست.");
+            if (request.Status != GuestExtraFoodRequestStatus.Draft &&
+                request.Status != GuestExtraFoodRequestStatus.Returned)
+                return new BaseResult(false, "پیوست فقط در وضعیت ثبت اولیه یا عودت‌شده قابل حذف است.");
 
             attachment.IsDeleted = true;
             attachment.LastEditUserId = user.Id;
