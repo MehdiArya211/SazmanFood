@@ -154,8 +154,9 @@ public class AuthenticationController : Controller
         await Redis.db.RemoveLoginLog(Mobile);
         #endregion
 
-        if (!string.IsNullOrEmpty(RetUrl))
-            return Redirect(RetUrl);
+        // فقط بازگشت به مسیرهای داخلی مجاز است تا از Open Redirect جلوگیری شود.
+        if (!string.IsNullOrWhiteSpace(RetUrl) && Url.IsLocalUrl(RetUrl))
+            return LocalRedirect(RetUrl);
 
         return RedirectToAction("index", "Dashboard", new { area = "Admin" });
     }
@@ -164,11 +165,8 @@ public class AuthenticationController : Controller
     #region ورود با چهره
     public IActionResult LoginPerson()
     {
-        // اگر پیغامی در TempData وجود داشت به ViewData منتقل می‌کنیم تا در View نمایش داده شود
-        if (TempData["Message"] != null)
-            ViewData["Message"] = TempData["Message"].ToString();
-
-        return View();
+        // مسیر قدیمی برای حفظ سازگاری، به صفحه فعال تشخیص چهره هدایت می‌شود.
+        return RedirectToAction(nameof(IndexZP));
     }
 
 
