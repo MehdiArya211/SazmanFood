@@ -1,130 +1,152 @@
-﻿@using Domain.Resources
+@using Domain.Resources
 @{
     Layout = "/Views/Shared/_AuthLayout.cshtml";
-    ViewBag.Title = Config.SiteNameFa + " | ورود به سایت";
-    var API_BASE_URL = "https://localhost:44385";
-    var InvalidLogin = ViewBag.InvalidLogin == null ? false : ViewBag.InvalidLogin;
+    ViewBag.Title = Config.SiteNameFa + " | ورود";
+    var hasError = !string.IsNullOrWhiteSpace(ViewBag.Error as string);
 }
 
-<!--فرم لاگین-->
-<div class="@(ViewBag.captcha != null ? "col-md-6 col-md-offset-3" : "col-md-4 col-md-offset-4")">
-    <form asp-action="index"
-          asp-route-RetUrl="@(Context.Request.Query["RetUrl"])"
-          asp-route-MenuId="@(Context.Request.Query["mid"])"
-          class="form-horizontal"
-          role="form"
-          onsubmit="return Validate();">
-        <div class="card card-login card-hidden">
-            <div class="card-header text-center" data-background-color="rose">
-                <h4 class="card-title">ورود به @Config.SiteNameFa</h4>
+<div class="auth-panel">
+    <div class="row" style="margin:0">
+        <section class="col-md-5 auth-visual-side" aria-label="معرفی سامانه">
+            <div class="auth-visual-content">
+                <div class="auth-eyebrow">مدیریت هوشمند تغذیه</div>
+                <h1 class="auth-title">یک تجربه سریع، امن و یکپارچه</h1>
+                <p class="auth-subtitle">
+                    ثبت آمار، برنامه‌ریزی غذا، مدیریت سهمیه و گزارش‌ها را در یک محیط متمرکز انجام دهید.
+                </p>
+                <ul class="auth-feature-list">
+                    <li><i class="material-icons" aria-hidden="true">verified_user</i><span>ورود امن و کنترل‌شده کاربران</span></li>
+                    <li><i class="material-icons" aria-hidden="true">event_available</i><span>مدیریت منظم برنامه و سهمیه غذا</span></li>
+                    <li><i class="material-icons" aria-hidden="true">insights</i><span>دسترسی سریع به آمار و گزارش‌ها</span></li>
+                </ul>
             </div>
-            <p class="category text-center">
-                نام کاربری و کلمه عبور خود را وارد کنید.
-            </p>
-            <p class="category text-center text-danger error">
-                @Html.Raw(ViewBag.Error)
-            </p>
-            <div class="card-content" style="padding:30px 15px;">
-                @* <input type="text" id="RetUrl" name="RetUrl" value="@(Context.Request.Query["RetUrl"])" />
-                <input type="text" id="MenuId" name="MenuId" value="@(Context.Request.Query["mid"])" />*@
+        </section>
 
-                <div class="input-group">
-                    <span class="input-group-addon">
-                        <i class="material-icons">account_circle</i>
-                    </span>
-                    <div class="form-group label-floating">
-                        <label class="control-label" style="display:block;">نام کاربری</label>
-                        <input type="text" id="Mobile" name="Mobile" class="form-control required">
+        <section class="col-md-7 auth-form-side">
+            <div class="auth-eyebrow">ورود کاربران</div>
+            <h2 class="auth-title">خوش آمدید</h2>
+            <p class="auth-subtitle">برای ورود به سامانه، اطلاعات حساب کاربری خود را وارد کنید.</p>
+
+            <div class="auth-alert error" role="alert" aria-live="polite">
+                @if (hasError)
+                {
+                    <i class="material-icons" aria-hidden="true">error_outline</i>
+                    <span>@ViewBag.Error</span>
+                }
+            </div>
+
+            <form asp-controller="Authentication"
+                  asp-action="Index"
+                  asp-route-RetUrl="@Context.Request.Query["RetUrl"]"
+                  asp-route-MenuId="@Context.Request.Query["mid"]"
+                  method="post"
+                  id="loginForm"
+                  onsubmit="return Validate();"
+                  novalidate>
+                <div class="auth-field">
+                    <label for="Mobile">نام کاربری</label>
+                    <div class="auth-input-wrap">
+                        <i class="material-icons" aria-hidden="true">person_outline</i>
+                        <input id="Mobile"
+                               name="Mobile"
+                               type="text"
+                               class="auth-input"
+                               autocomplete="username"
+                               inputmode="text"
+                               autofocus
+                               required
+                               aria-required="true" />
                     </div>
                 </div>
-                <div class="input-group">
-                    <span class="input-group-addon">
-                        <i class="material-icons">lock_outline</i>
-                    </span>
-                    <div class="form-group label-floating">
-                        <label class="control-label" style="display:block;">کلمه عبور</label>
-                        <input type="password" id="Password" name="Password" class="form-control required">
+
+                <div class="auth-field">
+                    <label for="Password">کلمه عبور</label>
+                    <div class="auth-input-wrap">
+                        <i class="material-icons" aria-hidden="true">lock_outline</i>
+                        <input id="Password"
+                               name="Password"
+                               type="password"
+                               class="auth-input"
+                               autocomplete="current-password"
+                               required
+                               aria-required="true" />
+                        <button type="button"
+                                id="togglePassword"
+                                class="auth-password-toggle"
+                                aria-label="نمایش کلمه عبور"
+                                aria-pressed="false">
+                            <i class="material-icons" aria-hidden="true">visibility</i>
+                        </button>
                     </div>
                 </div>
 
                 @if (ViewBag.captcha != null)
                 {
-                    <div class="form-group text-center">
-                        <div class="">
-                            @*<label class="control-label">کد امنیتی</label>*@
-                            <img alt="Captcha" id="imgcpatcha" src="@Url.Action("CaptchaImage","Captcha")" style="width: auto; height:60px;" />
-                            <br /><small>با کلیک روی عکس، کد امنیتی بازنشانی می شود</small>
+                    <div class="auth-field">
+                        <label for="captcha">کد امنیتی</label>
+                        <div class="text-center" style="margin-bottom:12px">
+                            <img id="imgcpatcha"
+                                 src="@Url.Action("CaptchaImage", "Captcha")"
+                                 alt="تصویر کد امنیتی"
+                                 style="height:60px;cursor:pointer"
+                                 title="برای دریافت کد جدید کلیک کنید" />
                         </div>
-                    </div>
-                    <div class="input-group text-center">
-                        <span class="input-group-addon">
-                            <i class="material-icons">security</i>
-                        </span>
-                        <div class="form-group label-floating">
-                            <label class="control-label" style="display:block;">کد امنیتی</label>
-                            <input type="number" id="captcha" name="captcha" class="form-control required">
+                        <div class="auth-input-wrap">
+                            <i class="material-icons" aria-hidden="true">security</i>
+                            <input id="captcha"
+                                   name="captcha"
+                                   type="text"
+                                   class="auth-input"
+                                   inputmode="numeric"
+                                   autocomplete="off"
+                                   required
+                                   aria-required="true" />
                         </div>
                     </div>
                 }
+
+                <button id="loginSubmit" type="submit" class="auth-submit">
+                    ورود به سامانه
+                </button>
+            </form>
+
+            <div class="text-center">
+                <a asp-controller="Authentication" asp-action="IndexZP" class="auth-alt-link">
+                    <i class="material-icons" aria-hidden="true">face</i>
+                    ورود با تشخیص چهره
+                </a>
             </div>
-            <div class="footer text-center">
-                <button type="submit" class="btn btn-rose btn-wd btn-lg">ورود به سایت</button>
-            </div>
-            <div class="text-center text-green">
-            </div>
-        </div>
-    </form>
+        </section>
+    </div>
 </div>
 
-@section Scripts{
+@section Scripts {
+    <script src="~/assets/VuePersianDateTimePicker/moment/moment.min.js"></script>
+    <script src="~/Areas/Root/js/Login.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            "use strict";
 
-<script>
-    // آدرس واقعی سرویس SignalR/API
-    window.API_BASE_URL = "https://10.128.151.141:44385";
-</script>
-<script src="~/assets/signalr/signalr2.js"></script>
-<script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
+            var toggle = document.getElementById("togglePassword");
+            var password = document.getElementById("Password");
 
+            toggle.addEventListener("click", function () {
+                var showPassword = password.type === "password";
+                password.type = showPassword ? "text" : "password";
+                toggle.setAttribute("aria-pressed", String(showPassword));
+                toggle.setAttribute("aria-label", showPassword ? "پنهان کردن کلمه عبور" : "نمایش کلمه عبور");
+                toggle.querySelector(".material-icons").textContent = showPassword ? "visibility_off" : "visibility";
+                password.focus();
+            });
+        })();
+    </script>
 
     @if (!string.IsNullOrEmpty(Context.Request.Query["newlogin"]))
     {
         <script>
-            showNotification('به دلیل ورود شخصی دیگر با این حساب کاربری، شما از حساب کاربری خود خارج شدید!', 'danger');
+            if (typeof showNotification === "function") {
+                showNotification("به دلیل ورود شخصی دیگر با این حساب، از حساب کاربری خارج شدید.", "danger");
+            }
         </script>
     }
-
-    <script src="~/assets/VuePersianDateTimePicker/moment/moment.min.js"></script>
-@*     <script src="~/Areas/Root/js/Login.js" asp-append-version="true"></script> *@
-    <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
-
-    <script>
-        const KIOSK_KEY = "kioskId";
-
-        function generateKioskId() {
-            return Math.floor(100000 + Math.random() * 900000);
-        }
-
-        function getOrCreateKioskId() {
-            let kioskId = Number(localStorage.getItem(KIOSK_KEY));
-
-            if (!Number.isInteger(kioskId) || kioskId <= 0) {
-                kioskId = generateKioskId();
-                localStorage.setItem(KIOSK_KEY, String(kioskId));
-            }
-
-            console.log("kioskId:", kioskId);
-            return kioskId;
-        }
-
-        const kioskId = getOrCreateKioskId();
-
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${API_BASE_URL}/kioskHub`)
-            .withAutomaticReconnect()
-            .build();
-
-        connection.start()
-            .then(() => connection.invoke("Register", kioskId))
-            .catch(err => console.error(err));
-    </script>
 }
