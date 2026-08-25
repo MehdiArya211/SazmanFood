@@ -29,5 +29,15 @@ namespace BLL.Interface
         BaseResult Send(long id);
 
         BaseResult Approve(long id);
+
+        /// <summary>
+        /// عودت آمار ارسال‌شده برای اصلاح
+        /// </summary>
+        BaseResult Return(long id, string reason);
+
+        /// <summary>
+        /// لغو آمار یگان
+        /// </summary>
+        BaseResult Cancel(long id, string reason);
     }
 }
