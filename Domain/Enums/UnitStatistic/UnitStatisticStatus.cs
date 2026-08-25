@@ -11,6 +11,12 @@ namespace Domain.Enums
         Sent = 2,
 
         [Description("تأییدشده")]
-        Approved = 3
+        Approved = 3,
+
+        [Description("عودت‌شده")]
+        Returned = 4,
+
+        [Description("لغوشده")]
+        Canceled = 5
     }
 }
