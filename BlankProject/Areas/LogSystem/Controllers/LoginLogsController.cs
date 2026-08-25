@@ -6,7 +6,7 @@ using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Services.RedisService;
 
-namespace LearningSkill.Areas.Shared.Controllers
+namespace Food.Areas.LogSystem.Controllers
 {
     [Area("LogSystem")]
     [UserAuthorize(Area: "LogSystem", Controller: "LoginLogs", Action: "index")]
