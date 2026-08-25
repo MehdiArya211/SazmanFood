@@ -46,6 +46,34 @@ public class UnitStatistic : EntityBase
     [Display(Name = "تاریخ تأیید")]
     public DateTime? ApproveDate { get; set; }
 
+    [Display(Name = "عودت‌کننده")]
+    public long? ReturnerId { get; set; }
+
+    [Display(Name = "عودت‌کننده")]
+    [MaxLength(200)]
+    public string ReturnerFullName { get; set; }
+
+    [Display(Name = "تاریخ عودت")]
+    public DateTime? ReturnDate { get; set; }
+
+    [Display(Name = "دلیل عودت")]
+    [MaxLength(1000)]
+    public string ReturnReason { get; set; }
+
+    [Display(Name = "لغوکننده")]
+    public long? CancelerId { get; set; }
+
+    [Display(Name = "لغوکننده")]
+    [MaxLength(200)]
+    public string CancelerFullName { get; set; }
+
+    [Display(Name = "تاریخ لغو")]
+    public DateTime? CancelDate { get; set; }
+
+    [Display(Name = "دلیل لغو")]
+    [MaxLength(1000)]
+    public string CancelReason { get; set; }
+
     /// <summary>
     /// فقط آخرین آمار تأییدشده یگان فعال است.
     /// </summary>
