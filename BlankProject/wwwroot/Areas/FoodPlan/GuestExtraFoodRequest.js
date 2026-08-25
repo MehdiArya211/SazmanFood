@@ -64,8 +64,13 @@ var guestExtraFoodRequest = {
                             if (row.status == 5)
                                 description = row.cancelReason || "";
 
+                            var safeDescription = $("<div>")
+                                .text(description)
+                                .html()
+                                .replace(/"/g, "&quot;");
+
                             var title = description
-                                ? " title='" + $("<div>").text(description).html() + "' data-toggle='tooltip'"
+                                ? ' title="' + safeDescription + '" data-toggle="tooltip"'
                                 : "";
 
                             return '<span class="' + cls + '"' + title + '>' + data + '</span>';
