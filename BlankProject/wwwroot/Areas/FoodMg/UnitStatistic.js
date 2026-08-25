@@ -658,10 +658,10 @@ var unitStatistic = {
         confirm: function (id) {
             swal({
                 title: "عودت آمار برای اصلاح",
-                text: "دلیل عودت را وارد کنید. این توضیح برای ثبت‌کننده نمایش داده می‌شود.",
+                text: "توضیح دهید آمار به چه دلیل عودت داده می‌شود و کدام موارد باید اصلاح شوند.",
                 type: "warning",
                 input: "textarea",
-                inputPlaceholder: "دلیل عودت...",
+                inputPlaceholder: "مثال: جمع آمار کادر با جزئیات ثبت‌شده همخوانی ندارد و باید اصلاح شود.",
                 inputAttributes: {
                     maxlength: 1000
                 },
@@ -734,10 +734,10 @@ var unitStatistic = {
         confirm: function (id) {
             swal({
                 title: "لغو آمار یگان",
-                text: "دلیل لغو را وارد کنید. سابقه آمار و دلیل لغو نگهداری خواهد شد.",
+                text: "توضیح دهید این آمار به چه دلیل باید لغو شود. این توضیحات در سابقه آمار نگهداری می‌شود.",
                 type: "error",
                 input: "textarea",
-                inputPlaceholder: "دلیل لغو...",
+                inputPlaceholder: "مثال: آمار برای یگان اشتباه ثبت شده و ادامه فرایند آن مجاز نیست.",
                 inputAttributes: {
                     maxlength: 1000
                 },
