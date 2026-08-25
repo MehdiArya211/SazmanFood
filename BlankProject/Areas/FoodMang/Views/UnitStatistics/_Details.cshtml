@@ -6,19 +6,29 @@
     var canApprove = ViewBag.CanApprove == true;
 
     var isApproved = Model.Status == UnitStatisticStatus.Approved;
-    var canEdit = canRegister && !isApproved;
+    var isCanceled = Model.Status == UnitStatisticStatus.Canceled;
+    var isReturned = Model.Status == UnitStatisticStatus.Returned;
+    var canEdit = canRegister && !isApproved && !isCanceled;
 
     var statusText = Model.Status == UnitStatisticStatus.Approved
         ? "تأیید نهایی"
         : Model.Status == UnitStatisticStatus.Sent
             ? "ارسال شده"
-            : "ثبت اولیه";
+            : Model.Status == UnitStatisticStatus.Returned
+                ? "عودت‌شده"
+                : Model.Status == UnitStatisticStatus.Canceled
+                    ? "لغوشده"
+                    : "ثبت اولیه";
 
     var statusClass = Model.Status == UnitStatisticStatus.Approved
         ? "unit-status-approved"
         : Model.Status == UnitStatisticStatus.Sent
             ? "unit-status-sent"
-            : "unit-status-draft";
+            : Model.Status == UnitStatisticStatus.Returned
+                ? "unit-status-returned"
+                : Model.Status == UnitStatisticStatus.Canceled
+                    ? "unit-status-canceled"
+                    : "unit-status-draft";
 }
 <style>
     /* =========================================
@@ -136,6 +146,16 @@
 .unit-status-approved {
     background: #e5f7ec;
     color: #21834b;
+}
+
+.unit-status-returned {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.unit-status-canceled {
+    background: #fde8e8;
+    color: #b42318;
 }
 
 /* Body */
@@ -793,6 +813,36 @@
                 </div>
             }
 
+            @if (isReturned)
+            {
+                <div class="unit-message unit-message-warning">
+                    <span class="material-icons">keyboard_return</span>
+                    <div>
+                        <strong>آمار برای اصلاح عودت داده شده است</strong>
+                        <span>
+                            <b>عودت‌کننده:</b> @Model.ReturnerFullName
+                            <br />
+                            <b>دلیل عودت:</b> @Model.ReturnReason
+                        </span>
+                    </div>
+                </div>
+            }
+
+            @if (isCanceled)
+            {
+                <div class="unit-message unit-message-danger alert alert-danger">
+                    <span class="material-icons">cancel</span>
+                    <div>
+                        <strong>این آمار لغو شده است</strong>
+                        <span>
+                            <b>لغوکننده:</b> @Model.CancelerFullName
+                            <br />
+                            <b>دلیل لغو:</b> @Model.CancelReason
+                        </span>
+                    </div>
+                </div>
+            }
+
             <div class="error unit-form-error text-center text-danger"></div>
 
             <div class="unit-details-grid">
@@ -1013,6 +1063,23 @@
                             onclick="unitStatistic.approve.confirm(@Model.Id)">
                         <span class="material-icons">verified</span>
                         تأیید نهایی آمار
+                    </button>
+                }
+
+                @if (canApprove && Model.Status == UnitStatisticStatus.Sent)
+                {
+                    <button type="button"
+                            class="btn btn-warning"
+                            onclick="unitStatistic.returnStatistic.confirm(@Model.Id)">
+                        <span class="material-icons">keyboard_return</span>
+                        عودت برای اصلاح
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-danger"
+                            onclick="unitStatistic.cancel.confirm(@Model.Id)">
+                        <span class="material-icons">cancel</span>
+                        لغو آمار
                     </button>
                 }
             </div>
