@@ -66,6 +66,26 @@ namespace Domain.Entities
 
         public DateTime? ApproveDate { get; set; }
 
+        public long? ReturnerId { get; set; }
+
+        [MaxLength(200)]
+        public string ReturnerFullName { get; set; }
+
+        public DateTime? ReturnDate { get; set; }
+
+        [MaxLength(1000)]
+        public string ReturnReason { get; set; }
+
+        public long? CancelerId { get; set; }
+
+        [MaxLength(200)]
+        public string CancelerFullName { get; set; }
+
+        public DateTime? CancelDate { get; set; }
+
+        [MaxLength(1000)]
+        public string CancelReason { get; set; }
+
         public Meal Meal { get; set; }
 
         public PersonalType PersonalType { get; set; }
