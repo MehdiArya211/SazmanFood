@@ -158,6 +158,14 @@
     color: #b42318;
 }
 
+.workflow-description {
+    display: inline-block;
+    margin-top: 4px;
+    line-height: 1.9;
+    white-space: pre-line;
+    word-break: break-word;
+}
+
 /* Body */
 
 .unit-statistic-body {
@@ -822,7 +830,13 @@
                         <span>
                             <b>عودت‌کننده:</b> @Model.ReturnerFullName
                             <br />
-                            <b>دلیل عودت:</b> @Model.ReturnReason
+                            <b>زمان عودت:</b>
+                            @(Model.ReturnDate.HasValue
+                                ? Model.ReturnDate.Value.ToPersianDateTime().ToString()
+                                : "-")
+                            <br />
+                            <b>توضیحات و دلیل عودت:</b>
+                            <span class="workflow-description">@Model.ReturnReason</span>
                         </span>
                     </div>
                 </div>
@@ -837,7 +851,13 @@
                         <span>
                             <b>لغوکننده:</b> @Model.CancelerFullName
                             <br />
-                            <b>دلیل لغو:</b> @Model.CancelReason
+                            <b>زمان لغو:</b>
+                            @(Model.CancelDate.HasValue
+                                ? Model.CancelDate.Value.ToPersianDateTime().ToString()
+                                : "-")
+                            <br />
+                            <b>توضیحات و دلیل لغو:</b>
+                            <span class="workflow-description">@Model.CancelReason</span>
                         </span>
                     </div>
                 </div>
