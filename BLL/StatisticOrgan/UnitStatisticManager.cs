@@ -86,13 +86,15 @@ public class UnitStatisticManager
     {
         var oldDraft = UOW.UnitStatistic.FirstOrDefault(x =>
             x.OrgId == model.OrgId &&
-            x.Status != UnitStatisticStatus.Approved);
+            (x.Status == UnitStatisticStatus.Draft ||
+             x.Status == UnitStatisticStatus.Sent ||
+             x.Status == UnitStatisticStatus.Returned));
 
         if (oldDraft != null)
         {
             return new BaseResult(
                 false,
-                "برای این یگان یک آمار ثبت اولیه یا ارسال‌شده وجود دارد.");
+                "برای این یگان یک آمار در حال بررسی وجود دارد.");
         }
 
         var entity = new UnitStatistic
@@ -147,6 +149,9 @@ public class UnitStatisticManager
 
         if (entity.Status == UnitStatisticStatus.Approved)
             return new BaseResult(false, "آمار تأیید نهایی شده قابل ویرایش نیست.");
+
+        if (entity.Status == UnitStatisticStatus.Canceled)
+            return new BaseResult(false, "آمار لغوشده قابل ویرایش نیست.");
 
         entity.TotalOfficialCount = model.TotalOfficialCount;
         entity.TotalDutyCount = model.TotalDutyCount;
@@ -253,6 +258,24 @@ public class UnitStatisticManager
 
                 Status =
                     statistic.Status,
+
+                ReturnerFullName =
+                    statistic.ReturnerFullName,
+
+                ReturnDate =
+                    statistic.ReturnDate,
+
+                ReturnReason =
+                    statistic.ReturnReason,
+
+                CancelerFullName =
+                    statistic.CancelerFullName,
+
+                CancelDate =
+                    statistic.CancelDate,
+
+                CancelReason =
+                    statistic.CancelReason,
 
                 OfficialDetails =
                     new List<
@@ -371,6 +394,14 @@ public class UnitStatisticManager
             return new BaseResult(
                 false,
                 "جزئیات آمار تأییدشده قابل ویرایش نیست.");
+        }
+
+        if (statistic.Status ==
+            UnitStatisticStatus.Canceled)
+        {
+            return new BaseResult(
+                false,
+                "جزئیات آمار لغوشده قابل ویرایش نیست.");
         }
 
         var officialDetails =
@@ -1485,6 +1516,96 @@ public class UnitStatisticManager
     }
 
     #endregion
+    #endregion
+
+    #region عودت
+
+    /// <summary>
+    /// عودت آمار ارسال‌شده برای اصلاح توسط ثبت‌کننده
+    /// </summary>
+    public BaseResult Return(long id, string reason)
+    {
+        var user = Session?.GetUser();
+
+        if (user == null)
+            return new BaseResult(false, "اطلاعات کاربر جاری یافت نشد.");
+
+        if (id <= 0)
+            return new BaseResult(false, "شناسه آمار معتبر نیست.");
+
+        reason = reason?.Trim();
+
+        if (string.IsNullOrWhiteSpace(reason))
+            return new BaseResult(false, "ثبت دلیل عودت الزامی است.");
+
+        if (reason.Length > 1000)
+            return new BaseResult(false, "دلیل عودت نمی‌تواند بیشتر از 1000 کاراکتر باشد.");
+
+        var statistic = UOW.UnitStatistic.FirstOrDefault(x =>
+            x.Id == id &&
+            x.OrgId == user.OmdOrgId);
+
+        if (statistic == null)
+            return new BaseResult(false, "آمار مورد نظر یافت نشد.");
+
+        if (statistic.Status != UnitStatisticStatus.Sent)
+            return new BaseResult(false, "فقط آمار ارسال‌شده قابل عودت است.");
+
+        statistic.Status = UnitStatisticStatus.Returned;
+        statistic.ReturnerId = user.Id;
+        statistic.ReturnerFullName = user.FullName;
+        statistic.ReturnDate = DateTime.Now;
+        statistic.ReturnReason = reason;
+        statistic.IsActive = false;
+
+        return base.Update(statistic);
+    }
+
+    #endregion
+
+    #region لغو
+
+    /// <summary>
+    /// لغو آمار ارسال‌شده و نگهداری سابقه آن
+    /// </summary>
+    public BaseResult Cancel(long id, string reason)
+    {
+        var user = Session?.GetUser();
+
+        if (user == null)
+            return new BaseResult(false, "اطلاعات کاربر جاری یافت نشد.");
+
+        if (id <= 0)
+            return new BaseResult(false, "شناسه آمار معتبر نیست.");
+
+        reason = reason?.Trim();
+
+        if (string.IsNullOrWhiteSpace(reason))
+            return new BaseResult(false, "ثبت دلیل لغو الزامی است.");
+
+        if (reason.Length > 1000)
+            return new BaseResult(false, "دلیل لغو نمی‌تواند بیشتر از 1000 کاراکتر باشد.");
+
+        var statistic = UOW.UnitStatistic.FirstOrDefault(x =>
+            x.Id == id &&
+            x.OrgId == user.OmdOrgId);
+
+        if (statistic == null)
+            return new BaseResult(false, "آمار مورد نظر یافت نشد.");
+
+        if (statistic.Status != UnitStatisticStatus.Sent)
+            return new BaseResult(false, "فقط آمار ارسال‌شده قابل لغو است.");
+
+        statistic.Status = UnitStatisticStatus.Canceled;
+        statistic.CancelerId = user.Id;
+        statistic.CancelerFullName = user.FullName;
+        statistic.CancelDate = DateTime.Now;
+        statistic.CancelReason = reason;
+        statistic.IsActive = false;
+
+        return base.Update(statistic);
+    }
+
     #endregion
 
     #region کنترل جزئیات
