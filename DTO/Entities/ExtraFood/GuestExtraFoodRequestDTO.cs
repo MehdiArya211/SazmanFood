@@ -35,6 +35,18 @@ namespace DTO.Entities
 
         public int AttachmentCount { get; set; }
 
+        public string ReturnerFullName { get; set; }
+
+        public DateTime? ReturnDate { get; set; }
+
+        public string ReturnReason { get; set; }
+
+        public string CancelerFullName { get; set; }
+
+        public DateTime? CancelDate { get; set; }
+
+        public string CancelReason { get; set; }
+
         public string FromDateFa =>
             FromDate.ToPersianDateTime().ToString();
 
@@ -52,6 +64,12 @@ namespace DTO.Entities
 
                 GuestExtraFoodRequestStatus.Approved =>
                     "تأیید شده",
+
+                GuestExtraFoodRequestStatus.Returned =>
+                    "عودت شده",
+
+                GuestExtraFoodRequestStatus.Canceled =>
+                    "لغو شده",
 
                 _ => "نامشخص"
             };
