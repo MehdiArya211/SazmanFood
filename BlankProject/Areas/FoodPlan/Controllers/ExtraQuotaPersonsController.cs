@@ -3,6 +3,7 @@ using Domain.Enums;
 using DTO.Entities;
 using DTO.User;
 using Filters;
+using ITOWebApiClient;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Services.SessionServices;
@@ -30,15 +31,21 @@ namespace Food.Areas.FoodPlan.Controllers
 
         private readonly IExtraQuotaPersonManager manager;
         private readonly IUnitQuotaManager unitQuotaManager;
+        private readonly IWebApiManager webApiManager;
+        private readonly ApiTokenCacheClient apiTokenCacheClient;
         private readonly ISession Session;
 
         public ExtraQuotaPersonsController(
             IExtraQuotaPersonManager manager,
             IUnitQuotaManager unitQuotaManager,
+            IWebApiManager webApiManager,
+            ApiTokenCacheClient apiTokenCacheClient,
             IHttpContextAccessor httpContextAccessor)
         {
             this.manager = manager;
             this.unitQuotaManager = unitQuotaManager;
+            this.webApiManager = webApiManager;
+            this.apiTokenCacheClient = apiTokenCacheClient;
             Session = httpContextAccessor.HttpContext.Session;
         }
 
@@ -112,6 +119,75 @@ namespace Food.Areas.FoodPlan.Controllers
                     model.PersonalTypeId);
 
             return PartialView("_Persons", model);
+        }
+
+        /// <summary>
+        /// دریافت اطلاعات پرسنل کادر براساس کد پرسنلی
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetOfficialPerson(string personCode)
+        {
+            if (!CanManagePersons())
+                return AccessDenied("شما مجوز جستجوی پرسنل را ندارید.");
+
+            personCode = personCode?.Trim();
+
+            if (string.IsNullOrWhiteSpace(personCode))
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message = "کد پرسنلی الزامی است."
+                });
+            }
+
+            try
+            {
+                var token = apiTokenCacheClient.GetApiToken(
+                    CustomSettings.Instance.ClientId,
+                    CustomSettings.Instance.Scope,
+                    CustomSettings.Instance.ClientSecret,
+                    CustomSettings.Instance.ROPC_UserName,
+                    CustomSettings.Instance.ROPC_Password
+                ).GetAwaiter().GetResult();
+
+                var person =
+                    webApiManager.GetPersonalByPersonCode(
+                        personCode,
+                        token);
+
+                if (person == null)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "پرسنل مورد نظر یافت نشد."
+                    });
+                }
+
+                return Json(new
+                {
+                    Status = true,
+                    Model = new
+                    {
+                        Id = person.Id,
+                        PersonCode = person.personalCode,
+                        NationalCode = person.MelliCode,
+                        RankTitle = person.RankTitle,
+                        FullName = !string.IsNullOrWhiteSpace(person.FullName)
+                            ? person.FullName
+                            : (person.FirstName + " " + person.LastName).Trim()
+                    }
+                });
+            }
+            catch
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message = "دریافت اطلاعات پرسنل با خطا همراه بود."
+                });
+            }
         }
 
         [HttpPost]
