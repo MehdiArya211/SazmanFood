@@ -50,6 +50,12 @@ var guestExtraFoodRequest = {
                             if (row.status == 3)
                                 cls = "text-success";
 
+                            if (row.status == 4)
+                                cls = "text-warning";
+
+                            if (row.status == 5)
+                                cls = "text-danger";
+
                             return '<span class="' + cls + '">' + data + '</span>';
                         }
                     },
@@ -75,6 +81,14 @@ var guestExtraFoodRequest = {
 
                             if (row.canApprove) {
                                 btns += "<a onclick='guestExtraFoodRequest.approve.loadForm(" + row.id + ")' class='btn btn-simple btn-success btn-icon' title='تأیید' data-toggle='tooltip'><i class='material-icons'>done_all</i></a>";
+                            }
+
+                            if (row.canReturn) {
+                                btns += "<a onclick='guestExtraFoodRequest.returnRequest.loadForm(" + row.id + ")' class='btn btn-simple btn-warning btn-icon' title='عودت برای اصلاح' data-toggle='tooltip'><i class='material-icons'>keyboard_return</i></a>";
+                            }
+
+                            if (row.canCancel) {
+                                btns += "<a onclick='guestExtraFoodRequest.cancelRequest.loadForm(" + row.id + ")' class='btn btn-simple btn-danger btn-icon' title='لغو درخواست' data-toggle='tooltip'><i class='material-icons'>cancel</i></a>";
                             }
 
                             if (row.canPrintGuest) {
@@ -388,6 +402,104 @@ var guestExtraFoodRequest = {
                 }
                 else {
                     swal("تأیید نشد", res.message, "error");
+                }
+            });
+        }
+    },
+
+    returnRequest: {
+        loadForm: function (id) {
+            swal({
+                title: "عودت درخواست برای اصلاح",
+                text: "توضیح دهید کدام بخش درخواست باید اصلاح شود.",
+                type: "warning",
+                input: "textarea",
+                inputPlaceholder: "توضیحات و دلیل عودت...",
+                inputAttributes: { maxlength: 1000 },
+                showCancelButton: true,
+                confirmButtonClass: "btn btn-warning",
+                cancelButtonClass: "btn btn-default",
+                confirmButtonText: "عودت درخواست",
+                cancelButtonText: "انصراف",
+                buttonsStyling: false,
+                inputValidator: function (value) {
+                    return new Promise(function (resolve, reject) {
+                        value && value.trim()
+                            ? resolve()
+                            : reject("ثبت توضیحات عودت الزامی است.");
+                    });
+                }
+            }).then(function (result) {
+                var reason = result && result.value !== undefined
+                    ? result.value
+                    : result;
+
+                if (reason && reason.trim())
+                    guestExtraFoodRequest.returnRequest.confirm(id, reason);
+            });
+        },
+
+        confirm: function (id, reason) {
+            var token = $("#operation-token-form input[name='__RequestVerificationToken']").val();
+
+            $.post("/FoodPlan/GuestExtraFoodRequest/Return/" + id, {
+                reason: reason,
+                __RequestVerificationToken: token
+            }, function (res) {
+                if (res.status) {
+                    guestExtraFoodRequest.list.reload();
+                    swal("عودت شد", res.message, "success");
+                } else {
+                    swal("عودت انجام نشد", res.message, "error");
+                }
+            });
+        }
+    },
+
+    cancelRequest: {
+        loadForm: function (id) {
+            swal({
+                title: "لغو درخواست",
+                text: "دلیل لغو را وارد کنید. سابقه درخواست حذف نخواهد شد.",
+                type: "error",
+                input: "textarea",
+                inputPlaceholder: "توضیحات و دلیل لغو...",
+                inputAttributes: { maxlength: 1000 },
+                showCancelButton: true,
+                confirmButtonClass: "btn btn-danger",
+                cancelButtonClass: "btn btn-default",
+                confirmButtonText: "لغو درخواست",
+                cancelButtonText: "انصراف",
+                buttonsStyling: false,
+                inputValidator: function (value) {
+                    return new Promise(function (resolve, reject) {
+                        value && value.trim()
+                            ? resolve()
+                            : reject("ثبت توضیحات لغو الزامی است.");
+                    });
+                }
+            }).then(function (result) {
+                var reason = result && result.value !== undefined
+                    ? result.value
+                    : result;
+
+                if (reason && reason.trim())
+                    guestExtraFoodRequest.cancelRequest.confirm(id, reason);
+            });
+        },
+
+        confirm: function (id, reason) {
+            var token = $("#operation-token-form input[name='__RequestVerificationToken']").val();
+
+            $.post("/FoodPlan/GuestExtraFoodRequest/Cancel/" + id, {
+                reason: reason,
+                __RequestVerificationToken: token
+            }, function (res) {
+                if (res.status) {
+                    guestExtraFoodRequest.list.reload();
+                    swal("لغو شد", res.message, "success");
+                } else {
+                    swal("لغو انجام نشد", res.message, "error");
                 }
             });
         }
