@@ -343,7 +343,9 @@ namespace Food.Areas.FoodMang.Controllers
                 return BadRequest(new
                 {
                     Status = false,
-                    Message = "آمار تأیید نهایی شده قابل ویرایش نیست."
+                    Message = model.Status == UnitStatisticStatus.Canceled
+                        ? "آمار لغوشده قابل ویرایش نیست."
+                        : "آمار تأیید نهایی شده قابل ویرایش نیست."
                 });
             }
 
@@ -399,7 +401,7 @@ namespace Food.Areas.FoodMang.Controllers
                     return Json(new
                     {
                         Status = false,
-                        Message = model.Status == UnitStatisticStatus.Canceled
+                        Message = current.Status == UnitStatisticStatus.Canceled
                             ? "آمار لغوشده قابل ویرایش نیست."
                             : "آمار تأیید نهایی شده قابل ویرایش نیست."
                     });
