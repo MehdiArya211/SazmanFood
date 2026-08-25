@@ -1,8 +1,12 @@
 ﻿using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 
-namespace LearningSkill.Areas.Hangfire.Controllers
+namespace Food.Areas.Hangfire.Controllers
 {
+    /// <summary>
+    /// مدیریت عملیات زمان‌بندی‌شده برنامه
+    /// </summary>
+    [Area("Hangfire")]
     public class HangfireController : Controller
     {
         private readonly IRecurringJobManager _recurringJobManager;
