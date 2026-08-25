@@ -47,18 +47,17 @@ public class AuthenticationController : Controller
     /// </summary>
     public IActionResult Index(long? mid)
     {
-
         if (mid == null)
         {
-            var User = Session.GetUser();
-            if (User != null)
-                return RedirectToAction("index", "Dashboard", new { area = "Admin" });
+            var user = Session.GetUser();
+            if (user != null)
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+
+            // ورود عادی همیشه از صفحه تشخیص چهره آغاز می‌شود.
+            return RedirectToAction(nameof(IndexZP));
         }
 
-        //var showCaptcha = HttpContext.GetCookieShowCaptcha();
-        //if (showCaptcha)
-        //    ViewBag.captcha = true;
-
+        // احراز هویت مجدد منوهای حساس مستقیماً فرم نام کاربری را نمایش می‌دهد.
         return View();
     }
 
