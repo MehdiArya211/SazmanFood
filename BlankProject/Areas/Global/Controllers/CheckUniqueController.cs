@@ -1,7 +1,7 @@
 ﻿using BLL.Interface;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Etka.Areas.Global.Controllers
+namespace Food.Areas.Global.Controllers
 {
 
     /// <summary>
