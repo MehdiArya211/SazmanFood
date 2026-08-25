@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Services.RedisService;
 using Utilities.Extentions;
 
-namespace LearningSkill.Areas.Shared.Controllers
+namespace Food.Areas.Shared.Controllers
 {
     /// <summary>
     /// پارامتر تنظیمات
