@@ -139,22 +139,6 @@ namespace Food.Areas.ReserveManagment.Controllers
                 //                        r.WeekStartDate == weekStartDate &&
                 //                        r.WeekEndDate == weekEndDate);
 
-                var existingReserveDetail = _foodReserveManager.GetFoodReserveDetail(userId);
-                // اگر رزرو قبلی وجود داشت، حذف تمام جزئیات آن
-                if ( existingReserveDetail.Count!=0)
-                {
-                    var existingReserve = _foodReserveManager.GetById(existingReserveDetail.FirstOrDefault().FoodReserveId);
-
-
-                    foreach (var item in existingReserveDetail)
-                    {
-                        _foodReserveDetailManager.Delete(item.Id);
-
-                    }
-                    _foodReserveManager.Delete(existingReserve.Id);
-
-                }
-
                 // ایجاد شی برنامه غذایی
                 var plan = new FoodReserveDTO
                 {
@@ -208,6 +192,31 @@ namespace Food.Areas.ReserveManagment.Controllers
                 {
                     TempData["Error"] = "لطفاً حداقل یک مورد را انتخاب نمایید.";
                     return RedirectToAction("Create");
+                }
+
+                var quotaValidation =
+                    _foodReserveManager.ValidateQuotaForReservation(plan);
+
+                if (!quotaValidation.Status)
+                {
+                    TempData["Error"] = quotaValidation.Message;
+                    return RedirectToAction("Index");
+                }
+
+                // رزرو قبلی فقط پس از تایید سهمیه حذف می‌شود تا در صورت خطا از بین نرود.
+                var existingReserveDetail =
+                    _foodReserveManager.GetFoodReserveDetail(userId);
+
+                if (existingReserveDetail.Count != 0)
+                {
+                    var existingReserve = _foodReserveManager.GetById(
+                        existingReserveDetail.First().FoodReserveId);
+
+                    foreach (var item in existingReserveDetail)
+                        _foodReserveDetailManager.Delete(item.Id);
+
+                    if (existingReserve != null)
+                        _foodReserveManager.Delete(existingReserve.Id);
                 }
 
                 // اضافه کردن رزرو (اگر قبلی بود، جایگزین می‌شود)
