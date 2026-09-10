@@ -224,7 +224,7 @@ namespace BLL
         {
             var User = GetById(model.Id);
             if (User == null)
-                return new BaseResult { Status = true, Message = "کاربر یافت نشد" };
+                return new BaseResult { Status = false, Message = "کاربر یافت نشد" };
 
             User.Password = model.Password.GetHash();
             User.PasswordIsChanged = false;
