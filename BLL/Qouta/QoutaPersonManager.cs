@@ -15,11 +15,19 @@ public class QoutaPersonManager : Manager<QoutaPerson, ApplicationContext>, IQou
 {
     protected readonly IHttpContextAccessor httpContextAccessor;
     protected readonly ISession Session;
+    private readonly IReservationUserProvisioningManager reservationUserProvisioningManager;
 
-    public QoutaPersonManager(DbContexts _Context, IHttpContextAccessor httpContextAccessor) : base(_Context, httpContextAccessor)
+    public QoutaPersonManager(
+        DbContexts _Context,
+        IHttpContextAccessor httpContextAccessor,
+        IReservationUserProvisioningManager reservationUserProvisioningManager)
+        : base(_Context, httpContextAccessor)
     {
         this.httpContextAccessor = httpContextAccessor;
         Session = httpContextAccessor.HttpContext.Session;
+        this.reservationUserProvisioningManager =
+            reservationUserProvisioningManager ??
+            throw new ArgumentNullException(nameof(reservationUserProvisioningManager));
     }
 
     public BaseResult Create(QoutaPersonCreateDTO model)
@@ -45,7 +53,8 @@ public class QoutaPersonManager : Manager<QoutaPerson, ApplicationContext>, IQou
                 IsDeleted = false,
             };
 
-            return base.Create(qoutaPerson);
+            var result = base.Create(qoutaPerson);
+            return EnsureReservationUser(qoutaPerson, result, user.Id);
         }
         catch
         {
@@ -337,6 +346,10 @@ public class QoutaPersonManager : Manager<QoutaPerson, ApplicationContext>, IQou
                 if (!res.Status)
                     return new BaseResult(false, res.Message);
 
+                var userResult = EnsureReservationUser(qoutaPerson, res, user.Id);
+                if (!userResult.Status)
+                    return userResult;
+
                 createdCount++;
             }
 
@@ -418,13 +431,51 @@ public class QoutaPersonManager : Manager<QoutaPerson, ApplicationContext>, IQou
                 DeliveryCode = GenerateUniqueDeliveryCode()
             };
 
-            return base.Create(qoutaPerson);
+            var result = base.Create(qoutaPerson);
+            return EnsureReservationUser(qoutaPerson, result, user.Id);
         }
         catch
         {
             return new BaseResult(false, "ثبت با خطا همراه بوده است!");
         }
     }
+
+    private BaseResult EnsureReservationUser(
+        QoutaPerson qoutaPerson,
+        BaseResult quotaResult,
+        long creatorId)
+    {
+        if (!quotaResult.Status)
+            return quotaResult;
+
+        var person = qoutaPerson.PersonId.HasValue
+            ? UOW.Person.FirstOrDefault(x =>
+                x.Id == qoutaPerson.PersonId.Value &&
+                x.IsDeleted == false)
+            : null;
+
+        var userResult = reservationUserProvisioningManager.EnsureReservationUser(
+            qoutaPerson.PersonId,
+            person?.PersonCode?.ToString() ?? qoutaPerson.PersonalCode,
+            person?.FullName ?? $"{qoutaPerson.FName} {qoutaPerson.LName}".Trim(),
+            person?.NationalCode?.ToString(),
+            person?.OrganGarrisonId ?? qoutaPerson.OrganGarrisonId,
+            creatorId,
+            Convert.ToInt32(qoutaPerson.OrgId ?? 0));
+
+        if (!userResult.Status)
+        {
+            return new BaseResult(
+                false,
+                $"سهمیه غذا ثبت شد، اما ساخت حساب کاربری انجام نشد: {userResult.Message}");
+        }
+
+        quotaResult.Message =
+            $"{quotaResult.Message ?? "سهمیه غذا با موفقیت ثبت شد."} حساب رزرو غذا نیز آماده است.";
+
+        return quotaResult;
+    }
+
 
     private static (string FName, string LName) SplitFullName(string fullName)
     {
@@ -516,7 +567,8 @@ public class QoutaPersonManager : Manager<QoutaPerson, ApplicationContext>, IQou
                 IsDeleted = false
             };
 
-            return base.Create(qoutaPerson);
+            var result = base.Create(qoutaPerson);
+            return EnsureReservationUser(qoutaPerson, result, user.Id);
         }
         catch
         {
