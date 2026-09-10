@@ -153,6 +153,9 @@ public class AuthenticationController : Controller
         await Redis.db.RemoveLoginLog(Mobile);
         #endregion
 
+        if (User.PasswordIsChanged == false)
+            return RedirectToAction("ChangePassword", "Profile", new { area = "Admin" });
+
         // فقط بازگشت به مسیرهای داخلی مجاز است تا از Open Redirect جلوگیری شود.
         if (!string.IsNullOrWhiteSpace(RetUrl) && Url.IsLocalUrl(RetUrl))
             return LocalRedirect(RetUrl);
