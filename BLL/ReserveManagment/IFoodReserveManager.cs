@@ -15,6 +15,7 @@ namespace BLL.ReserveManagment
     public interface IFoodReserveManager : IManager<FoodReserve, ApplicationContext>
     {
         public BaseResult AddToReserveAndReserveDetail(FoodReserveDTO model);
+        BaseResult ValidateQuotaForReservation(FoodReserveDTO model);
 
         Task<List<WeeklyFoodReserveDTO>> GetWeeklyFoodReserve(long userId);
         //Task PrintFoodReserveAsync(long userId);
