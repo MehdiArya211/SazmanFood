@@ -70,6 +70,9 @@ namespace DTO.User
         public int? NationalCode { get; set; }
         public long? OrganGarrisonId { get; set; }
 
+        public string RegisteredIpAddress { get; set; }
+        public DateTime? RegisteredIpDate { get; set; }
+
 
         #region سلکتور
         /// <summary>
@@ -98,6 +101,8 @@ namespace DTO.User
 					PersonCode = model.PersonCode,
 					NationalCode = model.NationalCode,
 					OrganGarrisonId = model.OrganGarrisonId,
+					RegisteredIpAddress = model.RegisteredIpAddress,
+					RegisteredIpDate = model.RegisteredIpDate,
 					Menus = model.Role.Menus.AsQueryable()
 									   .Where(x => x.Menu.IsEnabled /*&& x.Menu.ForCustomer == model.IsCustomer*/)
 									   .OrderBy(x => x.Menu.Sort)
