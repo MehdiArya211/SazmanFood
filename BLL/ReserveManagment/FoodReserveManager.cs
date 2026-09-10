@@ -29,6 +29,10 @@ namespace BLL.ReserveManagment
 
         public BaseResult AddToReserveAndReserveDetail(FoodReserveDTO model)
         {
+            var quotaValidation = ValidateQuotaForReservation(model);
+            if (!quotaValidation.Status)
+                return quotaValidation;
+
             var now = DateTime.Now;
 
             // محاسبه شروع و پایان هفته (با فرض شروع هفته از شنبه)
@@ -54,6 +58,62 @@ namespace BLL.ReserveManagment
 
 
         }
+
+        public BaseResult ValidateQuotaForReservation(FoodReserveDTO model)
+        {
+            if (model == null || model.UserId <= 0)
+                return new BaseResult(false, "اطلاعات رزرو معتبر نیست.");
+
+            if (model.Details == null || model.Details.Count == 0)
+                return new BaseResult(false, "حداقل یک غذا برای رزرو انتخاب نمایید.");
+
+            var user = UOW.Users.FirstOrDefault(x =>
+                x.Id == model.UserId &&
+                x.IsDeleted == false &&
+                x.IsEnabled);
+
+            if (user == null)
+                return new BaseResult(false, "حساب کاربری معتبر یافت نشد.");
+
+            var personCode = user.PersonCode?.ToString();
+            var nationalCode = user.NationalCode?.ToString();
+
+            var quotaPersons = UOW.QoutaPerson
+                .Get(
+                    x => x.IsDeleted == false &&
+                         x.QoutaAllocation != null &&
+                         x.QoutaAllocation.IsDeleted == false &&
+                         x.QoutaAllocation.QoutaAllocationDate.Date >= model.WeekStartDate.Date &&
+                         x.QoutaAllocation.QoutaAllocationDate.Date <= model.WeekEndDate.Date &&
+                         (
+                             (user.PersonId.HasValue && x.PersonId == user.PersonId.Value) ||
+                             (!string.IsNullOrEmpty(personCode) && x.PersonalCode == personCode) ||
+                             (!string.IsNullOrEmpty(nationalCode) && x.PersonalCode == nationalCode) ||
+                             x.PersonalCode == user.Username
+                         ),
+                    null,
+                    null,
+                    null,
+                    x => x.Include(i => i.QoutaAllocation))
+                .ToList();
+
+            foreach (var detail in model.Details)
+            {
+                var hasQuota = quotaPersons.Any(x =>
+                    x.QoutaAllocation.DayId == detail.DayId &&
+                    x.QoutaAllocation.MealId == detail.MealId);
+
+                if (!hasQuota)
+                {
+                    return new BaseResult(
+                        false,
+                        "برای یک یا چند روز و وعده انتخاب‌شده، سهمیه غذایی برای شما ثبت نشده است.");
+                }
+            }
+
+            return new BaseResult(true, "سهمیه غذایی کاربر تأیید شد.");
+        }
+
 
         public List<FoodReserveDetail> GetFoodReserveDetail(long userId)
         {
