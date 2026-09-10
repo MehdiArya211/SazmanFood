@@ -118,8 +118,7 @@ namespace BLL
             else
             {
                 // ✅ ورود با یوزرنیم و پسورد
-               // filter.And(x => x.Username == Username && x.Password == HashPassword);
-                filter.And(x => x.Username == Username );
+                filter.And(x => x.Username == Username && x.Password == HashPassword);
             }
 
             var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
