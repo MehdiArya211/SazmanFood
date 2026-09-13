@@ -50,6 +50,18 @@
                 <div class="error text-center text-danger">
                 </div>
 
+                @if (ViewBag.Organizations != null)
+                {
+                    <div class="col-md-12 form-group">
+                        <label asp-for="OrgId">یگان</label>
+                        <select asp-for="OrgId"
+                                asp-items="(IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Organizations"
+                                class="form-control" required>
+                            <option value="">انتخاب یگان</option>
+                        </select>
+                    </div>
+                }
+
                 <div class="col-md-12">
 
                     <!-- تاریخ شمسی -->

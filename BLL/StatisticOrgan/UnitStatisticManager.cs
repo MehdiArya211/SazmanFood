@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Domain.Constants;
 using Domain.Enums;
 using DTO.Base;
 using DTO.DataTable;
@@ -53,7 +54,7 @@ public class UnitStatisticManager
         var userOrgId =
             Convert.ToInt32(user.OmdOrgId);
 
-        if (userOrgId <= 0)
+        if (user.RoleId != RoleConstant.Admin && userOrgId <= 0)
         {
             return new DataTableResponseDTO<
                 UnitStatisticDTO>();
@@ -66,8 +67,8 @@ public class UnitStatisticManager
          * OrgId ارسال‌شده از سمت مرورگر قابل اعتماد نیست.
          * کاربر فقط آمار یگان خودش را مشاهده می‌کند.
          */
-        filters.OrgId =
-            userOrgId;
+        if (user.RoleId != RoleConstant.Admin)
+            filters.OrgId = userOrgId;
 
         return UOW.UnitStatistic
             .GetDataTableDTO(
@@ -189,8 +190,9 @@ public class UnitStatisticManager
             return null;
         }
 
-        var userOrgId =
-            Convert.ToInt32(user.OmdOrgId);
+        var userOrgId = user.RoleId == RoleConstant.Admin
+            ? UOW.UnitStatistic.FirstOrDefault(x => x.Id == id.Value)?.OrgId ?? 0
+            : user.OmdOrgId;
 
         if (userOrgId <= 0)
         {
@@ -366,8 +368,9 @@ public class UnitStatisticManager
                 "اطلاعات کاربر جاری یافت نشد.");
         }
 
-        var userOrgId =
-            Convert.ToInt32(user.OmdOrgId);
+        var userOrgId = user.RoleId == RoleConstant.Admin
+            ? UOW.UnitStatistic.FirstOrDefault(x => x.Id == model.Id)?.OrgId ?? 0
+            : user.OmdOrgId;
 
         if (userOrgId <= 0)
         {
@@ -723,8 +726,9 @@ public class UnitStatisticManager
                 "اطلاعات کاربر جاری یافت نشد.");
         }
 
-        var userOrgId =
-            Convert.ToInt32(user.OmdOrgId);
+        var userOrgId = user.RoleId == RoleConstant.Admin
+            ? UOW.UnitStatistic.FirstOrDefault(x => x.Id == id)?.OrgId ?? 0
+            : user.OmdOrgId;
 
         if (userOrgId <= 0)
         {
@@ -793,8 +797,9 @@ public class UnitStatisticManager
                 "اطلاعات کاربر جاری یافت نشد.");
         }
 
-        var userOrgId =
-            Convert.ToInt32(user.OmdOrgId);
+        var userOrgId = user.RoleId == RoleConstant.Admin
+            ? UOW.UnitStatistic.FirstOrDefault(x => x.Id == id)?.OrgId ?? 0
+            : user.OmdOrgId;
 
         if (userOrgId <= 0)
         {
@@ -1101,9 +1106,9 @@ public class UnitStatisticManager
                 "اطلاعات کاربر جاری یافت نشد.");
         }
 
-        var userOrgId =
-            Convert.ToInt32(
-                user.OmdOrgId);
+        var userOrgId = user.RoleId == RoleConstant.Admin
+            ? UOW.UnitStatistic.FirstOrDefault(x => x.Id == id)?.OrgId ?? 0
+            : user.OmdOrgId;
 
         if (userOrgId <= 0)
         {
@@ -1543,7 +1548,7 @@ public class UnitStatisticManager
 
         var statistic = UOW.UnitStatistic.FirstOrDefault(x =>
             x.Id == id &&
-            x.OrgId == user.OmdOrgId);
+            (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId));
 
         if (statistic == null)
             return new BaseResult(false, "آمار مورد نظر یافت نشد.");
@@ -1588,7 +1593,7 @@ public class UnitStatisticManager
 
         var statistic = UOW.UnitStatistic.FirstOrDefault(x =>
             x.Id == id &&
-            x.OrgId == user.OmdOrgId);
+            (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId));
 
         if (statistic == null)
             return new BaseResult(false, "آمار مورد نظر یافت نشد.");

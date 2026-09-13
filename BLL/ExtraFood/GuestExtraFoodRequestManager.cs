@@ -92,7 +92,7 @@ namespace BLL
         public bool CanViewAllOrganizations()
         {
             var user = GetCurrentUser();
-            return user?.IsEnabled == true && user.RoleId == RoleConstant.FoodSupport;
+            return user?.IsEnabled == true && (user.RoleId == RoleConstant.Admin || user.RoleId == RoleConstant.FoodSupport);
         }
 
         public bool CanApprove()
@@ -103,7 +103,7 @@ namespace BLL
         public bool CanPrintGuest()
         {
             var user = GetCurrentUser();
-            return user?.IsEnabled == true && user.RoleId == RoleConstant.FoodOffice;
+            return user?.IsEnabled == true && (user.RoleId == RoleConstant.Admin || user.RoleId == RoleConstant.FoodOffice);
         }
 
         public int? GetCurrentUserOrganizationId()
@@ -788,7 +788,7 @@ namespace BLL
             var entity = UOW.GuestExtraFoodRequest.GetRequest(id);
 
             if (entity == null ||
-                entity.OrgId != user.OmdOrgId ||
+                (user.RoleId != RoleConstant.Admin && entity.OrgId != user.OmdOrgId) ||
                 entity.Status != GuestExtraFoodRequestStatus.Approved ||
                 entity.GuestCount <= 0)
             {

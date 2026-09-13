@@ -242,8 +242,8 @@ namespace Food.Areas.FoodPlan.Controllers
         {
             var user = GetCurrentUser();
             return user?.IsEnabled == true &&
-                   (user.RoleId == RoleConstant.FoodSupport ||
-                    user.RoleId == RoleConstant.Admin ||
+                   (user.RoleId == RoleConstant.Admin ||
+                    user.RoleId == RoleConstant.FoodSupport ||
                     user.RoleId == RoleConstant.FoodRegistrar ||
                     user.RoleId == RoleConstant.FoodApprover ||
                     user.RoleId == RoleConstant.FoodOffice);
@@ -254,14 +254,15 @@ namespace Food.Areas.FoodPlan.Controllers
         {
             var user = GetCurrentUser();
             return user?.IsEnabled == true &&
-                   (user.RoleId == RoleConstant.FoodOffice ||
+                   (user.RoleId == RoleConstant.Admin ||
+                    user.RoleId == RoleConstant.FoodOffice ||
                     user.RoleId == RoleConstant.FoodSupport);
         }
 
         private bool CanViewAllOrganizations()
         {
             var user = GetCurrentUser();
-            return user?.IsEnabled == true && user.RoleId == RoleConstant.FoodSupport;
+            return user?.IsEnabled == true && (user.RoleId == RoleConstant.Admin || user.RoleId == RoleConstant.FoodSupport);
         }
 
         private IActionResult AccessDenied(

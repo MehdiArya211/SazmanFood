@@ -1,5 +1,6 @@
 ﻿using BLL.Interface;
 using Domain.Entities;
+using Domain.Constants;
 using Domain.Enums;
 using DTO.Base;
 using DTO.Entities.MaxaRabbitMQ;
@@ -89,7 +90,7 @@ namespace BLL
             #endregion
 
 
-            Session.SetUser(user);
+            SetAuthenticatedUser(user);
 
             return new BaseResult
             {
@@ -161,7 +162,7 @@ namespace BLL
             #endregion
 
             // ✅ ست کردن سشن
-            Session.SetUser(user);
+            SetAuthenticatedUser(user);
 
             return new BaseResult
             {
@@ -179,7 +180,7 @@ namespace BLL
             var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
             try
             {
-                Session.SetUser(user);
+                SetAuthenticatedUser(user);
             }
             catch (Exception ex)
             {
@@ -197,7 +198,7 @@ namespace BLL
             var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
             try
             {
-                Session.SetUser(user);
+                SetAuthenticatedUser(user);
             }
             catch (Exception ex)
             {
@@ -213,11 +214,26 @@ namespace BLL
         /// <returns></returns>
         public UserSessionDTO GetSessionDTO(int id)
         {
-            return UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, x => x.Id == id);
+            var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, x => x.Id == id);
+            if (user?.RoleId == RoleConstant.Admin)
+                user.Menus = UOW.Menus.GetDTO<MenuSessionDTO>(
+                    MenuSessionDTO.Selector, x => x.IsEnabled)
+                    .OrderBy(x => x.Order).ToList();
+            return user;
         }
 
 
 
+
+        private void SetAuthenticatedUser(UserSessionDTO user)
+        {
+            if (user?.RoleId == RoleConstant.Admin)
+                user.Menus = UOW.Menus.GetDTO<MenuSessionDTO>(
+                    MenuSessionDTO.Selector, x => x.IsEnabled)
+                    .OrderBy(x => x.Order).ToList();
+
+            Session.SetUser(user);
+        }
 
         /// <summary>
         /// لاگ اوت کاربر
@@ -295,7 +311,7 @@ namespace BLL
 
 
             // ✅ ست کردن سشن
-            Session.SetUser(user);
+            SetAuthenticatedUser(user);
 
             return new BaseResult
             {
@@ -325,7 +341,7 @@ namespace BLL
                 };
 
 
-            Session.SetUser(user);
+            SetAuthenticatedUser(user);
 
             return new BaseResult
             {
