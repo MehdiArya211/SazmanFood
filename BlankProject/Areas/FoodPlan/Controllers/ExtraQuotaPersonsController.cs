@@ -1,6 +1,7 @@
 ﻿using BLL;
 using BLL.Interface;
 using Domain.Enums;
+using Domain.Constants;
 using DTO.Entities;
 using DTO.User;
 using Filters;
@@ -18,18 +19,6 @@ namespace Food.Areas.FoodPlan.Controllers
         Action: "Index")]
     public class ExtraQuotaPersonsController : Controller
     {
-        private const string SupportRole =
-            "رکن 4 پشتیبانی قرارگاه";
-
-        private const string RegistrarRole =
-            "ثبت‌کننده آمار یگان";
-
-        private const string ApproverRole =
-            "تایید کننده آمار یگان";
-
-        private const string OfficeRole =
-            "اداری یگان";
-
         private readonly IExtraQuotaPersonManager manager;
         private readonly IUnitQuotaManager unitQuotaManager;
         private readonly IWebApiManager webApiManager;
@@ -252,48 +241,26 @@ namespace Food.Areas.FoodPlan.Controllers
         private bool CanView()
         {
             var user = GetCurrentUser();
-
-            if (user == null || !user.IsEnabled)
-                return false;
-
-            var role = user.Role?.Trim();
-
-            return role == SupportRole ||
-                   role == RegistrarRole ||
-                   role == ApproverRole ||
-                   role == OfficeRole;
+            return user?.IsEnabled == true &&
+                   (user.RoleId == RoleConstant.FoodSupport ||
+                    user.RoleId == RoleConstant.FoodRegistrar ||
+                    user.RoleId == RoleConstant.FoodApprover ||
+                    user.RoleId == RoleConstant.FoodOffice);
         }
 
-        /// <summary>
-        /// تعیین و حذف پرسنل فقط توسط اداری یگان
-        /// یا رکن چهار پشتیبانی مجاز است.
-        /// </summary>
+        /// <summary>تعیین نفرات برای اداری یگان و پشتیبانی قرارگاه مجاز است.</summary>
         private bool CanManagePersons()
         {
             var user = GetCurrentUser();
-
-            if (user == null || !user.IsEnabled)
-                return false;
-
-            var role = user.Role?.Trim();
-
-            return string.Equals(
-                       role,
-                       OfficeRole,
-                       StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(
-                       role,
-                       SupportRole,
-                       StringComparison.OrdinalIgnoreCase);
+            return user?.IsEnabled == true &&
+                   (user.RoleId == RoleConstant.FoodOffice ||
+                    user.RoleId == RoleConstant.FoodSupport);
         }
 
         private bool CanViewAllOrganizations()
         {
             var user = GetCurrentUser();
-
-            return user != null &&
-                   user.IsEnabled &&
-                   user.Role?.Trim() == SupportRole;
+            return user?.IsEnabled == true && user.RoleId == RoleConstant.FoodSupport;
         }
 
         private IActionResult AccessDenied(
