@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using BLL.Interface;
 using Domain.Entities;
+using Domain.Constants;
 using Domain.Enums;
 using DTO.Base;
 using DTO.Entities;
@@ -23,10 +24,6 @@ namespace BLL
     {
         #region Constants
 
-        private const string RegistrarRole = "ثبت‌کننده آمار یگان";
-        private const string ApproverRole = "تایید کننده آمار یگان";
-        private const string SupportRole = "رکن 4 پشتیبانی قرارگاه";
-        private const string OfficeRole = "اداری یگان";
 
         private const long MaxFileSize = 5 * 1024 * 1024;
 
@@ -95,32 +92,18 @@ namespace BLL
         public bool CanViewAllOrganizations()
         {
             var user = GetCurrentUser();
-
-            return user != null &&
-                   user.IsEnabled &&
-                   string.Equals(
-                       user.Role?.Trim(),
-                       SupportRole,
-                       StringComparison.OrdinalIgnoreCase);
+            return user?.IsEnabled == true && user.RoleId == RoleConstant.FoodSupport;
         }
 
         public bool CanApprove()
         {
-            // رفتار فعلی سیستم حفظ شده است:
-            // تایید نهایی فقط برای نقش پشتیبانی قرارگاه مجاز است.
             return CanViewAllOrganizations();
         }
 
         public bool CanPrintGuest()
         {
             var user = GetCurrentUser();
-
-            return user != null &&
-                   user.IsEnabled &&
-                   string.Equals(
-                       user.Role?.Trim(),
-                       OfficeRole,
-                       StringComparison.OrdinalIgnoreCase);
+            return user?.IsEnabled == true && user.RoleId == RoleConstant.FoodOffice;
         }
 
         public int? GetCurrentUserOrganizationId()
@@ -134,15 +117,10 @@ namespace BLL
         private bool IsUnitUser()
         {
             var user = GetCurrentUser();
-
-            if (user == null || !user.IsEnabled)
-                return false;
-
-            var role = user.Role?.Trim();
-
-            return string.Equals(role, RegistrarRole, StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(role, ApproverRole, StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(role, OfficeRole, StringComparison.OrdinalIgnoreCase);
+            return user?.IsEnabled == true &&
+                   (user.RoleId == RoleConstant.FoodRegistrar ||
+                    user.RoleId == RoleConstant.FoodApprover ||
+                    user.RoleId == RoleConstant.FoodOffice);
         }
 
         private UserSessionDTO GetCurrentUser()
