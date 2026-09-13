@@ -69,7 +69,8 @@ namespace DTO.User
         public int? PersonCode { get; set; }
         public int? NationalCode { get; set; }
         public long? OrganGarrisonId { get; set; }
-
+        [Display(Name = "قرارگاه")]
+        public int? GharargahId { get; set; }
 
         #region سلکتور
         /// <summary>
@@ -98,7 +99,8 @@ namespace DTO.User
 					PersonCode = model.PersonCode,
 					NationalCode = model.NationalCode,
 					OrganGarrisonId = model.OrganGarrisonId,
-					Menus = model.Role.Menus.AsQueryable()
+                    GharargahId = model.GharargahId,
+                    Menus = model.Role.Menus.AsQueryable()
 									   .Where(x => x.Menu.IsEnabled /*&& x.Menu.ForCustomer == model.IsCustomer*/)
 									   .OrderBy(x => x.Menu.Sort)
 									   .Select(MenuSessionDTO.RoleMenuSelector).AsEnumerable()

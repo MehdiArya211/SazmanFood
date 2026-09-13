@@ -27,13 +27,14 @@
             <h2 class="auth-title">خوش آمدید</h2>
             <p class="auth-subtitle">برای ورود به سامانه، اطلاعات حساب کاربری خود را وارد کنید.</p>
 
-            <div class="auth-alert error" role="alert" aria-live="polite">
                 @if (hasError)
                 {
+                    <div class="auth-alert error" role="alert" aria-live="polite">
                     <i class="material-icons" aria-hidden="true">error_outline</i>
                     <span>@ViewBag.Error</span>
+                    </div>
                 }
-            </div>
+           
 
             <form asp-controller="Authentication"
                   asp-action="Index"

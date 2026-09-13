@@ -90,6 +90,10 @@ namespace Domain.Entities
         public int? CityId { get; set; }
 
 
+        [Display(Name = "قرارگاه کاربر")]
+        public int? GharargahId { get; set; }
+
+
         #region Food Relation
 
         [Display(Name = "شناسه پرسنل")]

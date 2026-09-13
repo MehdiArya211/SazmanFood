@@ -3,140 +3,418 @@
 
 
 <div class="modal-header">
-    <button type="button" class="close" title="بستن پنجره" data-dismiss="modal" aria-label="Close">
+
+    <button type="button"
+            class="close"
+            title="بستن پنجره"
+            data-dismiss="modal"
+            aria-label="Close">
+
         <span aria-hidden="true">&times;</span>
+
     </button>
+
+
     <h4 class="modal-title" id="modal5-label">
         افزودن کاربر جدید
     </h4>
 
+
     <div class="text-center">
         پرکردن فیلدهای ستاره دار الزامی است.
     </div>
+
 </div>
+
+
+
 
 <div class="modal-body row">
 
-    <div class="col-md-12">
-        <form asp-action="Create" class="create-form" onsubmit="return user.create.save(event) ">
-            <div class="form-horizontal">
-                <hr />
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                <div class="error text-center text-danger">@ViewBag.Error</div>
+
+<div class="col-md-12">
 
 
-                <div class="col-md-12">
-                    <div class="form-group col-md-4">
-                        <label asp-for="Username" class="control-label text-right col-md-12 required"></label>
-                        <div class="col-md-12">
-                            <input asp-for="Username" class="form-control" />
-                            <span asp-validation-for="Username" class="text-danger"></span>
-                        </div>
-                    </div>
+<form asp-action="Create"
+      class="create-form"
+      onsubmit="return user.create.save(event)">
 
 
-                    <div class="form-group col-md-4">
-                        <label asp-for="Name" class="control-label text-right col-md-12 required"></label>
-                        <div class="col-md-12">
-                            <input asp-for="Name" class="form-control" />
-                            <span asp-validation-for="Name" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-4">
-                        <label asp-for="Mobile" class="control-label text-right col-md-12 required"></label>
-                        <div class="col-md-12">
-                            <input asp-for="Mobile" class="form-control" placeholder="09*********" style="direction:ltr; text-align:right" />
-                            <span asp-validation-for="Mobile" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
+<div class="form-horizontal">
 
 
-                <div class="col-md-12">
-                    <div class="form-group col-md-4">
-                        <label asp-for="Password" class="control-label text-right col-md-12 required"></label>
-                        <div class="col-md-12">
-                            <input asp-for="Password" class="form-control" />
-                            <span asp-validation-for="Password" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-4">
-                        <label asp-for="RePassword" class="control-label text-right col-md-12 required"></label>
-                        <div class="col-md-12">
-                            <input asp-for="RePassword" class="form-control" />
-                            <span asp-validation-for="RePassword" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-4">
-                        <label asp-for="RoleId" class="control-label text-right col-md-12 required"></label>
-                        <div class="col-md-12">
-                            <select asp-for="RoleId" class="selectpicker" data-live-search="true" data-size="7" tabindex="-98" data-style="select-with-transition" asp-items="ViewBag.RoleId"></select>
-                            <span asp-validation-for="RoleId" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
+<hr />
 
 
-                <div class="col-md-12">
-                    @*  <div class="form-group col-md-4">
-                    <label asp-for="Type" class="control-label text-right col-md-12 required"></label>
-                    <div class="col-md-12">
-                    <select asp-for="Type" class="selectpicker" data-live-search="true" data-size="7" tabindex="-98" data-style="select-with-transition" asp-items="ViewBag.UserType">
-
-                    </select>
-                    <span asp-validation-for="Type" class="text-danger"></span>
-                    </div>
-                    </div>*@
-                    <div class="form-group col-md-4">
-                        <label asp-for="OmdOrgId" class="control-label text-right col-md-12 required"></label>
-                        <div class="col-md-12">
-                            <select asp-for="OmdOrgId" class="selectpicker" data-live-search="true" data-size="7" tabindex="-98" data-style="select-with-transition" asp-items="ViewBag.Org">
-                            </select>
-                            <span asp-validation-for="OmdOrgId" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label asp-for="ProvinceId" class="control-label text-right col-md-12 "></label>
-                        <div class="col-md-12">
-                            <select id="provinceList" asp-for="ProvinceId" class="selectpicker" data-live-search="true" data-size="7" tabindex="-98" data-style="select-with-transition" asp-items="ViewBag.ProvinceList">
-                                <option value="">لطفااستان را انتخاب نمایید</option>
-                            </select>
-                            <span asp-validation-for="ProvinceId" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-4">
-                        <label asp-for="CityId" class="control-label text-right col-md-12 "></label>
-
-                        <select class="form-control form-control-sm" id="cityList" asp-for="CityId" data-live-search="true" data-size="7" tabindex="-98"
-                                data-style="select-with-transition">
-                            <option value="">
-                                لطفا ابتدا استان مورد نظر را انتخاب نمایید
-                            </option>
-                        </select>
-                        <span asp-validation-for="CityId" class="text-danger"></span>
-
-                    </div>
-                </div>
+<div asp-validation-summary="ModelOnly"
+     class="text-danger">
+</div>
 
 
-                <div class="form-group col-md-12 text-center">
-                    <div class="btn-group">
-                        <button type="submit" class="btn btn-info">
-                            <i class="material-icons">send</i>
-                            ذخیره اطلاعات
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
+<div class="error text-center text-danger">
+    @ViewBag.Error
 </div>
 
 
 
 
 
+<!-- اطلاعات کاربر -->
+
+<div class="col-md-12">
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="Username"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+<div class="col-md-12">
+
+
+<input asp-for="Username"
+       class="form-control" />
+
+
+<span asp-validation-for="Username"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="Name"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+<div class="col-md-12">
+
+
+<input asp-for="Name"
+       class="form-control" />
+
+
+<span asp-validation-for="Name"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="Mobile"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+<div class="col-md-12">
+
+
+<input asp-for="Mobile"
+       class="form-control"
+       placeholder="09*********"
+       style="direction:ltr;text-align:right" />
+
+
+<span asp-validation-for="Mobile"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+<!-- رمز عبور و نقش -->
+
+<div class="col-md-12">
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="Password"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+<div class="col-md-12">
+
+
+<input asp-for="Password"
+       class="form-control" />
+
+
+<span asp-validation-for="Password"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="RePassword"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+<div class="col-md-12">
+
+
+<input asp-for="RePassword"
+       class="form-control" />
+
+
+<span asp-validation-for="RePassword"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="RoleId"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+<div class="col-md-12">
+
+
+<select asp-for="RoleId"
+        class="selectpicker"
+        data-live-search="true"
+        data-size="7"
+        tabindex="-98"
+        data-style="select-with-transition"
+        asp-items="ViewBag.RoleId">
+
+
+</select>
+
+
+
+<span asp-validation-for="RoleId"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- قرارگاه و یگان -->
+
+<div class="col-md-12">
+
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="GharargahId"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+
+<div class="col-md-12">
+
+
+<select asp-for="GharargahId"
+        id="gharargahList"
+        class="selectpicker"
+        data-live-search="true"
+        data-size="7"
+        tabindex="-98"
+        data-style="select-with-transition"
+        asp-items="ViewBag.Gharargah">
+
+
+<option value="">
+    لطفا قرارگاه را انتخاب نمایید
+</option>
+
+
+</select>
+
+
+
+<span asp-validation-for="GharargahId"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="form-group col-md-4">
+
+
+<label asp-for="OmdOrgId"
+       class="control-label text-right col-md-12 required">
+</label>
+
+
+
+<div class="col-md-12">
+
+
+<select asp-for="OmdOrgId"
+        id="orgList"
+        class="selectpicker"
+        data-live-search="true"
+        data-size="7"
+        tabindex="-98"
+        data-style="select-with-transition">
+
+
+<option value="">
+    ابتدا قرارگاه را انتخاب نمایید
+</option>
+
+
+</select>
+
+
+
+<span asp-validation-for="OmdOrgId"
+      class="text-danger">
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<div class="form-group col-md-12 text-center">
+
+
+<div class="btn-group">
+
+
+<button type="submit"
+        class="btn btn-info">
+
+
+<i class="material-icons">
+send
+</i>
+
+
+ذخیره اطلاعات
+
+
+</button>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+</form>
+
+
+</div>
+
+
+</div>

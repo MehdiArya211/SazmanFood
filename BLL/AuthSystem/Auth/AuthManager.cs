@@ -118,8 +118,8 @@ namespace BLL
             else
             {
                 // ✅ ورود با یوزرنیم و پسورد
-               // filter.And(x => x.Username == Username && x.Password == HashPassword);
-                filter.And(x => x.Username == Username );
+                filter.And(x => x.Username == Username && x.Password == HashPassword);
+               // filter.And(x => x.Username == Username );
             }
 
             var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
@@ -252,6 +252,58 @@ namespace BLL
             return model;
         }
 
+
+        public BaseResult LoginAuth00(string Username = null, string Password = null, int? UserId = null)
+        {
+            Username = Username?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
+            string HashPassword = Password?.GetHash();
+
+            if (string.IsNullOrEmpty(Username) && string.IsNullOrEmpty(Password) && UserId == null)
+                return new BaseResult { Status = false, Message = "نام کاربری و کلمه عبور را وارد کنید" };
+
+            #region گرفتن اطلاعات کاربر و اعتبار سنجی
+            var filter = PredicateBuilder.New<User>(true);
+            if (UserId != null)
+            {
+                // ✅ ورود با چهره یا ورود مستقیم با UserId
+                //اینجا باید بشه کدپرسنلی
+                filter.And(x => x.Id == UserId);
+            }
+            else
+            {
+                // ✅ ورود با یوزرنیم و پسورد
+                // filter.And(x => x.Username == Username && x.Password == HashPassword);
+                filter.And(x => x.Username == Username);
+            }
+
+            var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
+
+            if (user == null)
+                return new BaseResult
+                {
+                    Status = false,
+                    Message = "حساب کاربری شما یافت نشد!"
+                };
+            if (!user.IsEnabled)
+                return new BaseResult
+                {
+                    Status = false,
+                    Message = "حساب کاربری شما فعال نمی باشد! </br> جهت فعالسازی با پشتیبانی تماس بگیرید.",
+                    Model = user
+                };
+            #endregion
+
+
+            // ✅ ست کردن سشن
+            Session.SetUser(user);
+
+            return new BaseResult
+            {
+                Status = true,
+                Message = "کاربر گرامی " + user.FullName + "، خوش آمدید.",
+                Model = user
+            };
+        }
         public BaseResult LoginAuth(string UserId)
         {
            // var usermain=UOW.Users.GetById(UserId);

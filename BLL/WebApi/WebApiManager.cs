@@ -172,6 +172,63 @@ namespace BLL
 
 			return organ;
 		}
-	}
+
+        #region Gharargah - Organ
+
+
+        /// <summary>
+        /// دریافت لیست قرارگاه ها
+        /// </summary>
+
+        public List<OrganViewModelDto> GetGharargah(string token)
+        {
+            _client.SetBearerToken(token);
+
+            var result = _client
+                .GetStringAsync(_urlOrg + "/GetGararghah/")
+                .Result;
+
+            var gharargah =
+                JsonConvert.DeserializeObject<List<OrganViewModelDto>>(result);
+
+            return gharargah;
+        }
+
+
+
+        /// <summary>
+        /// دریافت یگان های زیر مجموعه یک قرارگاه
+        /// </summary>
+        /// <param name="gharargahId"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public ApiResultOrganDto GetOrganByGharargahId(
+            int gharargahId,
+            string token)
+        {
+
+            _client.SetBearerToken(token);
+
+
+            var result = _client
+                .GetStringAsync(
+                    _urlOrg + "/GetOmdOrgansByGhId/" + gharargahId
+                )
+                .Result;
+
+
+
+            var organs =
+                JsonConvert.DeserializeObject<ApiResultOrganDto>(result);
+
+
+
+            return organs;
+
+        }
+
+
+        #endregion
+    }
 }
 

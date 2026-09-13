@@ -4,29 +4,34 @@ namespace BLL.Interface
 {
 	public interface IWebApiManager
 	{
-		#region Organ
+        #region Organ
 
-		OrganInfDTO GetOrganInfoByOrganId(int Id, string token);
-		List<OrganInfDTO> GetOrganInfo(string token);
-		string GetProvinceTitleByProvinceId(int provinceId, string token);
-		string GetCityTitleByCityId(int cityId, int provinceId, string token);
-		string GetUnitDutyByUnitId(int unitId, string token);
+        OrganInfDTO GetOrganInfoByOrganId(int Id, string token);
 
+        List<OrganInfDTO> GetOrganInfo(string token);
 
-		ApiResultOrganDto GetListOrganInfo(string token);
+        string GetProvinceTitleByProvinceId(int provinceId, string token);
 
-		//  OrganInfoViewModel GetOrganInfoByOrganIdMain(int Id, string token);
-		//  List<OrganInfDTO> GetOrganInfo(string token);
-		//  ApiResultOrganDto GetListOrganInfo(string token);
+        string GetCityTitleByCityId(int cityId, int provinceId, string token);
+
+        string GetUnitDutyByUnitId(int unitId, string token);
 
 
+        ApiResultOrganDto GetListOrganInfo(string token);
+
+
+        // جدید
+       // OrganViewModelDto GetGharargah(string token);
+        List<OrganViewModelDto> GetGharargah(string token);
+
+        ApiResultOrganDto GetOrganByGharargahId(int gharargahId, string token);
 
 
 
-		#endregion
+        #endregion
 
-		#region person
-		PersonalInfDTO GetPersonalByPersonCode(string PersonCode, string token);
+        #region person
+        PersonalInfDTO GetPersonalByPersonCode(string PersonCode, string token);
 
 
 		#endregion
