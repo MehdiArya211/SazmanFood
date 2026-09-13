@@ -243,6 +243,7 @@ namespace Food.Areas.FoodPlan.Controllers
             var user = GetCurrentUser();
             return user?.IsEnabled == true &&
                    (user.RoleId == RoleConstant.FoodSupport ||
+                    user.RoleId == RoleConstant.Admin ||
                     user.RoleId == RoleConstant.FoodRegistrar ||
                     user.RoleId == RoleConstant.FoodApprover ||
                     user.RoleId == RoleConstant.FoodOffice);
