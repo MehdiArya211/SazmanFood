@@ -5,6 +5,8 @@ namespace DTO.Entities
 {
     public class UnitCalendarCreateDTO
     {
+        public int? OrgId { get; set; }
+
         [Display(Name = "تاریخ")]
         [Required(ErrorMessage = "{0} الزامی است.")]
         public DateTime? CalendarDate { get; set; }
