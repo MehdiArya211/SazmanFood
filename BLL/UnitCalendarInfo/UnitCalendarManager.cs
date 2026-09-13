@@ -250,10 +250,12 @@ namespace BLL
                     "نوع روز معتبر نیست.");
             }
 
+            var isAdmin = Session?.GetUser()?.RoleId == RoleConstant.Admin;
+
             var entity =
                 UOW.UnitCalendar.FirstOrDefault(x =>
                     x.Id == model.Id &&
-                    (Session?.GetUser()?.RoleId == RoleConstant.Admin || x.OrgId == orgId) &&
+                    (isAdmin || x.OrgId == orgId) &&
                     x.IsDeleted != true);
 
             if (entity == null)
@@ -303,10 +305,12 @@ namespace BLL
             int orgId,
             long userId)
         {
+            var isAdmin = Session?.GetUser()?.RoleId == RoleConstant.Admin;
+
             var entity =
                 UOW.UnitCalendar.FirstOrDefault(x =>
                     x.Id == id &&
-                    (Session?.GetUser()?.RoleId == RoleConstant.Admin || x.OrgId == orgId) &&
+                    (isAdmin || x.OrgId == orgId) &&
                     x.IsDeleted != true);
 
             if (entity == null)
