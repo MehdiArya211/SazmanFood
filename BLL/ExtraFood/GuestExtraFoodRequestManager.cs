@@ -120,7 +120,7 @@ namespace BLL
             return user?.IsEnabled == true &&
                    (user.RoleId == RoleConstant.FoodRegistrar ||
                     user.RoleId == RoleConstant.FoodApprover ||
-                    (user.RoleId == RoleConstant.Admin || user.RoleId == RoleConstant.FoodOffice));
+                    user.RoleId == RoleConstant.FoodOffice);
         }
 
         private UserSessionDTO GetCurrentUser()
