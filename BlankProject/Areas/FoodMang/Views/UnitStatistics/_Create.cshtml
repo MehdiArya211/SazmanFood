@@ -25,7 +25,10 @@
               onsubmit="return unitStatistic.create.save(event)">
             @Html.AntiForgeryToken()
 
-            <input asp-for="OrgId" type="hidden" />
+            @if (ViewBag.Organizations == null)
+            {
+                <input asp-for="OrgId" type="hidden" />
+            }
             <input asp-for="OrgTitle" type="hidden" />
 
             <div class="form-horizontal">
@@ -43,9 +46,16 @@
                         </label>
 
                         <div class="col-md-12">
-                            <input value="@Model.OrgTitle"
-                                   class="form-control"
-                                   readonly />
+                            @if (ViewBag.Organizations != null)
+                            {
+                                <select asp-for="OrgId" asp-items="(IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Organizations" class="form-control" required>
+                                    <option value="">انتخاب یگان</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <input value="@Model.OrgTitle" class="form-control" readonly />
+                            }
                         </div>
                     </div>
 
