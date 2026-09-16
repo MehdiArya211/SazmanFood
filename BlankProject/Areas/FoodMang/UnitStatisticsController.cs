@@ -9,6 +9,7 @@ using ITOWebApiClient;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Services.SessionServices;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Food.Areas.FoodMang.Controllers
 {
@@ -110,17 +111,38 @@ namespace Food.Areas.FoodMang.Controllers
                 Message = string.Join("</br>", errors)
             });
         }
-
         private string GetOrgTitle(int orgId)
         {
             if (orgId <= 0)
                 return null;
 
-            return webApiManager
-                .GetListOrganInfoV1(access_token)
-                .Where(x => x.Id == orgId)
-                .Select(x => x.UnitTitle)
-                .FirstOrDefault();
+
+            var organ = webApiManager
+                .GetOrganInfoById(orgId, access_token);
+
+
+            return organ?.UnitTitle;
+        }
+        private string GetOrgTitle0(int orgId)
+        {
+            if (orgId <= 0)
+                return null;
+
+            var res1 = webApiManager
+                .GetOrganByGharargahId(orgId , access_token).Where(x => x.Id == orgId).FirstOrDefault();
+            //var res = webApiManager
+            //    .GetListOrganInfoV1(access_token)
+            //    .Where(x => x.Id == orgId)
+            //    .Select(x => x.Title)
+            //    .FirstOrDefault();
+
+            var res = webApiManager
+    .GetOrganByCategoryCode(access_token)
+    .Where(x => x.Id == orgId)
+    .Select(x => x.Title)
+    .FirstOrDefault();
+
+            return res;
         }
 
         #endregion

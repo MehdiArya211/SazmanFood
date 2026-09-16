@@ -24,9 +24,11 @@ namespace BLL.Interface
        // OrganViewModelDto GetGharargah(string token);
         List<OrganViewModelDto> GetGharargah(string token);
 
-        ApiResultOrganDto GetOrganByGharargahId(int gharargahId, string token);
+        List<OrganViewModelDto> GetOrganByGharargahId(int gharargahId, string token);
 
-
+        public OrganViewModelDto GetOrganInfoById(
+    int id,
+    string token);
 
         #endregion
 

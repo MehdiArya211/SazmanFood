@@ -108,14 +108,9 @@ namespace Food.Areas.AuthSystem.Controllers
             ViewData["Gharargah"] = new SelectList(
                 webApiManager.GetGharargah(access_token),
                 "Id",
-                "UnitTitle"
-            );
-
-            ViewData["ProvinceList"] = new SelectList(
-                webApiManager.GetProvince(access_token),
-                "Id",
                 "Title"
             );
+
 
             return PartialView("_Create", new UserCreateDTO());
         }
@@ -221,16 +216,10 @@ namespace Food.Areas.AuthSystem.Controllers
             ViewData["Gharargah"] = new SelectList(
                 webApiManager.GetGharargah(access_token),
                 "Id",
-                "UnitTitle",
+                "Title",
                 user.GharargahId
             );
 
-            ViewData["ProvinceList"] = new SelectList(
-                webApiManager.GetProvince(access_token),
-                "Id",
-                "Title",
-                user.ProvinceId
-            );
 
             return PartialView("_Edit", user);
         }

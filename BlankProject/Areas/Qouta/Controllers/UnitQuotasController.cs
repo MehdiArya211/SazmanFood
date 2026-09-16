@@ -314,16 +314,16 @@ private readonly IUnitQuotaManager unitQuotaManager;
             /*
              * جست‌وجوی کادر فقط برای یگان خود کاربر.
              */
-            if (user.RoleId != RoleConstant.Admin && person.UnitCode !=
-                user.OmdOrgId)
-            {
-                return Json(new
-                {
-                    Status = false,
-                    Message =
-                        "این پرسنل متعلق به یگان شما نیست."
-                });
-            }
+            //if (user.RoleId != RoleConstant.Admin && person.UnitCode !=
+            //    user.OmdOrgId)
+            //{
+            //    return Json(new
+            //    {
+            //        Status = false,
+            //        Message =
+            //            "این پرسنل متعلق به یگان شما نیست."
+            //    });
+            //}
 
             var fullName =
                 !string.IsNullOrWhiteSpace(

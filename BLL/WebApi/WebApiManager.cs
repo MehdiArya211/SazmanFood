@@ -202,7 +202,7 @@ namespace BLL
         /// <param name="gharargahId"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public ApiResultOrganDto GetOrganByGharargahId(
+        public List<OrganViewModelDto> GetOrganByGharargahId(
             int gharargahId,
             string token)
         {
@@ -212,14 +212,14 @@ namespace BLL
 
             var result = _client
                 .GetStringAsync(
-                    _urlOrg + "/GetOmdOrgansByGhId/" + gharargahId
+                    _urlOrg + "/GetOmdOrgansByGhararghahId/" + gharargahId
                 )
                 .Result;
 
 
 
             var organs =
-                JsonConvert.DeserializeObject<ApiResultOrganDto>(result);
+                JsonConvert.DeserializeObject<List<OrganViewModelDto>>(result);
 
 
 
@@ -227,7 +227,22 @@ namespace BLL
 
         }
 
+        public OrganViewModelDto GetOrganInfoById(
+    int id,
+    string token)
+        {
+            _client.SetBearerToken(token);
 
+            var result = _client
+                .GetStringAsync(
+                    _urlOrg + "/GetOrganInfo/" + id
+                )
+                .Result;
+
+
+            return JsonConvert
+                .DeserializeObject<OrganViewModelDto>(result);
+        }
         #endregion
     }
 }

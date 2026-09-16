@@ -84,6 +84,7 @@ namespace DTO.User
 
         [Display(Name = "یگان پادگان")]
         public long? OrganGarrisonId { get; set; }
+        [Display(Name = "قرارگاه")]
 
         public int? GharargahId { get; set; }
 

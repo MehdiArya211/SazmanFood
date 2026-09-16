@@ -145,7 +145,7 @@ var user = {
 
                                     orgSelect.append(
                                         `<option value="${item.id}">
-                        ${item.unitTitle}
+                        ${item.title}
                     </option>`
                                     );
 
@@ -264,7 +264,7 @@ var user = {
 
                                     orgSelect.append(
                                         `<option value="${item.id}">
-                        ${item.unitTitle}
+                        ${item.title}
                     </option>`
                                     );
 
@@ -286,32 +286,6 @@ var user = {
 
                     });
 
-                    $.get("/AuthSystem/users/GetListCityWithProvinceId/" + $("#provinceList").val(),
-                        function (res) {
-                            $("#cityList").empty();
-                            $("#cityList").append("<option value=''>شهر خود را انتخاب نمایید</option>");
-                            $.each(res, function (i, item) {
-                                $("#cityList").append(`<option value="${item.id}">${item.title}</option>`);
-                            });
-                        });
-
-
-                    $("#provinceList").on("change", function () {
-                        var id = $(this).val();
-                        var unitSelect = $("#cityList");
-                        unitSelect.empty();
-                        $("#cityList").append("<option value=''>شهر خود را انتخاب نمایید</option>");
-                        $.get("/AuthSystem/users/GetListCityWithProvinceId/" + id,
-                            function (res) {
-                                $.each(res, function (i, item) {
-                                    $("#cityList").append(`<option value="${item.id}">${item.title}</option>`);
-                                });
-                            });
-                    });
-
-                    setTimeout(() => {
-                        $("#cityList").val($("#SelectedCityId").val()).change();
-                    }, 300);
                     /*اعمال ولیدیشن به فرمی که با اجکس لود شده است*/
                     var form = $(".edit-form")
                         .removeData("validator")
