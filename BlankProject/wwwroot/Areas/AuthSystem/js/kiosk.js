@@ -12,6 +12,22 @@
     let connection;
     let redirected = false;
 
+    function logInfo(message, data) {
+        if (data === undefined) {
+            console.log("[ورود بیومتریک] " + message);
+        } else {
+            console.log("[ورود بیومتریک] " + message, data);
+        }
+    }
+
+    function logWarning(message, data) {
+        console.warn("[ورود بیومتریک] " + message, data ?? "");
+    }
+
+    function logError(message, error) {
+        console.error("[ورود بیومتریک] " + message, error ?? "");
+    }
+
     function setStatus(message) {
         const element = document.getElementById("connectionStatus");
         if (element) {
@@ -66,17 +82,35 @@
             throw new Error("آدرس سرویس تشخیص چهره تنظیم نشده است.");
         }
 
-        return apiBaseUrl + settings.hubPath;
+        const hubUrl = apiBaseUrl + settings.hubPath;
+        logInfo("آدرس Hub آماده شد: " + hubUrl);
+        return hubUrl;
     }
 
     function redirectToLogin(kioskId, enrollId) {
         const parsedEnrollId = Number(enrollId);
 
-        if (redirected || !Number.isInteger(parsedEnrollId) || parsedEnrollId <= 0) {
+        if (redirected) {
+            logWarning("انتقال قبلاً انجام شده و پیام تکراری نادیده گرفته شد.", {
+                kioskId: kioskId,
+                enrollId: enrollId
+            });
+            return;
+        }
+
+        if (!Number.isInteger(parsedEnrollId) || parsedEnrollId <= 0) {
+            logError("شناسه پرسنلی دریافتی از Hub معتبر نیست.", {
+                kioskId: kioskId,
+                enrollId: enrollId
+            });
             return;
         }
 
         redirected = true;
+        logInfo("چهره شناسایی شد و انتقال به سامانه آغاز می‌شود.", {
+            kioskId: kioskId,
+            enrollId: parsedEnrollId
+        });
         setStatus("چهره شناسایی شد؛ در حال ورود به سامانه...");
 
         const query = new URLSearchParams({
@@ -84,7 +118,9 @@
             enrollId: String(parsedEnrollId)
         });
 
-        window.location.assign(settings.finalizeUrl + "?" + query.toString());
+        const destination = settings.finalizeUrl + "?" + query.toString();
+        logInfo("انتقال به آدرس نهایی ورود: " + destination);
+        window.location.assign(destination);
     }
 
     function buildConnection(hubUrl, kioskId) {
@@ -97,13 +133,24 @@
             .withAutomaticReconnect([0, 2000, 5000, 10000])
             .build();
 
-        connection.on("ReceiveAutoLogin", enrollId => redirectToLogin(kioskId, enrollId));
+        connection.on("ReceiveAutoLogin", enrollId => {
+            logInfo("پیام ReceiveAutoLogin از Hub دریافت شد.", {
+                kioskId: kioskId,
+                enrollId: enrollId
+            });
+            redirectToLogin(kioskId, enrollId);
+        });
 
-        connection.onreconnecting(() => {
+        connection.onreconnecting(error => {
+            logWarning("ارتباط با Hub موقتاً قطع شد؛ اتصال مجدد آغاز شد.", error);
             setStatus("ارتباط موقتاً قطع شد؛ در حال اتصال مجدد...");
         });
 
-        connection.onreconnected(async () => {
+        connection.onreconnected(async connectionId => {
+            logInfo("اتصال مجدد با Hub برقرار شد.", {
+                kioskId: kioskId,
+                connectionId: connectionId
+            });
             try {
                 // پس از اتصال مجدد، دستگاه باید دوباره در Hub ثبت شود.
                 await connection.invoke("Register", kioskId);
@@ -113,12 +160,13 @@
                 });
                 setStatus("کیوسک " + kioskId + " متصل است؛ در انتظار تشخیص چهره...");
             } catch (error) {
-                console.error("[FaceLogin] Register after reconnect failed.", error);
+                logError("ثبت مجدد KioskId در Hub ناموفق بود.", error);
                 setStatus("ثبت مجدد دستگاه انجام نشد؛ صفحه را تازه‌سازی کنید.");
             }
         });
 
-        connection.onclose(() => {
+        connection.onclose(error => {
+            logError("ارتباط با Hub کاملاً بسته شد.", error);
             setStatus("ارتباط با دستگاه قطع شد؛ صفحه را تازه‌سازی کنید.");
         });
     }
@@ -127,7 +175,19 @@
         for (let attempt = 1; attempt <= settings.maxStartRetries; attempt++) {
             try {
                 setStatus("در حال اتصال به دستگاه... (" + attempt + " از " + settings.maxStartRetries + ")");
+                logInfo("تلاش برای اتصال به Hub.", {
+                    attempt: attempt,
+                    maxAttempts: settings.maxStartRetries,
+                    kioskId: kioskId
+                });
+
                 await connection.start();
+
+                logInfo("اتصال WebSocket/SignalR برقرار شد؛ Register ارسال می‌شود.", {
+                    kioskId: kioskId,
+                    connectionId: connection.connectionId
+                });
+
                 await connection.invoke("Register", kioskId);
 
                 console.info("[FaceLogin] Kiosk registered successfully.", {
@@ -138,12 +198,17 @@
                 setStatus("کیوسک " + kioskId + " متصل است؛ در انتظار تشخیص چهره...");
                 return;
             } catch (error) {
+                logError(
+                    "تلاش شماره " + attempt + " برای اتصال یا Register ناموفق بود.",
+                    error
+                );
+
                 if (attempt === settings.maxStartRetries) {
-                    console.error("[FaceLogin] Connection failed.", error);
                     setStatus("اتصال به دستگاه برقرار نشد؛ صفحه را تازه‌سازی کنید.");
                     return;
                 }
 
+                logInfo("پس از " + settings.retryDelayMs + " میلی‌ثانیه دوباره تلاش می‌شود.");
                 await wait(settings.retryDelayMs);
             }
         }
@@ -155,11 +220,17 @@
                 throw new Error("کتابخانه SignalR بارگذاری نشده است.");
             }
 
+            logInfo("راه‌اندازی ورود بیومتریک آغاز شد.");
+
             const kioskId = getOrCreateKioskId();
+            logInfo("شناسه کیوسک برای Register آماده است.", { kioskId: kioskId });
+
             buildConnection(getHubUrl(), kioskId);
+            logInfo("Connection و Handler رویداد ReceiveAutoLogin ساخته شدند.");
+
             await startConnection(kioskId);
         } catch (error) {
-            console.error("[FaceLogin] Initialization failed.", error);
+            logError("راه‌اندازی ورود بیومتریک با خطا متوقف شد.", error);
             setStatus(error.message || "خطا در راه‌اندازی تشخیص چهره.");
         }
     }
