@@ -23,25 +23,22 @@
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     }
 
-    function getOrCreateKioskId() {
-        let kioskId;
-
-        try {
-            kioskId = Number(localStorage.getItem(settings.kioskKey));
-        } catch {
-            kioskId = 0;
-        }
+    function getConfiguredKioskId() {
+        const kioskId = Number(window.KIOSK_ID);
 
         if (!Number.isInteger(kioskId) || kioskId <= 0) {
-            kioskId = Math.floor(100000 + Math.random() * 900000);
-
-            try {
-                localStorage.setItem(settings.kioskKey, String(kioskId));
-            } catch {
-                // ذخیره‌سازی محلی ممکن است در حالت خصوصی مرورگر غیرفعال باشد.
-            }
+            throw new Error("شناسه کیوسک در تنظیمات سامانه معتبر نیست.");
         }
 
+        try {
+            // فقط برای سازگاری و امکان بررسی در Console ذخیره می‌شود؛
+            // منبع اصلی شناسه، تنظیمات سرور است و مقدار تصادفی تولید نمی‌شود.
+            localStorage.setItem(settings.kioskKey, String(kioskId));
+        } catch {
+            // غیرفعال بودن Local Storage مانع اتصال کیوسک نمی‌شود.
+        }
+
+        console.info("[FaceLogin] Configured KioskId:", kioskId);
         return kioskId;
     }
 
@@ -93,7 +90,11 @@
             try {
                 // پس از اتصال مجدد، دستگاه باید دوباره در Hub ثبت شود.
                 await connection.invoke("Register", kioskId);
-                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
+                console.info("[FaceLogin] Kiosk registered after reconnect.", {
+                    kioskId: kioskId,
+                    connectionId: connection.connectionId
+                });
+                setStatus("اتصال برقرار است؛ کیوسک " + kioskId + " در انتظار تشخیص چهره است...");
             } catch (error) {
                 console.error("[FaceLogin] Register after reconnect failed.", error);
                 setStatus("ثبت مجدد دستگاه انجام نشد؛ صفحه را تازه‌سازی کنید.");
@@ -111,7 +112,11 @@
                 setStatus("در حال اتصال به دستگاه... (" + attempt + " از " + settings.maxStartRetries + ")");
                 await connection.start();
                 await connection.invoke("Register", kioskId);
-                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
+                console.info("[FaceLogin] Kiosk registered successfully.", {
+                    kioskId: kioskId,
+                    connectionId: connection.connectionId
+                });
+                setStatus("اتصال برقرار است؛ کیوسک " + kioskId + " در انتظار تشخیص چهره است...");
                 return;
             } catch (error) {
                 if (attempt === settings.maxStartRetries) {
@@ -131,7 +136,7 @@
                 throw new Error("کتابخانه SignalR بارگذاری نشده است.");
             }
 
-            const kioskId = getOrCreateKioskId();
+            const kioskId = getConfiguredKioskId();
             buildConnection(getHubUrl(), kioskId);
             await startConnection(kioskId);
         } catch (error) {
