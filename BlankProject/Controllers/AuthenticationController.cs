@@ -178,7 +178,6 @@ public class AuthenticationController : Controller
     public IActionResult IndexZP(long? mid)
     {
         ViewBag.ApiBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
-        ViewBag.KioskId = _configuration.GetValue<int>("Biometric:KioskId");
 
         if (mid == null)
         {
