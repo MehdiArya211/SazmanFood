@@ -44,10 +44,17 @@
             }
         }
 
-        console.info(
-            "%c[FaceLogin] KioskId: " + kioskId + (isNew ? " (new)" : " (saved)"),
-            "color:#0b7a3e;font-size:16px;font-weight:bold"
+        // برای مشاهده و کپی سریع شناسه در Console
+        window.KIOSK_ID = kioskId;
+
+        console.log("==============================================");
+        console.log(
+            "%cKIOSK ID: " + kioskId,
+            "color:#ffffff;background:#0b7a3e;font-size:22px;font-weight:bold;padding:8px 14px;border-radius:6px"
         );
+        console.log("وضعیت شناسه: " + (isNew ? "جدید ساخته شد" : "از مرورگر خوانده شد"));
+        console.log("برای مشاهده مجدد در Console بنویسید: KIOSK_ID");
+        console.log("==============================================");
 
         return kioskId;
     }
