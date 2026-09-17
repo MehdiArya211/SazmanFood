@@ -36,7 +36,8 @@ namespace BLL
 		private HttpClient _client;
 		private string apiProvinceCityUrl = string.Empty;
 		private string apiUrlSarbazMaher_Aja = string.Empty;
-
+		private string UnitCode = "900010";
+		
 
 
 		public WebApiManager(IConfiguration configuration)
@@ -59,7 +60,7 @@ namespace BLL
 		public List<OrganInfDTO> GetOrganInfo(string token)
 		{
 			_client.SetBearerToken(token);
-			var result = _client.GetStringAsync(_urlOrg + "/GetOrganByCategoryCode/" + 7746).Result;
+			var result = _client.GetStringAsync(_urlOrg + "/GetOrganByCategoryCode/" + UnitCode).Result;
 			List<OrganInfDTO> organ = JsonConvert.DeserializeObject<List<OrganInfDTO>>(result);
 			return organ;
 
@@ -138,7 +139,7 @@ namespace BLL
 		public List<OrganInfoViewModel> GetOrgan(string token)
 		{
 			_client.SetBearerToken(token);
-			var result = _client.GetStringAsync(_urlOrg + "/GetOrganByCategoryCode/" + 7746).Result;
+			var result = _client.GetStringAsync(_urlOrg + "/GetOrganByCategoryCode/" + UnitCode).Result;
 			List<OrganInfoViewModel> organ = JsonConvert.DeserializeObject<List<OrganInfoViewModel>>(result);
 			return organ;
 
@@ -156,7 +157,7 @@ namespace BLL
 		public List<OrganViewModelDto> GetListOrganInfoV1(string token)
 		{
 			_client.SetBearerToken(token);
-			var result = _client.GetStringAsync(_urlOrg + "/GetOrganByCategoryCode/" + 7746).Result;
+			var result = _client.GetStringAsync(_urlOrg + "/GetOrganByCategoryCode/" + UnitCode).Result;
 			var organ = JsonConvert.DeserializeObject<List<OrganViewModelDto>>(result);
 			return organ;
 		}

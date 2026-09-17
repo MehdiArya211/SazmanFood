@@ -284,12 +284,12 @@ public class UnitQuotaManager
                 $"برای وعده «{meal.Title}» سهمیه‌ای وجود ندارد.");
         }
 
-        if (person.UnitCode != quota.OrgId)
-        {
-            return new BaseResult(
-                false,
-                "این پرسنل متعلق به یگان سهمیه نیست.");
-        }
+        //if (person.UnitCode != quota.OrgId)
+        //{
+        //    return new BaseResult(
+        //        false,
+        //        "این پرسنل متعلق به یگان سهمیه نیست.");
+        //}
 
         var fullName =
             !string.IsNullOrWhiteSpace(person.FullName)

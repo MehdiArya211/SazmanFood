@@ -14,7 +14,7 @@
     </button>
 
 
-    <h4 class="modal-title" id="modal5-label">
+    <h4 class="modal-title">
         ویرایش کاربر
     </h4>
 
@@ -26,433 +26,323 @@
 </div>
 
 
-
 <div class="modal-body row">
 
-<div class="col-md-12">
+    <div class="col-md-12">
 
 
-<form asp-action="Edit"
-      class="edit-form"
-      onsubmit="return user.edit.save(event)">
+        <form asp-action="Edit"
+              class="edit-form"
+              onsubmit="return user.edit.save(event)">
 
 
-<div class="form-horizontal">
+            <div class="form-horizontal">
 
-<hr />
 
+                <hr />
 
-<div asp-validation-summary="ModelOnly"
-     class="text-danger">
-</div>
 
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger">
+                </div>
 
-<div class="error text-center text-danger">
-    @ViewBag.Error
-</div>
 
+                <div class="error text-center text-danger">
+                    @ViewBag.Error
+                </div>
 
 
-<input asp-for="Id" type="hidden" />
+                <input asp-for="Id"
+                       type="hidden" />
 
 
-<input type="hidden"
-       id="SelectedCityId"
-       value="@Model.CityId" />
 
+                <!-- اطلاعات اصلی -->
 
-<input type="hidden"
-       id="SelectedOmdOrgId"
-       value="@Model.OmdOrgId" />
+                <div class="col-md-12">
 
 
+                    <div class="form-group col-md-4">
 
+                        <label asp-for="Username"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
-<!-- اطلاعات اصلی -->
 
-<div class="col-md-12">
+                        <div class="col-md-12">
 
+                            <input asp-for="Username"
+                                   class="form-control" />
 
-<div class="form-group col-md-4">
 
-<label asp-for="Username"
-       class="control-label text-right col-md-12 required">
-</label>
+                            <span asp-validation-for="Username"
+                                  class="text-danger">
+                            </span>
 
+                        </div>
 
-<div class="col-md-12">
+                    </div>
 
-<input asp-for="Username"
-       class="form-control" />
 
 
-<span asp-validation-for="Username"
-      class="text-danger">
-</span>
+                    <div class="form-group col-md-4">
 
 
-</div>
+                        <label asp-for="Name"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
-</div>
 
+                        <div class="col-md-12">
 
 
+                            <input asp-for="Name"
+                                   class="form-control" />
 
-<div class="form-group col-md-4">
 
+                            <span asp-validation-for="Name"
+                                  class="text-danger">
+                            </span>
 
-<label asp-for="Name"
-       class="control-label text-right col-md-12 required">
-</label>
 
+                        </div>
 
-<div class="col-md-12">
 
+                    </div>
 
-<input asp-for="Name"
-       class="form-control" />
 
 
-<span asp-validation-for="Name"
-      class="text-danger">
-</span>
 
+                    <div class="form-group col-md-4">
 
-</div>
 
+                        <label asp-for="Mobile"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
-</div>
 
+                        <div class="col-md-12">
 
 
+                            <input asp-for="Mobile"
+                                   class="form-control"
+                                   placeholder="09*********"
+                                   style="direction:ltr;text-align:right" />
 
 
-<div class="form-group col-md-4">
+                            <span asp-validation-for="Mobile"
+                                  class="text-danger">
+                            </span>
 
 
-<label asp-for="Mobile"
-       class="control-label text-right col-md-12 required">
-</label>
+                        </div>
 
 
-<div class="col-md-12">
+                    </div>
 
 
-<input asp-for="Mobile"
-       class="form-control"
-       placeholder="09*********"
-       style="direction:ltr;text-align:right" />
+                </div>
 
 
-<span asp-validation-for="Mobile"
-      class="text-danger">
-</span>
 
 
-</div>
+                <!-- دسترسی ها -->
 
+                <div class="col-md-12">
 
-</div>
 
+                    <div class="form-group col-md-4">
 
 
-</div>
+                        <label asp-for="RoleId"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
+                        <div class="col-md-12">
 
 
+                            <select asp-for="RoleId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.RoleId">
 
+                            </select>
 
 
-<!-- دسترسی ها -->
+                            <span asp-validation-for="RoleId"
+                                  class="text-danger">
+                            </span>
 
-<div class="col-md-12">
 
+                        </div>
 
-<div class="form-group col-md-4">
 
+                    </div>
 
-<label asp-for="RoleId"
-       class="control-label text-right col-md-12 required">
-</label>
 
 
-<div class="col-md-12">
 
+                    <div class="form-group col-md-4">
 
-<div class="hide">
 
-<input type="checkbox"
-       asp-for="ApplyNewAccess" />
+                        <label asp-for="Type"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
-<input type="hidden"
-       name="OldRoleId"
-       value="@Model.RoleId" />
+                        <div class="col-md-12">
 
-</div>
 
+                            <select asp-for="Type"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.UserType">
 
+                            </select>
 
-<select asp-for="RoleId"
-        class="selectpicker"
-        data-live-search="true"
-        data-size="7"
-        data-style="select-with-transition"
-        asp-items="ViewBag.RoleId">
-</select>
 
+                            <span asp-validation-for="Type"
+                                  class="text-danger">
+                            </span>
 
 
-<span asp-validation-for="RoleId"
-      class="text-danger">
-</span>
+                        </div>
 
 
+                    </div>
 
-</div>
 
 
-</div>
 
+                    <!-- یگان -->
 
+                    <div class="form-group col-md-4">
 
 
+                        <label asp-for="OmdOrgId"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
+                        <div class="col-md-12">
 
-<div class="form-group col-md-4">
 
+                            <select asp-for="OmdOrgId"
+                                    id="orgList"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.Gharargah">
 
-<label asp-for="Type"
-       class="control-label text-right col-md-12 required">
-</label>
 
+                                <option value="">
+                                    لطفا یگان را انتخاب نمایید
+                                </option>
 
 
-<div class="col-md-12">
+                            </select>
 
 
-<div class="hide">
 
-<input type="checkbox"
-       asp-for="ApplyNewAccess" />
+                            <span asp-validation-for="OmdOrgId"
+                                  class="text-danger">
+                            </span>
 
 
-<input type="hidden"
-       name="OldType"
-       value="@Model.Type" />
+                        </div>
 
-</div>
 
+                    </div>
 
 
-<select asp-for="Type"
-        class="selectpicker"
-        data-live-search="true"
-        data-size="7"
-        data-style="select-with-transition"
-        asp-items="ViewBag.UserType">
 
-</select>
+                </div>
 
 
 
-<span asp-validation-for="Type"
-      class="text-danger">
-</span>
 
+                <!-- وضعیت -->
 
+                <div class="col-md-12">
 
-</div>
 
+                    <div class="form-group col-md-4">
 
-</div>
 
+                        <div class="col-md-12"
+                             style="padding-top:30px">
 
 
+                            <div class="togglebutton">
 
 
+                                <label>
 
-<!-- قرارگاه -->
+                                    فعال باشد
 
-<div class="form-group col-md-4">
+                                    <input asp-for="IsEnabled" />
 
+                                </label>
 
-<label asp-for="GharargahId"
-       class="control-label text-right col-md-12 required">
-</label>
 
+                            </div>
 
-<div class="col-md-12">
 
+                        </div>
 
-<select asp-for="GharargahId"
-        id="gharargahList"
-        class="selectpicker"
-        data-live-search="true"
-        data-size="7"
-        data-style="select-with-transition"
-        asp-items="ViewBag.Gharargah">
 
+                    </div>
 
-<option value="">
-لطفا قرارگاه را انتخاب نمایید
-</option>
 
+                </div>
 
-</select>
 
 
 
-<span asp-validation-for="GharargahId"
-      class="text-danger">
-</span>
 
+                <!-- دکمه ذخیره -->
 
-</div>
+                <div class="form-group col-md-12 text-center">
 
 
-</div>
+                    <div class="btn-group">
 
 
+                        <button type="submit"
+                                class="btn btn-info">
 
 
+                            <i class="material-icons">
+                                send
+                            </i>
 
 
+                            ذخیره اطلاعات
 
-<!-- یگان -->
 
-<div class="form-group col-md-4">
+                        </button>
 
 
-<label asp-for="OmdOrgId"
-       class="control-label text-right col-md-12 required">
-</label>
+                    </div>
 
 
+                </div>
 
-<div class="col-md-12">
 
 
+            </div>
 
-<select asp-for="OmdOrgId"
-        id="orgList"
-        class="selectpicker"
-        data-live-search="true"
-        data-size="7"
-        data-style="select-with-transition">
 
+        </form>
 
-<option value="">
-لطفا ابتدا قرارگاه را انتخاب نمایید
-</option>
 
-
-</select>
-
-
-
-<span asp-validation-for="OmdOrgId"
-      class="text-danger">
-</span>
-
-
-
-</div>
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-
-<!-- وضعیت -->
-
-<div class="col-md-12">
-
-
-<div class="form-group col-md-4">
-
-
-<div class="col-md-12"
-     style="padding-top:30px">
-
-
-<div class="togglebutton">
-
-
-<label>
-
-فعال باشد
-
-<input asp-for="IsEnabled" />
-
-</label>
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-
-
-<div class="form-group col-md-12 text-center">
-
-
-<div class="btn-group">
-
-
-<button type="submit"
-        class="btn btn-info">
-
-
-<i class="material-icons">
-send
-</i>
-
-
-ذخیره اطلاعات
-
-
-</button>
-
-
-
-</div>
-
-
-</div>
-
-
-
-
-</div>
-
-
-</form>
-
-
-</div>
+    </div>
 
 
 </div>

@@ -115,62 +115,6 @@ var user = {
                     user.form.initial();
                     modal.open();
 
-                    // تغییر قرارگاه و دریافت یگان‌ها
-                    $("#gharargahList").on("change", function () {
-
-                        var gharargahId = $(this).val();
-
-                        var orgSelect = $("#orgList");
-
-                        orgSelect.empty();
-
-                        orgSelect.append(
-                            "<option value=''>لطفا یگان را انتخاب نمایید</option>"
-                        );
-
-
-                        if (!gharargahId) {
-
-                            orgSelect.selectpicker('refresh');
-                            return;
-                        }
-
-
-                        $.get("/AuthSystem/users/GetOrgByGharargah/" + gharargahId,
-                            function (res) {
-
-
-                                $.each(res, function (i, item) {
-
-
-                                    orgSelect.append(
-                                        `<option value="${item.id}">
-                        ${item.title}
-                    </option>`
-                                    );
-
-
-                                });
-
-
-                                orgSelect.selectpicker('refresh');
-
-                            });
-
-
-                    });
-                    $("#provinceList").on("change", function () {
-                        var id = $(this).val();
-                        var unitSelect = $("#cityList");
-                        unitSelect.empty();
-                        $("#cityList").append("<option value=''>شهر خود را انتخاب نمایید</option>");
-                        $.get("/AuthSystem/users/GetListCityWithProvinceId/" + id,
-                            function (res) {
-                                $.each(res, function (i, item) {
-                                    $("#cityList").append(`<option value="${item.id}">${item.title}</option>`);
-                                });
-                            });
-                    });
 
 
                     /*اعمال ولیدیشن به فرمی که با اجکس لود شده است*/
@@ -235,56 +179,6 @@ var user = {
                     $("#modal-form").html(res);
                     user.form.initial();
                     modal.open();
-
-                    // تغییر قرارگاه در ویرایش
-                    $("#gharargahList").on("change", function () {
-
-                        var gharargahId = $(this).val();
-
-                        var orgSelect = $("#orgList");
-
-                        orgSelect.empty();
-
-                        orgSelect.append(
-                            "<option value=''>لطفا یگان را انتخاب نمایید</option>"
-                        );
-
-
-                        if (!gharargahId) {
-                            orgSelect.selectpicker('refresh');
-                            return;
-                        }
-
-
-                        $.get("/AuthSystem/users/GetOrgByGharargah/" + gharargahId,
-                            function (res) {
-
-
-                                $.each(res, function (i, item) {
-
-                                    orgSelect.append(
-                                        `<option value="${item.id}">
-                        ${item.title}
-                    </option>`
-                                    );
-
-                                });
-
-
-                                // انتخاب یگان قبلی
-                                var selectedOrgId = $("#SelectedOmdOrgId").val();
-
-                                if (selectedOrgId) {
-                                    $("#orgList")
-                                        .val(selectedOrgId);
-                                }
-
-
-                                orgSelect.selectpicker('refresh');
-
-                            });
-
-                    });
 
                     /*اعمال ولیدیشن به فرمی که با اجکس لود شده است*/
                     var form = $(".edit-form")

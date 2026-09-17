@@ -106,9 +106,9 @@ namespace Food.Areas.AuthSystem.Controllers
             );
 
             ViewData["Gharargah"] = new SelectList(
-                webApiManager.GetGharargah(access_token),
+                webApiManager.GetOrganInfo(access_token),
                 "Id",
-                "Title"
+                "UnitTitle"
             );
 
 
@@ -116,16 +116,16 @@ namespace Food.Areas.AuthSystem.Controllers
         }
 
 
-        [HttpGet]
-        public IActionResult GetOrgByGharargah(int id)
-        {
-            var result = webApiManager.GetOrganByGharargahId(
-                id,
-                access_token
-            );
+        //[HttpGet]
+        //public IActionResult GetOrgByGharargah(int id)
+        //{
+        //    var result = webApiManager.GetOrganInfo(
+        //        id,
+        //        access_token
+        //    );
 
-            return Json(result);
-        }
+        //    return Json(result);
+        //}
 
 
         [HttpPost]
@@ -176,16 +176,6 @@ namespace Food.Areas.AuthSystem.Controllers
             }
         }
 
-
-        public IActionResult GetListCityWithProvinceId(int id)
-        {
-            return Json(
-                webApiManager.GetCityByProvinceId(
-                    id,
-                    access_token
-                )
-            );
-        }
 
         #endregion
 
