@@ -25,6 +25,7 @@
 
     function getOrCreateKioskId() {
         let kioskId;
+        let isNew = false;
 
         try {
             kioskId = Number(localStorage.getItem(settings.kioskKey));
@@ -34,6 +35,7 @@
 
         if (!Number.isInteger(kioskId) || kioskId <= 0) {
             kioskId = Math.floor(100000 + Math.random() * 900000);
+            isNew = true;
 
             try {
                 localStorage.setItem(settings.kioskKey, String(kioskId));
@@ -41,6 +43,11 @@
                 // ذخیره‌سازی محلی ممکن است در حالت خصوصی مرورگر غیرفعال باشد.
             }
         }
+
+        console.info(
+            "%c[FaceLogin] KioskId: " + kioskId + (isNew ? " (new)" : " (saved)"),
+            "color:#0b7a3e;font-size:16px;font-weight:bold"
+        );
 
         return kioskId;
     }
@@ -93,7 +100,11 @@
             try {
                 // پس از اتصال مجدد، دستگاه باید دوباره در Hub ثبت شود.
                 await connection.invoke("Register", kioskId);
-                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
+                console.info("[FaceLogin] Kiosk registered after reconnect.", {
+                    kioskId: kioskId,
+                    connectionId: connection.connectionId
+                });
+                setStatus("کیوسک " + kioskId + " متصل است؛ در انتظار تشخیص چهره...");
             } catch (error) {
                 console.error("[FaceLogin] Register after reconnect failed.", error);
                 setStatus("ثبت مجدد دستگاه انجام نشد؛ صفحه را تازه‌سازی کنید.");
@@ -111,7 +122,13 @@
                 setStatus("در حال اتصال به دستگاه... (" + attempt + " از " + settings.maxStartRetries + ")");
                 await connection.start();
                 await connection.invoke("Register", kioskId);
-                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
+
+                console.info("[FaceLogin] Kiosk registered successfully.", {
+                    kioskId: kioskId,
+                    connectionId: connection.connectionId
+                });
+
+                setStatus("کیوسک " + kioskId + " متصل است؛ در انتظار تشخیص چهره...");
                 return;
             } catch (error) {
                 if (attempt === settings.maxStartRetries) {
