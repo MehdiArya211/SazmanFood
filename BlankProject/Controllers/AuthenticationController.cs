@@ -25,14 +25,19 @@ public class AuthenticationController : Controller
     private readonly ISession Session;
     private readonly IFajrLogManager FajrLogManager;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthenticationController> _logger;
 
 
     public AuthenticationController(IAuthManager _AuthManager, IUserLogManager _UserLogManager,
         IConfiguration configuration,
-        IRedisManager _Redis, IConstantManager constantManager, IFajrLogManager fajrLogManager = null
+        IRedisManager _Redis,
+        IConstantManager constantManager,
+        ILogger<AuthenticationController> logger,
+        IFajrLogManager fajrLogManager = null
         ) : base()
     {
         _configuration = configuration;
+        _logger = logger;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
         Redis = _Redis;
@@ -179,6 +184,11 @@ public class AuthenticationController : Controller
     {
         ViewBag.ApiBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
 
+        _logger.LogInformation(
+            "صفحه ورود بیومتریک باز شد. IP کاربر: {RemoteIp}، آدرس سرویس Hub: {HubBaseUrl}",
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            ViewBag.ApiBaseUrl);
+
         if (mid == null)
         {
             var user = Session.GetUser();
@@ -196,8 +206,19 @@ public class AuthenticationController : Controller
     [HttpGet]
     public async Task<IActionResult> FinalizeFaceLogin(int kioskId, long enrollId)
     {
+        _logger.LogInformation(
+            "درخواست نهایی‌سازی ورود بیومتریک دریافت شد. KioskId: {KioskId}، EnrollId: {EnrollId}، IP: {RemoteIp}",
+            kioskId,
+            enrollId,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
         if (kioskId <= 0 || enrollId <= 0)
         {
+            _logger.LogWarning(
+                "ورود بیومتریک رد شد؛ KioskId یا EnrollId معتبر نیست. KioskId: {KioskId}، EnrollId: {EnrollId}",
+                kioskId,
+                enrollId);
+
             TempData["Message"] = "اطلاعات ورود معتبر نیست.";
             return RedirectToAction("IndexZP");
         }
@@ -206,13 +227,28 @@ public class AuthenticationController : Controller
 
         if (user == null)
         {
+            _logger.LogWarning(
+                "برای EnrollId دریافتی، کاربری یافت نشد. KioskId: {KioskId}، EnrollId: {EnrollId}",
+                kioskId,
+                enrollId);
+
             TempData["Message"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
             return RedirectToAction("IndexZP");
         }
 
+        _logger.LogInformation(
+            "کاربر بیومتریک پیدا شد. KioskId: {KioskId}، EnrollId: {EnrollId}، UserId: {UserId}",
+            kioskId,
+            enrollId,
+            user.Id);
+
         var token = await Redis.db.SetLoginToken(user.Id);
         HttpContext.SetCookieUserToken(token);
         HttpContext.Session.SetUser(user);
+
+        _logger.LogInformation(
+            "Session و Cookie ورود بیومتریک ایجاد شد و کاربر به داشبورد منتقل می‌شود. UserId: {UserId}",
+            user.Id);
 
         return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
     }
