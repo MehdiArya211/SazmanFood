@@ -182,12 +182,13 @@ public class AuthenticationController : Controller
     [HttpGet]
     public IActionResult IndexZP(long? mid)
     {
-        ViewBag.ApiBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
+        var hubBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
+        ViewBag.ApiBaseUrl = hubBaseUrl;
 
         _logger.LogInformation(
             "صفحه ورود بیومتریک باز شد. IP کاربر: {RemoteIp}، آدرس سرویس Hub: {HubBaseUrl}",
             HttpContext.Connection.RemoteIpAddress?.ToString(),
-            ViewBag.ApiBaseUrl);
+            hubBaseUrl);
 
         if (mid == null)
         {
