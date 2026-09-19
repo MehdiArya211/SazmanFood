@@ -114,4 +114,10 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     DataTableResponseDTO<QoutaPersonSelectableDTO> GetSelectablePersonsForQuota(
         DataTableSearchDTO searchData,
         long qoutaAllocationId);
+
+    /// <summary>
+    /// بررسی وجود سهمیه فعال برای کد پرسنلی.
+    /// </summary>
+    bool HasActiveQuota(string personalCode);
+
 }
