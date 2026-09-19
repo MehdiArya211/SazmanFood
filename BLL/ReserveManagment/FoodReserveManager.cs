@@ -239,12 +239,15 @@ namespace BLL.ReserveManagment
                         .AddDays(detail.Day.Code - 1)
                         .Date;
 
+                    var nextDate = reserveDate.AddDays(1);
+
                     var hasQuota = UOW.QoutaPerson.Any(x =>
                         x.PersonalCode == personalCode &&
                         x.IsDeleted == false &&
                         x.QoutaAllocation != null &&
                         x.QoutaAllocation.IsDeleted == false &&
-                        x.QoutaAllocation.QoutaAllocationDate == reserveDate &&
+                        x.QoutaAllocation.QoutaAllocationDate >= reserveDate &&
+                        x.QoutaAllocation.QoutaAllocationDate < nextDate &&
                         x.QoutaAllocation.MealId == detail.MealId);
 
                     if (!hasQuota)
