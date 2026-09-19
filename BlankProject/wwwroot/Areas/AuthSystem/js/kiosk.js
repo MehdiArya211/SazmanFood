@@ -2,7 +2,8 @@
     "use strict";
 
     const settings = {
-        deviceId: 1,
+        deviceId: null,
+        kioskKey: "KioskId",
         hubUrl: "/authHub",
         pollIntervalMs: 1000,
         maxStartRetries: 8,
@@ -14,6 +15,8 @@
     let pollTimer = null;
     let requestInProgress = false;
     let redirected = false;
+    let lastAuthState = null;
+    let lastInvokeError = null;
 
     function logInfo(message, data) {
         if (data === undefined) {
@@ -61,7 +64,11 @@
         try {
             await connection.invoke("NotifyAuthEvent", settings.deviceId);
         } catch (error) {
-            logError("فراخوانی NotifyAuthEvent ناموفق بود.", error);
+            var errorMessage = error?.message || String(error);
+            if (lastInvokeError !== errorMessage) {
+                lastInvokeError = errorMessage;
+                logError("فراخوانی NotifyAuthEvent ناموفق بود.", error);
+            }
         } finally {
             requestInProgress = false;
         }
@@ -80,14 +87,27 @@
     }
 
     function handleAuthEvent(result) {
-        logInfo("پاسخ NotifyAuthEvent از AuthHub دریافت شد.", result);
-
         if (!result) {
-            logWarning("پاسخ AuthHub خالی است.");
+            if (lastAuthState !== "empty") {
+                lastAuthState = "empty";
+                logWarning("پاسخ AuthHub خالی است.");
+            }
             return;
         }
 
+        lastInvokeError = null;
         setStatus(result.message || "در انتظار دستگاه تشخیص چهره ...");
+
+        var currentState =
+            String(result.isSucces === true) + "|" +
+            String(result.userId || 0) + "|" +
+            String(result.message || "");
+
+        // پاسخ تکراری «در انتظار دستگاه» فقط بار اول ثبت می‌شود.
+        if (lastAuthState !== currentState) {
+            lastAuthState = currentState;
+            logInfo("وضعیت ورود بیومتریک تغییر کرد.", result);
+        }
 
         if (result.isSucces !== true || redirected) {
             return;
@@ -180,8 +200,21 @@
                 throw new Error("کتابخانه SignalR بارگذاری نشده است.");
             }
 
-            logInfo("راه‌اندازی جریان قدیمی AuthHub + NotifyAuthEvent + Redis آغاز شد.", {
+            var storedDeviceId = 0;
+            try {
+                storedDeviceId = Number(localStorage.getItem(settings.kioskKey));
+            } catch (error) {
+                logWarning("خواندن شناسه کیوسک از مرورگر ناموفق بود.", error);
+            }
+
+            settings.deviceId =
+                Number.isInteger(storedDeviceId) && storedDeviceId > 0
+                    ? storedDeviceId
+                    : 1;
+
+            logInfo("راه‌اندازی جریان AuthHub + NotifyAuthEvent + Redis آغاز شد.", {
                 deviceId: settings.deviceId,
+                source: settings.deviceId === 1 ? "fallback" : "localStorage",
                 hubUrl: settings.hubUrl
             });
 
