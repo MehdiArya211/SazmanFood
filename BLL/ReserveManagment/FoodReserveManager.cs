@@ -216,6 +216,43 @@ namespace BLL.ReserveManagment
                         continue;
                     }
 
+                    var reserve = UOW.FoodReserve.FirstOrDefault(x =>
+                        x.Id == detail.FoodReserveId &&
+                        x.UserId == userId);
+
+                    var user = UOW.Users.FirstOrDefault(x =>
+                        x.Id == userId &&
+                        x.IsDeleted == false &&
+                        x.IsEnabled);
+
+                    if (reserve == null || user == null || detail.Day == null)
+                    {
+                        _printedFoodReserveDetailIds.TryRemove(foodReserveDetaileId, out _);
+                        continue;
+                    }
+
+                    var personalCode =
+                        user.PersonCode?.ToString() ??
+                        user.Username;
+
+                    var reserveDate = reserve.WeekStartDate
+                        .AddDays(detail.Day.Code - 1)
+                        .Date;
+
+                    var hasQuota = UOW.QoutaPerson.Any(x =>
+                        x.PersonalCode == personalCode &&
+                        x.IsDeleted == false &&
+                        x.QoutaAllocation != null &&
+                        x.QoutaAllocation.IsDeleted == false &&
+                        x.QoutaAllocation.QoutaAllocationDate == reserveDate &&
+                        x.QoutaAllocation.MealId == detail.MealId);
+
+                    if (!hasQuota)
+                    {
+                        _printedFoodReserveDetailIds.TryRemove(foodReserveDetaileId, out _);
+                        continue;
+                    }
+
                     // متن‌های چاپ
                     string title = "ژتون غذا";
                     string printDate = "تاریخ چاپ: " + DateTime.Now.ToPersianDateTime();
