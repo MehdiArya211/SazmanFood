@@ -4,14 +4,11 @@
     const settings = {
         kioskKey: "KioskId",
         hubPath: "/kioskHub",
-        finalizeUrl: "/Authentication/FinalizeFaceLogin",
-        maxStartRetries: 8,
-        retryDelayMs: 1500
+        finalizeUrl: "/Authentication/FinalizeFaceLogin"
     };
 
-    let connection = null;
+    const connections = [];
     let redirected = false;
-    let lastConnectionError = null;
 
     function logInfo(message) {
         console.info("[ورود بیومتریک] " + message);
@@ -34,33 +31,23 @@
         }
     }
 
-    function wait(milliseconds) {
-        return new Promise(resolve => setTimeout(resolve, milliseconds));
-    }
-
     function getKioskId() {
-        let kioskId = 0;
-
-        // برای تنظیم اولیه یا اصلاح شناسه اشتباه:
-        // /Authentication/IndexZP?kioskId=853047
         const queryKioskId = Number(
             new URLSearchParams(window.location.search).get("kioskId")
         );
         const configuredKioskId = Number(window.ZP_KIOSK_ID);
+        let kioskId = 0;
 
         try {
             if (Number.isInteger(queryKioskId) && queryKioskId > 0) {
-                // پارامتر URL برای تست یا تغییر موقت، بالاترین اولویت را دارد.
                 kioskId = queryKioskId;
 
                 const cleanUrl = new URL(window.location.href);
                 cleanUrl.searchParams.delete("kioskId");
                 window.history.replaceState({}, document.title, cleanUrl.toString());
             } else if (Number.isInteger(configuredKioskId) && configuredKioskId > 0) {
-                // منبع اصلی شناسه، تنظیمات مرکزی برنامه است.
                 kioskId = configuredKioskId;
             } else {
-                // فقط برای سازگاری با نسخه‌های قبلی.
                 kioskId = Number(localStorage.getItem(settings.kioskKey));
             }
 
@@ -68,17 +55,26 @@
                 localStorage.setItem(settings.kioskKey, String(kioskId));
             }
         } catch (error) {
-            logWarning("خواندن یا ذخیره شناسه کیوسک در مرورگر ناموفق بود.", error);
+            logWarning("خواندن شناسه کیوسک ناموفق بود.", error);
         }
 
         if (!Number.isInteger(kioskId) || kioskId <= 0) {
-            throw new Error(
-                "شناسه کیوسک در مرورگر ثبت نشده است. صفحه را یک‌بار با پارامتر kioskId واقعی دستگاه باز کنید."
-            );
+            throw new Error("شناسه کیوسک تنظیم نشده است.");
         }
 
-        window.KIOSK_ID = kioskId;
         return kioskId;
+    }
+
+    function getHubUrls() {
+        const baseUrls = [
+            window.API_BASE_URL,
+            window.ZP_FALLBACK_API_BASE_URL
+        ]
+            .map(value => String(value || "").trim().replace(/\/$/, ""))
+            .filter(value => value.length > 0);
+
+        return [...new Set(baseUrls)]
+            .map(baseUrl => baseUrl + settings.hubPath);
     }
 
     function extractEnrollId(args) {
@@ -99,7 +95,6 @@
                 const candidate =
                     value.enrollId ??
                     value.EnrollId ??
-                    value.enrollID ??
                     value.personCode ??
                     value.PersonCode ??
                     value.personalCode ??
@@ -115,46 +110,32 @@
         return 0;
     }
 
-    function getHubUrl() {
-        const apiBaseUrl = String(window.API_BASE_URL || "").replace(/\/$/, "");
-
-        if (!apiBaseUrl) {
-            throw new Error("آدرس سرویس ZP تنظیم نشده است.");
-        }
-
-        return apiBaseUrl + settings.hubPath;
-    }
-
     function redirectToFinalize(kioskId, enrollId) {
-        const parsedEnrollId = Number(enrollId);
-
         if (redirected) {
             return;
         }
 
+        const parsedEnrollId = Number(enrollId);
         if (!Number.isInteger(parsedEnrollId) || parsedEnrollId <= 0) {
             logError("کد پرسنلی دریافتی از ZP معتبر نیست.");
-            setStatus("اطلاعات چهره شناسایی‌شده معتبر نیست.");
+            setStatus("کد پرسنلی دریافتی معتبر نیست.");
             return;
         }
 
         redirected = true;
-        setStatus("چهره شناسایی شد؛ در حال ورود به سامانه...");
+        setStatus("چهره شناسایی شد؛ در حال ورود...");
+        logInfo("کد پرسنلی " + parsedEnrollId + " دریافت شد.");
 
         const query = new URLSearchParams({
             kioskId: String(kioskId),
             enrollId: String(parsedEnrollId)
         });
 
-        logInfo("چهره شناسایی شد؛ کد پرسنلی " + parsedEnrollId + " برای ورود ارسال شد.");
-
-        window.location.replace(
-            settings.finalizeUrl + "?" + query.toString()
-        );
+        window.location.replace(settings.finalizeUrl + "?" + query.toString());
     }
 
-    function buildConnection(hubUrl, kioskId) {
-        connection = new signalR.HubConnectionBuilder()
+    function createConnection(hubUrl, kioskId) {
+        const connection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {
                 withCredentials: false,
                 transport:
@@ -166,95 +147,78 @@
 
         connection.on("ReceiveAutoLogin", (...args) => {
             const enrollId = extractEnrollId(args);
-
             if (enrollId <= 0) {
-                logError("پیام ZP دریافت شد، اما کد پرسنلی آن معتبر نبود.");
-                setStatus("کد پرسنلی دریافتی از دستگاه معتبر نیست.");
+                logError("پیام ZP دریافت شد، اما کد پرسنلی معتبر نبود.");
                 return;
             }
 
             redirectToFinalize(kioskId, enrollId);
         });
 
-        connection.onreconnecting(error => {
-            logWarning("ارتباط با سرویس ZP قطع شد؛ اتصال مجدد آغاز شد.", error);
-            setStatus("ارتباط موقتاً قطع شد؛ در حال اتصال مجدد...");
-        });
-
-        connection.onreconnected(async connectionId => {
+        connection.onreconnected(async () => {
             try {
                 await connection.invoke("Register", kioskId);
-                lastConnectionError = null;
-
-                logInfo("اتصال مجدد برقرار و کیوسک " + kioskId + " ثبت شد.");
-
-                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
             } catch (error) {
-                logError("ثبت مجدد کیوسک در سرویس ZP ناموفق بود.", error);
-                setStatus("ثبت مجدد دستگاه ناموفق بود؛ صفحه را تازه‌سازی کنید.");
+                logError("ثبت مجدد کیوسک ناموفق بود.", error);
             }
         });
 
-        connection.onclose(error => {
-            logError("ارتباط با سرویس ZP بسته شد.", error);
-            setStatus("ارتباط با دستگاه قطع شد؛ صفحه را تازه‌سازی کنید.");
-        });
+        return connection;
     }
 
-    async function startConnection(kioskId) {
-        for (let attempt = 1; attempt <= settings.maxStartRetries; attempt++) {
+    async function connect(connection, hubUrl, kioskId) {
+        try {
+            await connection.start();
+            await connection.invoke("Register", kioskId);
+
+            connections.push(connection);
+            logInfo("کیوسک " + kioskId + " به " + hubUrl + " متصل شد.");
+            return true;
+        } catch (error) {
+            logWarning("اتصال به " + hubUrl + " برقرار نشد.", error);
+
             try {
-                setStatus(
-                    "در حال اتصال به دستگاه... (" +
-                    attempt + " از " + settings.maxStartRetries + ")"
-                );
-
-                await connection.start();
-                await connection.invoke("Register", kioskId);
-
-                lastConnectionError = null;
-
-                logInfo("اتصال برقرار و کیوسک " + kioskId + " در ZP ثبت شد.");
-
-                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
-                return;
-            } catch (error) {
-                const errorMessage = error?.message || String(error);
-
-                if (lastConnectionError !== errorMessage) {
-                    lastConnectionError = errorMessage;
-                    logError(
-                        "اتصال یا ثبت کیوسک در سرویس ZP ناموفق بود.",
-                        error
-                    );
-                }
-
-                if (attempt === settings.maxStartRetries) {
-                    setStatus("اتصال به دستگاه برقرار نشد؛ صفحه را تازه‌سازی کنید.");
-                    return;
-                }
-
-                await wait(settings.retryDelayMs);
+                await connection.stop();
+            } catch {
+                // اتصال آغاز نشده است.
             }
+
+            return false;
         }
     }
 
     async function initialize() {
         try {
-            if (!window.signalR || !window.signalR.HubConnectionBuilder) {
+            if (!window.signalR?.HubConnectionBuilder) {
                 throw new Error("کتابخانه SignalR بارگذاری نشده است.");
             }
 
             const kioskId = getKioskId();
-            const hubUrl = getHubUrl();
+            const hubUrls = getHubUrls();
 
-            logInfo("شروع اتصال به ZP برای کیوسک " + kioskId + ".");
+            if (hubUrls.length === 0) {
+                throw new Error("آدرس سرویس ZP تنظیم نشده است.");
+            }
 
-            buildConnection(hubUrl, kioskId);
-            await startConnection(kioskId);
+            logInfo("شروع اتصال ZP برای کیوسک " + kioskId + ".");
+            setStatus("در حال اتصال به دستگاه...");
+
+            const results = await Promise.all(
+                hubUrls.map(hubUrl => {
+                    const connection = createConnection(hubUrl, kioskId);
+                    return connect(connection, hubUrl, kioskId);
+                })
+            );
+
+            if (!results.some(Boolean)) {
+                setStatus("اتصال به سرویس ZP برقرار نشد.");
+                return;
+            }
+
+            setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
         } catch (error) {
-            logError("راه‌اندازی ورود بیومتریک ZP متوقف شد.", error);
-            setStatus(error.message || "خطا در راه‌اندازی تشخیص چهره.");
+            logError("راه‌اندازی ورود بیومتریک متوقف شد.", error);
+            setStatus(error.message || "خطا در اتصال تشخیص چهره.");
         }
     }
 
