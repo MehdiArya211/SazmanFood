@@ -12,20 +12,21 @@ public class AuthHub : Hub
 {
     private readonly IRedisManager _redis;
     private readonly IAuthManager _authManager;
+    private readonly ILogger<AuthHub> _logger;
 
     public AuthHub(
         IRedisManager redis,
-        IAuthManager authManager)
+        IAuthManager authManager,
+        ILogger<AuthHub> logger)
     {
         _redis = redis;
         _authManager = authManager;
+        _logger = logger;
     }
 
-    public override async Task OnConnectedAsync()
+    public override Task OnConnectedAsync()
     {
-        var deviceId = 1; // TODO: change later
-        await Groups.AddToGroupAsync(Context.ConnectionId, deviceId.ToString());
-        await base.OnConnectedAsync();
+        return base.OnConnectedAsync();
     }
 
     public async Task NotifyAuthEvent(long deviceId)
@@ -44,9 +45,19 @@ public class AuthHub : Hub
             result.Message = "ورود موفق! درحال انتقال به صفحه اصلی، لطفا شکیبا باشید";
 
             var user = _authManager.LoginWithFace(userDevice);
-            if (user != null)
+            if (user == null)
             {
-                result.UserId = user.Id; // ✅ اضافه شد
+                result.IsSucces = false;
+                result.Message = "چهره شناسایی شد اما کاربر متناظر در سامانه یافت نشد.";
+
+                _logger.LogWarning(
+                    "رویداد تشخیص چهره دریافت شد اما کاربر پیدا نشد. DeviceId: {DeviceId}، PersonnelCode: {PersonnelCode}",
+                    deviceId,
+                    userDevice.UserId);
+            }
+            else
+            {
+                result.UserId = user.Id;
 
                 var tk = await _redis.db.GetLoginToken(user.Id);
                 if (tk == null)
@@ -58,11 +69,16 @@ public class AuthHub : Hub
                     httpContext.SetCookieUserToken(token);
                     httpContext.Session.SetUser(user);
                 }
+
+                _logger.LogInformation(
+                    "ورود بیومتریک موفق شد. DeviceId: {DeviceId}، UserId: {UserId}",
+                    deviceId,
+                    user.Id);
             }
         }
 
-        // حالا به جای فقط IsSucces و Message، UserId هم می‌فرستیم
-        await Clients.Group(deviceId.ToString())
+        // پاسخ فقط برای همان مرورگری ارسال می‌شود که وضعیت دستگاه را درخواست کرده است.
+        await Clients.Caller
             .SendAsync("NotifyAuthEvent", new
             {
                 isSucces = result.IsSucces,

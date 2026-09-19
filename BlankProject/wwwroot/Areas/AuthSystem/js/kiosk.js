@@ -2,18 +2,16 @@
     "use strict";
 
     const settings = {
-        deviceId: 1,
-        hubUrl: "/authHub",
-        pollIntervalMs: 1000,
+        kioskKey: "KioskId",
+        hubPath: "/kioskHub",
+        finalizeUrl: "/Authentication/FinalizeFaceLogin",
         maxStartRetries: 8,
-        retryDelayMs: 1500,
-        dashboardUrl: "/Admin/Dashboard"
+        retryDelayMs: 1500
     };
 
     let connection = null;
-    let pollTimer = null;
-    let requestInProgress = false;
     let redirected = false;
+    let lastConnectionError = null;
 
     function logInfo(message, data) {
         if (data === undefined) {
@@ -42,130 +40,145 @@
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     }
 
-    function stopPolling() {
-        if (pollTimer !== null) {
-            window.clearInterval(pollTimer);
-            pollTimer = null;
-            logInfo("بررسی دوره‌ای Redis متوقف شد.");
-        }
-    }
-
-    async function notifyAuthEvent() {
-        if (redirected || requestInProgress ||
-            !connection || connection.state !== signalR.HubConnectionState.Connected) {
-            return;
-        }
-
-        requestInProgress = true;
+    function getKioskId() {
+        let kioskId = 0;
 
         try {
-            await connection.invoke("NotifyAuthEvent", settings.deviceId);
+            kioskId = Number(localStorage.getItem(settings.kioskKey));
         } catch (error) {
-            logError("فراخوانی NotifyAuthEvent ناموفق بود.", error);
-        } finally {
-            requestInProgress = false;
+            logWarning("خواندن شناسه کیوسک از مرورگر ناموفق بود.", error);
         }
+
+        if (!Number.isInteger(kioskId) || kioskId <= 0) {
+            throw new Error(
+                "شناسه کیوسک در مرورگر ثبت نشده است. ابتدا KioskId دستگاه را تنظیم کنید."
+            );
+        }
+
+        window.KIOSK_ID = kioskId;
+        return kioskId;
     }
 
-    function startPolling() {
-        stopPolling();
+    function getHubUrl() {
+        const apiBaseUrl = String(window.API_BASE_URL || "").replace(/\/$/, "");
 
-        logInfo("بررسی Redis از طریق NotifyAuthEvent آغاز شد.", {
-            deviceId: settings.deviceId,
-            intervalMs: settings.pollIntervalMs
-        });
+        if (!apiBaseUrl) {
+            throw new Error("آدرس سرویس ZP تنظیم نشده است.");
+        }
 
-        notifyAuthEvent();
-        pollTimer = window.setInterval(notifyAuthEvent, settings.pollIntervalMs);
+        return apiBaseUrl + settings.hubPath;
     }
 
-    function handleAuthEvent(result) {
-        logInfo("پاسخ NotifyAuthEvent از AuthHub دریافت شد.", result);
+    function redirectToFinalize(kioskId, enrollId) {
+        const parsedEnrollId = Number(enrollId);
 
-        if (!result) {
-            logWarning("پاسخ AuthHub خالی است.");
+        if (redirected) {
             return;
         }
 
-        setStatus(result.message || "در انتظار دستگاه تشخیص چهره ...");
-
-        if (result.isSucces !== true || redirected) {
-            return;
-        }
-
-        if (!result.userId || Number(result.userId) <= 0) {
-            logError("ورود موفق اعلام شد اما UserId معتبر نیست.", result);
-            setStatus("اطلاعات کاربر شناسایی‌شده معتبر نیست؛ دوباره تلاش کنید.");
+        if (!Number.isInteger(parsedEnrollId) || parsedEnrollId <= 0) {
+            logError("EnrollId دریافت‌شده از سرویس ZP معتبر نیست.", {
+                kioskId: kioskId,
+                enrollId: enrollId
+            });
+            setStatus("اطلاعات چهره شناسایی‌شده معتبر نیست.");
             return;
         }
 
         redirected = true;
-        stopPolling();
+        setStatus("چهره شناسایی شد؛ در حال ورود به سامانه...");
 
-        logInfo("ورود با چهره موفق بود؛ انتقال به داشبورد انجام می‌شود.", {
-            userId: result.userId
+        const query = new URLSearchParams({
+            kioskId: String(kioskId),
+            enrollId: String(parsedEnrollId)
         });
 
-        setStatus("ورود موفق؛ در حال انتقال به صفحه اصلی...");
-        window.location.replace(settings.dashboardUrl);
+        logInfo("چهره شناسایی شد؛ انتقال به مرحله نهایی ورود.", {
+            kioskId: kioskId,
+            enrollId: parsedEnrollId
+        });
+
+        window.location.replace(
+            settings.finalizeUrl + "?" + query.toString()
+        );
     }
 
-    function buildConnection() {
+    function buildConnection(hubUrl, kioskId) {
         connection = new signalR.HubConnectionBuilder()
-            .withUrl(settings.hubUrl)
+            .withUrl(hubUrl, {
+                withCredentials: false,
+                transport:
+                    signalR.HttpTransportType.WebSockets |
+                    signalR.HttpTransportType.LongPolling
+            })
             .withAutomaticReconnect([0, 2000, 5000, 10000])
             .build();
 
-        connection.on("NotifyAuthEvent", handleAuthEvent);
+        connection.on("ReceiveAutoLogin", enrollId => {
+            redirectToFinalize(kioskId, enrollId);
+        });
 
         connection.onreconnecting(error => {
-            stopPolling();
-            logWarning("ارتباط با AuthHub موقتاً قطع شد؛ اتصال مجدد آغاز شد.", error);
+            logWarning("ارتباط با سرویس ZP قطع شد؛ اتصال مجدد آغاز شد.", error);
             setStatus("ارتباط موقتاً قطع شد؛ در حال اتصال مجدد...");
         });
 
-        connection.onreconnected(connectionId => {
-            logInfo("اتصال مجدد به AuthHub برقرار شد.", { connectionId: connectionId });
-            setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
-            startPolling();
-        });
-
-        connection.onclose(error => {
-            stopPolling();
-            logError("ارتباط با AuthHub بسته شد.", error);
-            setStatus("ارتباط با سامانه تشخیص چهره قطع شد؛ صفحه را تازه‌سازی کنید.");
-        });
-    }
-
-    async function startConnection() {
-        for (let attempt = 1; attempt <= settings.maxStartRetries; attempt++) {
+        connection.onreconnected(async connectionId => {
             try {
-                setStatus(
-                    "در حال اتصال به سامانه تشخیص چهره... (" +
-                    attempt + " از " + settings.maxStartRetries + ")"
-                );
+                await connection.invoke("Register", kioskId);
+                lastConnectionError = null;
 
-                logInfo("تلاش برای اتصال به AuthHub.", {
-                    attempt: attempt,
-                    maxAttempts: settings.maxStartRetries,
-                    deviceId: settings.deviceId
-                });
-
-                await connection.start();
-
-                logInfo("اتصال به AuthHub برقرار شد.", {
-                    connectionId: connection.connectionId,
-                    deviceId: settings.deviceId
+                logInfo("اتصال مجدد به سرویس ZP برقرار شد.", {
+                    kioskId: kioskId,
+                    connectionId: connectionId
                 });
 
                 setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
-                startPolling();
+            } catch (error) {
+                logError("ثبت مجدد کیوسک در سرویس ZP ناموفق بود.", error);
+                setStatus("ثبت مجدد دستگاه ناموفق بود؛ صفحه را تازه‌سازی کنید.");
+            }
+        });
+
+        connection.onclose(error => {
+            logError("ارتباط با سرویس ZP بسته شد.", error);
+            setStatus("ارتباط با دستگاه قطع شد؛ صفحه را تازه‌سازی کنید.");
+        });
+    }
+
+    async function startConnection(kioskId) {
+        for (let attempt = 1; attempt <= settings.maxStartRetries; attempt++) {
+            try {
+                setStatus(
+                    "در حال اتصال به دستگاه... (" +
+                    attempt + " از " + settings.maxStartRetries + ")"
+                );
+
+                await connection.start();
+                await connection.invoke("Register", kioskId);
+
+                lastConnectionError = null;
+
+                logInfo("اتصال و ثبت کیوسک در سرویس ZP موفق بود.", {
+                    kioskId: kioskId,
+                    connectionId: connection.connectionId
+                });
+
+                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
                 return;
             } catch (error) {
-                logError("تلاش شماره " + attempt + " برای اتصال به AuthHub ناموفق بود.", error);
+                const errorMessage = error?.message || String(error);
+
+                if (lastConnectionError !== errorMessage) {
+                    lastConnectionError = errorMessage;
+                    logError(
+                        "اتصال یا ثبت کیوسک در سرویس ZP ناموفق بود.",
+                        error
+                    );
+                }
 
                 if (attempt === settings.maxStartRetries) {
-                    setStatus("اتصال به سامانه تشخیص چهره برقرار نشد؛ صفحه را تازه‌سازی کنید.");
+                    setStatus("اتصال به دستگاه برقرار نشد؛ صفحه را تازه‌سازی کنید.");
                     return;
                 }
 
@@ -180,20 +193,21 @@
                 throw new Error("کتابخانه SignalR بارگذاری نشده است.");
             }
 
-            logInfo("راه‌اندازی جریان قدیمی AuthHub + NotifyAuthEvent + Redis آغاز شد.", {
-                deviceId: settings.deviceId,
-                hubUrl: settings.hubUrl
+            const kioskId = getKioskId();
+            const hubUrl = getHubUrl();
+
+            logInfo("راه‌اندازی ورود بیومتریک ZP آغاز شد.", {
+                kioskId: kioskId,
+                hubUrl: hubUrl
             });
 
-            buildConnection();
-            await startConnection();
+            buildConnection(hubUrl, kioskId);
+            await startConnection(kioskId);
         } catch (error) {
-            logError("راه‌اندازی ورود بیومتریک با خطا متوقف شد.", error);
+            logError("راه‌اندازی ورود بیومتریک ZP متوقف شد.", error);
             setStatus(error.message || "خطا در راه‌اندازی تشخیص چهره.");
         }
     }
-
-    window.addEventListener("beforeunload", stopPolling);
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initialize, { once: true });
