@@ -2,7 +2,6 @@
 @{
     Layout = "/Views/Shared/_AuthLayout.cshtml";
     ViewBag.Title = Config.SiteNameFa + " | ورود با تشخیص چهره";
-    var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
     var message = TempData["Message"] as string;
 }
 
@@ -57,10 +56,6 @@
 </div>
 
 @section Scripts {
-    <script>
-        // آدرس Hub فقط از تنظیمات برنامه دریافت می‌شود.
-        window.API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(apiBaseUrl));
-    </script>
     <script src="~/assets/signalr/signalr2.js"></script>
     <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
 }
