@@ -143,6 +143,16 @@ namespace BLL.Interface
         List<SelectListDTO> Search(string word);
 
         long GetUserIdWithUserName(string UserName);
+
+        /// <summary>
+        /// بررسی وجود کاربر محلی با نام کاربری.
+        /// </summary>
+        bool ExistsByUsername(string username);
+
+        /// <summary>
+        /// ایجاد خودکار رزروکننده غذا از اطلاعات سرویس پرسنلی.
+        /// </summary>
+        BaseResult CreateMealBookerFromPersonnel(PersonalInfDTO person, string initialPassword);
         //Task<string> SetLoginToken(long userId, int? expMin = null);
 
 
