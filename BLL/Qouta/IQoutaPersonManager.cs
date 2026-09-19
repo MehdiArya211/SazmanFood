@@ -120,4 +120,13 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     /// </summary>
     bool HasActiveQuota(string personalCode);
 
+
+    /// <summary>
+    /// دریافت تاریخ و وعده‌هایی که برای کد پرسنلی سهمیه ثبت شده است.
+    /// </summary>
+    IReadOnlyCollection<(DateTime Date, long MealId)> GetReservableSlots(
+        string personalCode,
+        DateTime fromDate,
+        DateTime toDate);
+
 }
