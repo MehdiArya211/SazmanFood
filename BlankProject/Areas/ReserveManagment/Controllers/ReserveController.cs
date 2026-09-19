@@ -26,9 +26,12 @@ namespace Food.Areas.ReserveManagment.Controllers
         private readonly IFoodReserveManager _foodReserveManager;
         private readonly IFoodReserveDetailManager _foodReserveDetailManager;
         private readonly IRedisManager _redis;
+        private readonly IQoutaPersonManager _qoutaPersonManager;
 
         public ReserveController(IFoodPlanDayManager foodPlanDayManager, IMealManager mealManager, IFoodManager foodManager
-            , IFoodReserveManager foodReserveManager , IRedisManager redis, IFoodReserveDetailManager foodReserveDetailManager)
+            , IFoodReserveManager foodReserveManager, IRedisManager redis,
+            IFoodReserveDetailManager foodReserveDetailManager,
+            IQoutaPersonManager qoutaPersonManager)
         {
             _foodPlanDayManager = foodPlanDayManager;
             _foodManager = foodManager;
@@ -36,6 +39,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             _foodReserveManager = foodReserveManager;
             _redis = redis;
             _foodReserveDetailManager = foodReserveDetailManager;
+            _qoutaPersonManager = qoutaPersonManager;
         }
 
         public IActionResult Index()
@@ -49,6 +53,22 @@ namespace Food.Areas.ReserveManagment.Controllers
             int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
             DateTime weekStartDate = now.AddDays(-1 * diff).Date;
             DateTime weekEndDate = weekStartDate.AddDays(6).Date;
+
+            var personalCode = user.PersonCode?.ToString() ?? user.Username;
+            var reservableSlots = _qoutaPersonManager
+                .GetReservableSlots(personalCode, weekStartDate, weekEndDate)
+                .ToHashSet();
+
+            ViewBag.WeekStartDate = weekStartDate;
+            ViewBag.AllowedReservationSlots = reservableSlots
+                .Select(x => $"{x.Date:yyyyMMdd}_{x.MealId}")
+                .ToHashSet();
+            ViewBag.HasReservationQuota = reservableSlots.Count > 0;
+
+            if (reservableSlots.Count == 0)
+            {
+                ViewBag.QuotaError = "سهمیه‌ای برای شما ثبت نشده است.";
+            }
 
             // --- جستجوی رزرو قبلی کاربر در این هفته ---
             var existingReserve = _foodReserveManager.GetAll()
@@ -133,27 +153,22 @@ namespace Food.Areas.ReserveManagment.Controllers
                 DateTime weekStartDate = now.AddDays(-1 * diff).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
 
+                var personalCode = user.PersonCode?.ToString() ?? user.Username;
+                var reservableSlots = _qoutaPersonManager
+                    .GetReservableSlots(personalCode, weekStartDate, weekEndDate)
+                    .ToHashSet();
+
+                if (reservableSlots.Count == 0)
+                {
+                    TempData["Error"] = "سهمیه‌ای برای شما ثبت نشده است و امکان رزرو غذا ندارید.";
+                    return RedirectToAction("Index");
+                }
+
                 // جستجوی رزرو قبلی برای هفته جاری
                 //var existingReserve0 = _foodReserveManager.GetAll()
                 //    .FirstOrDefault(r => r.UserId == userId &&
                 //                        r.WeekStartDate == weekStartDate &&
                 //                        r.WeekEndDate == weekEndDate);
-
-                var existingReserveDetail = _foodReserveManager.GetFoodReserveDetail(userId);
-                // اگر رزرو قبلی وجود داشت، حذف تمام جزئیات آن
-                if ( existingReserveDetail.Count!=0)
-                {
-                    var existingReserve = _foodReserveManager.GetById(existingReserveDetail.FirstOrDefault().FoodReserveId);
-
-
-                    foreach (var item in existingReserveDetail)
-                    {
-                        _foodReserveDetailManager.Delete(item.Id);
-
-                    }
-                    _foodReserveManager.Delete(existingReserve.Id);
-
-                }
 
                 // ایجاد شی برنامه غذایی
                 var plan = new FoodReserveDTO
@@ -169,9 +184,13 @@ namespace Food.Areas.ReserveManagment.Controllers
                 var days = _foodPlanDayManager.GetAllDay().Model;
                 var meals = _mealManager.GetAll().ToList();
 
-                // پیمایش روزها و وعده‌ها
+                var unauthorizedSelection = false;
+
+                // فقط روز و وعده‌ای پذیرفته می‌شود که برای کد پرسنلی سهمیه داشته باشد.
                 foreach (var day in days)
                 {
+                    var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
+
                     foreach (var meal in meals)
                     {
                         var key = $"{day.Id}{meal.Id}";
@@ -180,18 +199,21 @@ namespace Food.Areas.ReserveManagment.Controllers
                         var dessert = form[$"Dessert_{key}"];
                         var sideDish = form[$"SideDish_{key}"];
 
-                        // اگر هیچ چیز انتخاب نشده، ادامه دهید
                         if (string.IsNullOrEmpty(mainFood) &&
                             string.IsNullOrEmpty(dessert) &&
                             string.IsNullOrEmpty(sideDish))
                             continue;
 
-                        // تبدیل به long
+                        if (!reservableSlots.Contains((dayDate, meal.Id)))
+                        {
+                            unauthorizedSelection = true;
+                            continue;
+                        }
+
                         long.TryParse(mainFood, out var mainFoodId);
                         long.TryParse(dessert, out var dessertId);
                         long.TryParse(sideDish, out var sideDishId);
 
-                        // اضافه کردن جزئیات
                         plan.Details.Add(new FoodReserveDetailDTO
                         {
                             DayId = day.Id,
@@ -203,14 +225,38 @@ namespace Food.Areas.ReserveManagment.Controllers
                     }
                 }
 
+                if (unauthorizedSelection)
+                {
+                    TempData["Error"] =
+                        "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.";
+                    return RedirectToAction("Index");
+                }
+
                 // اگر هیچ جزئیتی وجود نداشت، خطا
                 if (!plan.Details.Any())
                 {
                     TempData["Error"] = "لطفاً حداقل یک مورد را انتخاب نمایید.";
-                    return RedirectToAction("Create");
+                    return RedirectToAction("Index");
                 }
 
-                // اضافه کردن رزرو (اگر قبلی بود، جایگزین می‌شود)
+                // اعتبارسنجی کامل انجام شد؛ اکنون رزرو قبلی هفته جایگزین می‌شود.
+                var existingReserveDetail = _foodReserveManager.GetFoodReserveDetail(userId);
+                if (existingReserveDetail.Count != 0)
+                {
+                    var existingReserve = _foodReserveManager.GetById(
+                        existingReserveDetail.First().FoodReserveId);
+
+                    foreach (var item in existingReserveDetail)
+                    {
+                        _foodReserveDetailManager.Delete(item.Id);
+                    }
+
+                    if (existingReserve != null)
+                    {
+                        _foodReserveManager.Delete(existingReserve.Id);
+                    }
+                }
+
                 var result = _foodReserveManager.AddToReserveAndReserveDetail(plan);
 
                 if (result.Status)
