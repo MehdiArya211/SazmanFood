@@ -3,6 +3,8 @@ using BLL.FajrLog;
 using BLL.Interface;
 using DTO.Entities.MaxaRabbitMQ;
 using DTO.User;
+using Domain.Constants;
+using ITOWebApiClient;
 using FajrLog.Enum;
 using Microsoft.AspNetCore.Mvc;
 using Services.CookieServices;
@@ -26,6 +28,10 @@ public class AuthenticationController : Controller
     private readonly IFajrLogManager FajrLogManager;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthenticationController> _logger;
+    private readonly IUserManager UserManager;
+    private readonly IWebApiManager WebApiManager;
+    private readonly IQoutaPersonManager QoutaPersonManager;
+    private readonly ApiTokenCacheClient ApiTokenClient;
 
 
     public AuthenticationController(IAuthManager _AuthManager, IUserLogManager _UserLogManager,
@@ -33,11 +39,19 @@ public class AuthenticationController : Controller
         IRedisManager _Redis,
         IConstantManager constantManager,
         ILogger<AuthenticationController> logger,
+        IUserManager userManager,
+        IWebApiManager webApiManager,
+        IQoutaPersonManager qoutaPersonManager,
+        ApiTokenCacheClient apiTokenClient,
         IFajrLogManager fajrLogManager = null
         ) : base()
     {
         _configuration = configuration;
         _logger = logger;
+        UserManager = userManager;
+        WebApiManager = webApiManager;
+        QoutaPersonManager = qoutaPersonManager;
+        ApiTokenClient = apiTokenClient;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
         Redis = _Redis;
@@ -124,18 +138,85 @@ public class AuthenticationController : Controller
         #endregion
 
         #region عملیات لاگین
+        Mobile = Mobile?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
+        Password = Password?.Trim().ToEnglishNumber();
+
         var res = AuthManager.Login(Mobile, Password);
         var User = res.Model as UserSessionDTO;
-        if (!res.Status)
-        {
-            await Redis.db.SetLoginLog(Redis.ContextAccessor, fajrActionType, Mobile, User?.FullName, User?.Id, false, res.Message);
-            if (User == null)
-            {
-                ViewBag.Error = res.Message;
-                ViewBag.InvalidLogin = true;
 
-                return View();
+        if (!res.Status && User == null && !UserManager.ExistsByUsername(Mobile))
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(Mobile) || Password != Mobile)
+                {
+                    res.Message =
+                        "کاربر در سامانه یافت نشد. در اولین ورود، نام کاربری و کلمه عبور باید همان کد پرسنلی باشند.";
+                }
+                else
+                {
+                    var accessToken = await ApiTokenClient.GetApiToken(
+                        CustomSettings.Instance.ClientId,
+                        CustomSettings.Instance.Scope,
+                        CustomSettings.Instance.ClientSecret,
+                        CustomSettings.Instance.ROPC_UserName,
+                        CustomSettings.Instance.ROPC_Password);
+
+                    var person = WebApiManager.GetPersonalByPersonCode(Mobile, accessToken);
+
+                    if (person == null ||
+                        string.IsNullOrWhiteSpace(person.personalCode) ||
+                        person.personalCode.Trim().ToEnglishNumber() != Mobile)
+                    {
+                        res.Message = "پرسنلی با این کد پرسنلی در سرویس پرسنلی یافت نشد.";
+                    }
+                    else
+                    {
+                        var createResult =
+                            UserManager.CreateMealBookerFromPersonnel(person, Password);
+
+                        if (!createResult.Status)
+                        {
+                            res.Message = createResult.Message;
+                        }
+                        else
+                        {
+                            _logger.LogInformation(
+                                "کاربر رزروکننده غذا از سرویس پرسنلی ایجاد شد. PersonCode: {PersonCode}",
+                                Mobile);
+
+                            res = AuthManager.Login(Mobile, Password);
+                            User = res.Model as UserSessionDTO;
+                        }
+                    }
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "استعلام سرویس پرسنلی یا ساخت خودکار کاربر ناموفق بود. PersonCode: {PersonCode}",
+                    Mobile);
+
+                res.Message =
+                    "در حال حاضر ارتباط با سرویس پرسنلی برقرار نیست. لطفاً دوباره تلاش کنید.";
+            }
+        }
+
+        if (!res.Status || User == null)
+        {
+            await Redis.db.SetLoginLog(
+                Redis.ContextAccessor,
+                fajrActionType,
+                Mobile,
+                User?.FullName,
+                User?.Id,
+                false,
+                res.Message);
+
+            ViewBag.Error = res.Message;
+            ViewBag.InvalidLogin = true;
+            return View();
         }
         #endregion
 
@@ -157,6 +238,25 @@ public class AuthenticationController : Controller
         // حذف اطلاعات مربوط به کنترل تعداد دفعات تلاش برای لاگین
         await Redis.db.RemoveLoginLog(Mobile);
         #endregion
+
+        if (User.RoleId == RoleConstant.MealBooker)
+        {
+            var personalCode = User.PersonCode?.ToString() ?? User.Username;
+            if (!QoutaPersonManager.HasActiveQuota(personalCode))
+            {
+                TempData["Message"] = "سهمیه‌ای برای شما ثبت نشده است.";
+            }
+        }
+
+        // کاربری که با کد پرسنلی ساخته شده، پیش از دسترسی به سامانه
+        // باید رمز اولیه خود را تغییر دهد.
+        if (!User.PasswordIsChanged)
+        {
+            return RedirectToAction(
+                "ChangePassword",
+                "Profile",
+                new { area = "Admin" });
+        }
 
         // فقط بازگشت به مسیرهای داخلی مجاز است تا از Open Redirect جلوگیری شود.
         if (!string.IsNullOrWhiteSpace(RetUrl) && Url.IsLocalUrl(RetUrl))
