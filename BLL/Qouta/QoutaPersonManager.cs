@@ -1001,4 +1001,25 @@ if (!accessResult.Status)
     }
 
     #endregion
+
+    /// <summary>
+    /// بررسی می‌کند برای کد پرسنلی، سهمیه امروز یا آینده ثبت شده باشد.
+    /// </summary>
+    public bool HasActiveQuota(string personalCode)
+    {
+        personalCode = personalCode?.Trim();
+
+        if (string.IsNullOrWhiteSpace(personalCode))
+            return false;
+
+        var today = DateTime.Today;
+
+        return UOW.QoutaPerson.Any(x =>
+            x.PersonalCode == personalCode &&
+            x.IsDeleted == false &&
+            x.QoutaAllocation != null &&
+            x.QoutaAllocation.IsDeleted == false &&
+            x.QoutaAllocation.QoutaAllocationDate >= today);
+    }
+
 }
