@@ -276,9 +276,7 @@ public class AuthenticationController : Controller
         ViewBag.KioskId = configuredKioskId;
 
         _logger.LogInformation(
-            "صفحه ورود بیومتریک باز شد. IP کاربر: {RemoteIp}، آدرس سرویس Hub: {HubBaseUrl}، KioskId: {KioskId}",
-            HttpContext.Connection.RemoteIpAddress?.ToString(),
-            hubBaseUrl,
+            "ورود بیومتریک: صفحه برای کیوسک {KioskId} آماده شد.",
             configuredKioskId);
 
         if (mid == null)
@@ -299,15 +297,14 @@ public class AuthenticationController : Controller
     public async Task<IActionResult> FinalizeFaceLogin(int kioskId, long enrollId)
     {
         _logger.LogInformation(
-            "درخواست نهایی‌سازی ورود بیومتریک دریافت شد. KioskId: {KioskId}، EnrollId: {EnrollId}، IP: {RemoteIp}",
+            "ورود بیومتریک: درخواست ورود دریافت شد. KioskId: {KioskId}، کد پرسنلی: {EnrollId}",
             kioskId,
-            enrollId,
-            HttpContext.Connection.RemoteIpAddress?.ToString());
+            enrollId);
 
         if (kioskId <= 0 || enrollId <= 0)
         {
             _logger.LogWarning(
-                "ورود بیومتریک رد شد؛ KioskId یا EnrollId معتبر نیست. KioskId: {KioskId}، EnrollId: {EnrollId}",
+                "ورود بیومتریک: اطلاعات نامعتبر است. KioskId: {KioskId}، کد پرسنلی: {EnrollId}",
                 kioskId,
                 enrollId);
 
@@ -320,7 +317,7 @@ public class AuthenticationController : Controller
         if (user == null)
         {
             _logger.LogWarning(
-                "برای EnrollId دریافتی، کاربری یافت نشد. KioskId: {KioskId}، EnrollId: {EnrollId}",
+                "ورود بیومتریک: کاربر پیدا نشد. KioskId: {KioskId}، کد پرسنلی: {EnrollId}",
                 kioskId,
                 enrollId);
 
@@ -329,7 +326,7 @@ public class AuthenticationController : Controller
         }
 
         _logger.LogInformation(
-            "کاربر بیومتریک پیدا شد. KioskId: {KioskId}، EnrollId: {EnrollId}، UserId: {UserId}",
+            "ورود بیومتریک: کاربر پیدا شد. KioskId: {KioskId}، کد پرسنلی: {EnrollId}، UserId: {UserId}",
             kioskId,
             enrollId,
             user.Id);
@@ -339,7 +336,7 @@ public class AuthenticationController : Controller
         HttpContext.Session.SetUser(user);
 
         _logger.LogInformation(
-            "Session و Cookie ورود بیومتریک ایجاد شد و کاربر به داشبورد منتقل می‌شود. UserId: {UserId}",
+            "ورود بیومتریک: موفق؛ انتقال به داشبورد. UserId: {UserId}",
             user.Id);
 
         return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
