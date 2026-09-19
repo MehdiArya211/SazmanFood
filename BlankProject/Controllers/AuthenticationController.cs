@@ -3,7 +3,6 @@ using BLL.FajrLog;
 using BLL.Interface;
 using DTO.Entities.MaxaRabbitMQ;
 using DTO.User;
-using Domain.Constants;
 using ITOWebApiClient;
 using FajrLog.Enum;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +29,6 @@ public class AuthenticationController : Controller
     private readonly ILogger<AuthenticationController> _logger;
     private readonly IUserManager UserManager;
     private readonly IWebApiManager WebApiManager;
-    private readonly IQoutaPersonManager QoutaPersonManager;
     private readonly ApiTokenCacheClient ApiTokenClient;
 
 
@@ -41,7 +39,6 @@ public class AuthenticationController : Controller
         ILogger<AuthenticationController> logger,
         IUserManager userManager,
         IWebApiManager webApiManager,
-        IQoutaPersonManager qoutaPersonManager,
         ApiTokenCacheClient apiTokenClient,
         IFajrLogManager fajrLogManager = null
         ) : base()
@@ -50,7 +47,6 @@ public class AuthenticationController : Controller
         _logger = logger;
         UserManager = userManager;
         WebApiManager = webApiManager;
-        QoutaPersonManager = qoutaPersonManager;
         ApiTokenClient = apiTokenClient;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
@@ -239,15 +235,6 @@ public class AuthenticationController : Controller
         await Redis.db.RemoveLoginLog(Mobile);
         #endregion
 
-        if (User.RoleId == RoleConstant.MealBooker)
-        {
-            var personalCode = User.PersonCode?.ToString() ?? User.Username;
-            if (!QoutaPersonManager.HasActiveQuota(personalCode))
-            {
-                TempData["Message"] = "سهمیه‌ای برای شما ثبت نشده است.";
-            }
-        }
-
         // کاربری که با کد پرسنلی ساخته شده، پیش از دسترسی به سامانه
         // باید رمز اولیه خود را تغییر دهد.
         if (!User.PasswordIsChanged)
@@ -320,7 +307,7 @@ public class AuthenticationController : Controller
                 kioskId,
                 enrollId);
 
-            TempData["Message"] = "اطلاعات ورود معتبر نیست.";
+            TempData["FaceLoginMessage"] = "اطلاعات ورود معتبر نیست.";
             return RedirectToAction("IndexZP");
         }
 
@@ -333,7 +320,7 @@ public class AuthenticationController : Controller
                 kioskId,
                 enrollId);
 
-            TempData["Message"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
+            TempData["FaceLoginMessage"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
             return RedirectToAction("IndexZP");
         }
 
@@ -358,6 +345,11 @@ public class AuthenticationController : Controller
     #region خروج از حساب کاربری - logout
     public async Task<ActionResult> Logout()
     {
+        // پیام‌های مربوط به کاربر قبلی نباید در صفحه عمومی تشخیص چهره نمایش داده شوند.
+        TempData.Remove("Message");
+        TempData.Remove("Error");
+        TempData.Remove("Success");
+
         var user = Session.GetUser();
         if (user != null)
         {
