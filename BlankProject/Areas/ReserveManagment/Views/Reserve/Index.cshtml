@@ -8,6 +8,11 @@
     ViewData["Title"] = "ثبت برنامه غذایی";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
     var Admin = Context.Session.GetUser();
+    var allowedSlots =
+        ViewBag.AllowedReservationSlots as HashSet<string> ??
+        new HashSet<string>();
+    var hasReservationQuota =
+        ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
 
     DateTime weekStartDate = ViewBag.WeekStartDate != null
         ? (DateTime)ViewBag.WeekStartDate
@@ -236,6 +241,14 @@
     </style>
 }
 
+@if (!string.IsNullOrWhiteSpace(ViewBag.QuotaError as string))
+{
+    <div class="alert alert-warning text-center" role="alert" style="font-size:16px;font-weight:bold;">
+        <i class="material-icons" aria-hidden="true">warning</i>
+        @ViewBag.QuotaError
+    </div>
+}
+
 @if (TempData["Success"] != null)
 {
     <div class="alert alert-success">@TempData["Success"]</div>
@@ -272,13 +285,11 @@
                     </thead>
 
                     <tbody>
-                        @{
-                            var dayIndex = 0;
-                        }
                         @foreach (var day in Model.Days)
                         {
-                            var dayDate = weekStartDate.AddDays(dayIndex);
-                            dayIndex++;
+                            var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
+                            var dayHasQuota = Model.Meals.Any(
+                                meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}"));
 
                             <tr class="day-header-row">
                                 <td colspan="4" class="day-header">
@@ -288,17 +299,25 @@
                                             <span class="day-date">@Shamsi(dayDate)</span>
                                         </div>
 
-                                        <button type="button"
-                                                class="btn btn-sm btn-danger delete-day-btn"
-                                                data-day-id="@day.Id"
-                                                data-day-title="@day.Title">
-                                            حذف روز
-                                        </button>
+                                        @if (dayHasQuota)
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-danger delete-day-btn"
+                                                    data-day-id="@day.Id"
+                                                    data-day-title="@day.Title">
+                                                حذف روز
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="label label-default">برای این روز سهمیه ثبت نشده است</span>
+                                        }
                                     </div>
                                 </td>
                             </tr>
 
-                            @foreach (var meal in Model.Meals)
+                            @foreach (var meal in Model.Meals.Where(
+                                meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")))
                             {
                                 <tr>
                                     <td>
@@ -391,7 +410,16 @@
             <div class="reserve-sticky">
                 <div class="reserve-sticky-inner">
                     <div class="reserve-sticky-text">انتخاب‌ها را بررسی کنید و سپس ثبت نهایی را انجام دهید.</div>
-                    <button type="submit" class="btn btn-rose btn-lg">ثبت نهایی برنامه غذایی</button>
+                    @if (hasReservationQuota)
+                    {
+                        <button type="submit" class="btn btn-rose btn-lg">ثبت نهایی برنامه غذایی</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-default btn-lg" disabled>
+                            سهمیه‌ای برای رزرو وجود ندارد
+                        </button>
+                    }
                 </div>
             </div>
 
