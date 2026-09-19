@@ -1,5 +1,6 @@
 ﻿using Domain.Entities;
 using Domain.Enums;
+using DTO;
 using DTO.Base;
 using DTO.DataTable;
 using DTO.User;
