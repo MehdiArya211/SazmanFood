@@ -66,15 +66,13 @@
     }
 
     function getHubUrls() {
-        const baseUrls = [
-            window.API_BASE_URL,
-            window.ZP_FALLBACK_API_BASE_URL
-        ]
-            .map(value => String(value || "").trim().replace(/\/$/, ""))
-            .filter(value => value.length > 0);
+        const baseUrl = String(window.API_BASE_URL || "")
+            .trim()
+            .replace(/\/$/, "");
 
-        return [...new Set(baseUrls)]
-            .map(baseUrl => baseUrl + settings.hubPath);
+        return baseUrl
+            ? [baseUrl + settings.hubPath]
+            : [];
     }
 
     function extractEnrollId(args) {
