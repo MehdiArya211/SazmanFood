@@ -4,6 +4,7 @@
     ViewBag.Title = Config.SiteNameFa + " | ورود با تشخیص چهره";
     var message = TempData["FaceLoginMessage"] as string;
     var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
+    var fallbackApiBaseUrl = (ViewBag.FallbackApiBaseUrl as string) ?? string.Empty;
     var kioskId = ViewBag.KioskId is int configuredKioskId ? configuredKioskId : 0;
 }
 
@@ -60,6 +61,7 @@
 @section Scripts {
     <script>
         window.API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(apiBaseUrl));
+        window.ZP_FALLBACK_API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(fallbackApiBaseUrl));
         window.ZP_KIOSK_ID = @kioskId;
     </script>
     <script src="~/assets/signalr/signalr2.js"></script>
