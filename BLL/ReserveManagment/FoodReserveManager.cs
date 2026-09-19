@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Printing;
+using QRCoder;
 using Utilities.Extentions;
 
 namespace BLL.ReserveManagment
@@ -241,20 +242,67 @@ namespace BLL.ReserveManagment
 
                     var nextDate = reserveDate.AddDays(1);
 
-                    var hasQuota = UOW.QoutaPerson.Any(x =>
-                        x.PersonalCode == personalCode &&
-                        x.IsDeleted == false &&
-                        x.QoutaAllocation != null &&
-                        x.QoutaAllocation.IsDeleted == false &&
-                        x.QoutaAllocation.QoutaAllocationDate >= reserveDate &&
-                        x.QoutaAllocation.QoutaAllocationDate < nextDate &&
-                        x.QoutaAllocation.MealId == detail.MealId);
+                    var quotaToken = UOW.QoutaPerson
+                        .Get(
+                            x => x.PersonalCode == personalCode &&
+                                 x.IsDeleted == false &&
+                                 x.QoutaAllocation != null &&
+                                 x.QoutaAllocation.IsDeleted == false &&
+                                 x.QoutaAllocation.QoutaAllocationDate >= reserveDate &&
+                                 x.QoutaAllocation.QoutaAllocationDate < nextDate &&
+                                 x.QoutaAllocation.MealId == detail.MealId,
+                            null,
+                            null,
+                            null,
+                            x => x.Include(i => i.QoutaAllocation))
+                        .SingleOrDefault();
 
-                    if (!hasQuota)
+                    if (quotaToken == null)
                     {
                         _printedFoodReserveDetailIds.TryRemove(foodReserveDetaileId, out _);
                         continue;
                     }
+
+                    if (string.IsNullOrWhiteSpace(quotaToken.DeliveryCode))
+                    {
+                        string deliveryCode;
+                        do
+                        {
+                            deliveryCode = Random.Shared.Next(100000, 1000000).ToString();
+                        }
+                        while (UOW.QoutaPerson.Any(x =>
+                            x.DeliveryCode == deliveryCode &&
+                            x.IsDeleted == false));
+
+                        quotaToken.DeliveryCode = deliveryCode;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(quotaToken.DeliveryHash))
+                    {
+                        quotaToken.DeliveryHash = Guid.NewGuid().ToString("N");
+                    }
+
+                    UOW.QoutaPerson.Update(quotaToken);
+                    if (!UOW.Commit())
+                        throw new InvalidOperationException("ثبت اطلاعات امنیتی QR ژتون انجام نشد.");
+
+                    var request = httpContextAccessor.HttpContext?.Request;
+                    if (request == null || !request.Host.HasValue)
+                        throw new InvalidOperationException("آدرس سامانه برای تولید QR در دسترس نیست.");
+
+                    var scanUrl =
+                        $"{request.Scheme}://{request.Host}{request.PathBase}" +
+                        "/ReserveManagment/TokenScan/Use" +
+                        $"?code={Uri.EscapeDataString(quotaToken.DeliveryCode)}" +
+                        $"&key={Uri.EscapeDataString(quotaToken.DeliveryHash)}" +
+                        $"&mealId={detail.MealId}";
+
+                    using var qrGenerator = new QRCodeGenerator();
+                    using var qrData = qrGenerator.CreateQrCode(
+                        scanUrl,
+                        QRCodeGenerator.ECCLevel.Q);
+                    using var qrCode = new QRCode(qrData);
+                    using var qrBitmap = qrCode.GetGraphic(5);
 
                     // متن‌های چاپ
                     string title = "ژتون غذا";
@@ -311,6 +359,16 @@ namespace BLL.ReserveManagment
                         g.DrawString(mealDetails, font, Brushes.Black,
                             new RectangleF(margin, startY + offset, contentWidth, 60), rightAlign);
                         offset += 55;
+
+                        // QR یک‌بارمصرف ژتون
+                        const int qrSize = 120;
+                        var qrX = margin + Math.Max(0, (contentWidth - qrSize) / 2);
+                        g.DrawImage(qrBitmap, new Rectangle(qrX, startY + offset, qrSize, qrSize));
+                        offset += qrSize + 4;
+
+                        g.DrawString("برای تحویل غذا اسکن شود", font, Brushes.Black,
+                            new RectangleF(margin, startY + offset, contentWidth, 22), centerAlign);
+                        offset += 25;
 
                         // انتها
                         g.DrawLine(Pens.Black, margin, startY + offset, pageWidth - margin, startY + offset);

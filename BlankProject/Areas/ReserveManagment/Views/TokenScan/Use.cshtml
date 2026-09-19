@@ -1,0 +1,72 @@
+@model DTO.Base.BaseResult
+@{
+    Layout = null;
+    var isSuccess = Model?.Status == true;
+    var title = isSuccess ? "تحویل موفق" : "ژتون قابل استفاده نیست";
+}
+
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store,no-cache,must-revalidate" />
+    <title>@title</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: @(isSuccess ? "#ecfdf3" : "#fff1f2");
+            font-family: Tahoma, Arial, sans-serif;
+            color: #1f2937;
+        }
+        .result-card {
+            width: 100%;
+            max-width: 520px;
+            background: #fff;
+            border-radius: 20px;
+            padding: 34px 24px;
+            text-align: center;
+            box-shadow: 0 15px 45px rgba(15,23,42,.12);
+            border: 3px solid @(isSuccess ? "#22c55e" : "#ef4444");
+        }
+        .icon {
+            width: 92px;
+            height: 92px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: @(isSuccess ? "#dcfce7" : "#fee2e2");
+            color: @(isSuccess ? "#15803d" : "#b91c1c");
+            font-size: 54px;
+            font-weight: bold;
+        }
+        h1 { margin: 0 0 14px; font-size: 27px; }
+        p { margin: 0; font-size: 18px; line-height: 1.9; }
+        .time {
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <main class="result-card">
+        <div class="icon">@(isSuccess ? "✓" : "!")</div>
+        <h1>@title</h1>
+        <p>@(Model?.Message ?? "اطلاعات ژتون معتبر نیست.")</p>
+        <div class="time">
+            زمان اسکن: @DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")
+        </div>
+    </main>
+</body>
+</html>
