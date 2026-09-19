@@ -1050,6 +1050,7 @@ if (!accessResult.Status)
                 null,
                 null,
                 x => x.Include(i => i.QoutaAllocation))
+            .ToList()
             .Select(x => (
                 x.QoutaAllocation.QoutaAllocationDate.Date,
                 x.QoutaAllocation.MealId))
