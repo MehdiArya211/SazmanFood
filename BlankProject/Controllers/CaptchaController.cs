@@ -1,70 +1,36 @@
-﻿using Captcha.Net;
 using Microsoft.AspNetCore.Mvc;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Text;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Food.Controllers
 {
     /// <summary>
-    /// کد امنیتی Captcha
+    /// تولید کد امنیتی به‌صورت SVG و بدون وابستگی به فونت یا System.Drawing.
     /// </summary>
     public class CaptchaController : Controller
     {
-        public ActionResult CaptchaImage(string prefix, bool noisy = true)
+        [HttpGet]
+        [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult CaptchaImage()
         {
-            var rand = new Random((int)DateTime.Now.Ticks);
-            //generate new question
-            int captcha = rand.Next(10000, 99999);
+            var captcha = RandomNumberGenerator.GetInt32(10000, 100000).ToString();
 
-            //store answer
-            HttpContext.Session.Remove("Captcha");
-            HttpContext.Session.SetString("Captcha", captcha.ToString());
+            HttpContext.Session.SetString("Captcha", captcha);
 
-            //image stream
-            FileContentResult img = null;
+            Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
 
-            var captchaGenerator = new CaptchaGenerator();
-            var result = captchaGenerator.GenerateCaptchaImage(200, 100, captcha.ToString());
+            var svg = $@"<svg xmlns=""http://www.w3.org/2000/svg"" width=""200"" height=""70"" viewBox=""0 0 200 70"">
+  <rect width=""200"" height=""70"" rx=""8"" fill=""#f4f6f8""/>
+  <path d=""M5 18 C45 2, 75 45, 195 15 M8 55 C65 28, 115 70, 192 42"" fill=""none"" stroke=""#b8c2cc"" stroke-width=""2""/>
+  <line x1=""15"" y1=""12"" x2=""180"" y2=""60"" stroke=""#d1d8df"" stroke-width=""1""/>
+  <line x1=""18"" y1=""60"" x2=""188"" y2=""10"" stroke=""#d1d8df"" stroke-width=""1""/>
+  <text x=""100"" y=""48"" text-anchor=""middle"" font-family=""Tahoma, Arial, sans-serif""
+        font-size=""34"" font-weight=""700"" letter-spacing=""8"" fill=""#25364a"">{captcha}</text>
+</svg>";
 
-            //using (var mem = new MemoryStream())
-            //using (var bmp = new Bitmap(70, 30))
-            //using (var gfx = Graphics.FromImage((Image)bmp))
-            //{
-            //    gfx.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            //    gfx.SmoothingMode = SmoothingMode.AntiAlias;
-            //    gfx.FillRectangle(Brushes.White, new Rectangle(0, 0, bmp.Width, bmp.Height));
-
-            //    //add noise
-            //    if (noisy)
-            //    {
-            //        int i, r, x, y;
-            //        var pen = new Pen(Color.Yellow);
-            //        for (i = 1; i < 10; i++)
-            //        {
-            //            pen.Color = Color.FromArgb(
-            //            (rand.Next(0, 255)),
-            //            (rand.Next(0, 255)),
-            //            (rand.Next(0, 255)));
-
-            //            r = rand.Next(0, (130 / 3));
-            //            x = rand.Next(0, 130);
-            //            y = rand.Next(0, 30);
-
-            //            gfx.DrawEllipse(pen, x - r, y - r, r, r);
-            //        }
-            //    }
-
-            //    //add question
-            //    gfx.DrawString(captcha.ToString(), new Font("Tahoma", 15), Brushes.Gray, 2, 3);
-
-            //    //render as Jpeg
-            //    bmp.Save(mem, System.Drawing.Imaging.ImageFormat.Jpeg);
-            //    img = this.File(mem.GetBuffer(), "image/Jpeg");
-            //}
-
-            img = this.File(result.CaptchaByteData, "image/Jpeg");
-            return img;
+            return Content(svg, "image/svg+xml", Encoding.UTF8);
         }
     }
 }
