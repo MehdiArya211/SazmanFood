@@ -48,18 +48,26 @@
         const queryKioskId = Number(
             new URLSearchParams(window.location.search).get("kioskId")
         );
+        const configuredKioskId = Number(window.ZP_KIOSK_ID);
 
         try {
             if (Number.isInteger(queryKioskId) && queryKioskId > 0) {
+                // پارامتر URL برای تست یا تغییر موقت، بالاترین اولویت را دارد.
                 kioskId = queryKioskId;
-                localStorage.setItem(settings.kioskKey, String(kioskId));
 
-                // پارامتر فقط برای تنظیم اولیه است؛ از URL حذف می‌شود.
                 const cleanUrl = new URL(window.location.href);
                 cleanUrl.searchParams.delete("kioskId");
                 window.history.replaceState({}, document.title, cleanUrl.toString());
+            } else if (Number.isInteger(configuredKioskId) && configuredKioskId > 0) {
+                // منبع اصلی شناسه، تنظیمات مرکزی برنامه است.
+                kioskId = configuredKioskId;
             } else {
+                // فقط برای سازگاری با نسخه‌های قبلی.
                 kioskId = Number(localStorage.getItem(settings.kioskKey));
+            }
+
+            if (Number.isInteger(kioskId) && kioskId > 0) {
+                localStorage.setItem(settings.kioskKey, String(kioskId));
             }
         } catch (error) {
             logWarning("خواندن یا ذخیره شناسه کیوسک در مرورگر ناموفق بود.", error);
