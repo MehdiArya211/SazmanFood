@@ -3,6 +3,7 @@
     Layout = "/Views/Shared/_AuthLayout.cshtml";
     ViewBag.Title = Config.SiteNameFa + " | ورود با تشخیص چهره";
     var message = TempData["FaceLoginMessage"] as string;
+    var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
 }
 
 <div class="auth-panel">
@@ -56,6 +57,9 @@
 </div>
 
 @section Scripts {
+    <script>
+        window.API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(apiBaseUrl));
+    </script>
     <script src="~/assets/signalr/signalr2.js"></script>
     <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
 }
