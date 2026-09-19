@@ -1022,4 +1022,40 @@ if (!accessResult.Status)
             x.QoutaAllocation.QoutaAllocationDate >= today);
     }
 
+
+    /// <summary>
+    /// تاریخ و وعده‌های دارای سهمیه پرسنل را برای جلوگیری از رزرو خارج از سهمیه برمی‌گرداند.
+    /// </summary>
+    public IReadOnlyCollection<(DateTime Date, long MealId)> GetReservableSlots(
+        string personalCode,
+        DateTime fromDate,
+        DateTime toDate)
+    {
+        personalCode = personalCode?.Trim();
+        fromDate = fromDate.Date;
+        toDate = toDate.Date;
+
+        if (string.IsNullOrWhiteSpace(personalCode) || fromDate > toDate)
+            return Array.Empty<(DateTime Date, long MealId)>();
+
+        return UOW.QoutaPerson
+            .Get(
+                x => x.PersonalCode == personalCode &&
+                     x.IsDeleted == false &&
+                     x.QoutaAllocation != null &&
+                     x.QoutaAllocation.IsDeleted == false &&
+                     x.QoutaAllocation.QoutaAllocationDate >= fromDate &&
+                     x.QoutaAllocation.QoutaAllocationDate <= toDate,
+                null,
+                null,
+                null,
+                x => x.Include(i => i.QoutaAllocation))
+            .ToList()
+            .Select(x => (
+                x.QoutaAllocation.QoutaAllocationDate.Date,
+                x.QoutaAllocation.MealId))
+            .Distinct()
+            .ToList();
+    }
+
 }
