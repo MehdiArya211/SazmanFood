@@ -11,5 +11,7 @@
         public const long FoodApprover = 5;//تایید کننده آمار یگان
 
         public const long FoodSupport = 6;//رکن 4 پشتیبانی قرارگاه
+
+        public const long MealBooker = 7;//رزرو کننده غذا
     }
 }
