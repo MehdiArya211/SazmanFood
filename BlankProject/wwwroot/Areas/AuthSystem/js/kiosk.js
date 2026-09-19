@@ -43,20 +43,70 @@
     function getKioskId() {
         let kioskId = 0;
 
+        // برای تنظیم اولیه یا اصلاح شناسه اشتباه:
+        // /Authentication/IndexZP?kioskId=853047
+        const queryKioskId = Number(
+            new URLSearchParams(window.location.search).get("kioskId")
+        );
+
         try {
-            kioskId = Number(localStorage.getItem(settings.kioskKey));
+            if (Number.isInteger(queryKioskId) && queryKioskId > 0) {
+                kioskId = queryKioskId;
+                localStorage.setItem(settings.kioskKey, String(kioskId));
+
+                // پارامتر فقط برای تنظیم اولیه است؛ از URL حذف می‌شود.
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete("kioskId");
+                window.history.replaceState({}, document.title, cleanUrl.toString());
+            } else {
+                kioskId = Number(localStorage.getItem(settings.kioskKey));
+            }
         } catch (error) {
-            logWarning("خواندن شناسه کیوسک از مرورگر ناموفق بود.", error);
+            logWarning("خواندن یا ذخیره شناسه کیوسک در مرورگر ناموفق بود.", error);
         }
 
         if (!Number.isInteger(kioskId) || kioskId <= 0) {
             throw new Error(
-                "شناسه کیوسک در مرورگر ثبت نشده است. ابتدا KioskId دستگاه را تنظیم کنید."
+                "شناسه کیوسک در مرورگر ثبت نشده است. صفحه را یک‌بار با پارامتر kioskId واقعی دستگاه باز کنید."
             );
         }
 
         window.KIOSK_ID = kioskId;
         return kioskId;
+    }
+
+    function extractEnrollId(args) {
+        for (const value of args) {
+            if (value === null || value === undefined) {
+                continue;
+            }
+
+            if (typeof value === "number" || typeof value === "string") {
+                const parsed = Number(value);
+                if (Number.isInteger(parsed) && parsed > 0) {
+                    return parsed;
+                }
+                continue;
+            }
+
+            if (typeof value === "object") {
+                const candidate =
+                    value.enrollId ??
+                    value.EnrollId ??
+                    value.enrollID ??
+                    value.personCode ??
+                    value.PersonCode ??
+                    value.personalCode ??
+                    value.PersonalCode;
+
+                const parsed = Number(candidate);
+                if (Number.isInteger(parsed) && parsed > 0) {
+                    return parsed;
+                }
+            }
+        }
+
+        return 0;
     }
 
     function getHubUrl() {
@@ -114,7 +164,18 @@
             .withAutomaticReconnect([0, 2000, 5000, 10000])
             .build();
 
-        connection.on("ReceiveAutoLogin", enrollId => {
+        connection.on("ReceiveAutoLogin", (...args) => {
+            const enrollId = extractEnrollId(args);
+
+            if (enrollId <= 0) {
+                logError("پیام شناسایی از ZP دریافت شد، اما کد پرسنلی داخل آن معتبر نبود.", {
+                    kioskId: kioskId,
+                    payload: args
+                });
+                setStatus("کد پرسنلی دریافتی از دستگاه معتبر نیست.");
+                return;
+            }
+
             redirectToFinalize(kioskId, enrollId);
         });
 
