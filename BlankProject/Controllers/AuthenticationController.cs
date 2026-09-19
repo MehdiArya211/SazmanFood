@@ -307,7 +307,7 @@ public class AuthenticationController : Controller
                 kioskId,
                 enrollId);
 
-            TempData["Message"] = "اطلاعات ورود معتبر نیست.";
+            TempData["FaceLoginMessage"] = "اطلاعات ورود معتبر نیست.";
             return RedirectToAction("IndexZP");
         }
 
@@ -320,7 +320,7 @@ public class AuthenticationController : Controller
                 kioskId,
                 enrollId);
 
-            TempData["Message"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
+            TempData["FaceLoginMessage"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
             return RedirectToAction("IndexZP");
         }
 
