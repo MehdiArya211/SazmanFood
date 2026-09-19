@@ -301,8 +301,11 @@ namespace BLL.ReserveManagment
                     using var qrData = qrGenerator.CreateQrCode(
                         scanUrl,
                         QRCodeGenerator.ECCLevel.Q);
-                    using var qrCode = new QRCode(qrData);
-                    using var qrBitmap = qrCode.GetGraphic(5);
+                    using var qrCode = new PngByteQRCode(qrData);
+
+                    var qrBytes = qrCode.GetGraphic(5);
+                    using var qrStream = new MemoryStream(qrBytes);
+                    using var qrBitmap = Image.FromStream(qrStream);
 
                     // متن‌های چاپ
                     string title = "ژتون غذا";
