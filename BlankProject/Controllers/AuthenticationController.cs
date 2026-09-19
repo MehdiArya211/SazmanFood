@@ -3,7 +3,6 @@ using BLL.FajrLog;
 using BLL.Interface;
 using DTO.Entities.MaxaRabbitMQ;
 using DTO.User;
-using Domain.Constants;
 using ITOWebApiClient;
 using FajrLog.Enum;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +29,6 @@ public class AuthenticationController : Controller
     private readonly ILogger<AuthenticationController> _logger;
     private readonly IUserManager UserManager;
     private readonly IWebApiManager WebApiManager;
-    private readonly IQoutaPersonManager QoutaPersonManager;
     private readonly ApiTokenCacheClient ApiTokenClient;
 
 
@@ -41,7 +39,6 @@ public class AuthenticationController : Controller
         ILogger<AuthenticationController> logger,
         IUserManager userManager,
         IWebApiManager webApiManager,
-        IQoutaPersonManager qoutaPersonManager,
         ApiTokenCacheClient apiTokenClient,
         IFajrLogManager fajrLogManager = null
         ) : base()
@@ -50,7 +47,6 @@ public class AuthenticationController : Controller
         _logger = logger;
         UserManager = userManager;
         WebApiManager = webApiManager;
-        QoutaPersonManager = qoutaPersonManager;
         ApiTokenClient = apiTokenClient;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
