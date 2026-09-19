@@ -285,11 +285,13 @@
                     </thead>
 
                     <tbody>
-                        @foreach (var day in Model.Days)
+                        @foreach (var day in Model.Days.Where(day =>
+                            Model.Meals.Any(meal =>
+                                allowedSlots.Contains(
+                                    $"{weekStartDate.AddDays(day.Code - 1):yyyyMMdd}_{meal.Id}"))))
                         {
                             var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
-                            var dayHasQuota = Model.Meals.Any(
-                                meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}"));
+                            var dayHasQuota = true;
 
                             <tr class="day-header-row">
                                 <td colspan="4" class="day-header">
