@@ -239,15 +239,6 @@ public class AuthenticationController : Controller
         await Redis.db.RemoveLoginLog(Mobile);
         #endregion
 
-        if (User.RoleId == RoleConstant.MealBooker)
-        {
-            var personalCode = User.PersonCode?.ToString() ?? User.Username;
-            if (!QoutaPersonManager.HasActiveQuota(personalCode))
-            {
-                TempData["Message"] = "سهمیه‌ای برای شما ثبت نشده است.";
-            }
-        }
-
         // کاربری که با کد پرسنلی ساخته شده، پیش از دسترسی به سامانه
         // باید رمز اولیه خود را تغییر دهد.
         if (!User.PasswordIsChanged)
@@ -358,6 +349,11 @@ public class AuthenticationController : Controller
     #region خروج از حساب کاربری - logout
     public async Task<ActionResult> Logout()
     {
+        // پیام‌های مربوط به کاربر قبلی نباید در صفحه عمومی تشخیص چهره نمایش داده شوند.
+        TempData.Remove("Message");
+        TempData.Remove("Error");
+        TempData.Remove("Success");
+
         var user = Session.GetUser();
         if (user != null)
         {
