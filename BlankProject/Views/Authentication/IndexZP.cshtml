@@ -4,6 +4,7 @@
     ViewBag.Title = Config.SiteNameFa + " | ورود با تشخیص چهره";
     var message = TempData["FaceLoginMessage"] as string;
     var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
+    var kioskId = ViewBag.KioskId is int configuredKioskId ? configuredKioskId : 0;
 }
 
 <div class="auth-panel">
@@ -59,6 +60,7 @@
 @section Scripts {
     <script>
         window.API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(apiBaseUrl));
+        window.ZP_KIOSK_ID = @kioskId;
     </script>
     <script src="~/assets/signalr/signalr2.js"></script>
     <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
