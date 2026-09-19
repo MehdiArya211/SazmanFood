@@ -270,12 +270,16 @@ public class AuthenticationController : Controller
     public IActionResult IndexZP(long? mid)
     {
         var hubBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
+        var configuredKioskId = _configuration.GetValue<int?>("ApiAddress:KioskId");
+
         ViewBag.ApiBaseUrl = hubBaseUrl;
+        ViewBag.KioskId = configuredKioskId;
 
         _logger.LogInformation(
-            "صفحه ورود بیومتریک باز شد. IP کاربر: {RemoteIp}، آدرس سرویس Hub: {HubBaseUrl}",
+            "صفحه ورود بیومتریک باز شد. IP کاربر: {RemoteIp}، آدرس سرویس Hub: {HubBaseUrl}، KioskId: {KioskId}",
             HttpContext.Connection.RemoteIpAddress?.ToString(),
-            hubBaseUrl);
+            hubBaseUrl,
+            configuredKioskId);
 
         if (mid == null)
         {
