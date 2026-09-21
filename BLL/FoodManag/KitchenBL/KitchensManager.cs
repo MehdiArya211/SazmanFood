@@ -16,12 +16,11 @@ namespace BLL.FoodManag.KitchenBL
 {
     public class KitchensManager : Manager<Kitchens, ApplicationContext>, IKitchensManager
     {
-        private readonly IHttpContextAccessor httpContextAccessor;
-        private readonly ISession Session;
-        public KitchensManager(DbContexts contexts, IHttpContextAccessor httpContextAccessor) : base(contexts, httpContextAccessor)
+        public KitchensManager(
+            DbContexts contexts,
+            IHttpContextAccessor httpContextAccessor)
+            : base(contexts, httpContextAccessor)
         {
-            this.httpContextAccessor = httpContextAccessor;
-            Session = httpContextAccessor.HttpContext.Session;
         }
 
         public BaseResult CreateKitchens(KitchenCreateDTO creatkitchen)
@@ -60,9 +59,6 @@ namespace BLL.FoodManag.KitchenBL
             per.OrgId = kitchenedit.OrgId;
             per.IsActive = kitchenedit.IsActive;
             per.Description = kitchenedit.Description;
-
-
-
             return base.Update(per);
         }
 
