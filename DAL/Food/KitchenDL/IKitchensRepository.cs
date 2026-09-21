@@ -14,5 +14,11 @@ namespace DAL.Interface
     {
         DataTableResponseDTO<KitchenDTO> GetDataTableDTO(DataTableSearchDTO searchData, KitchenFilterDTO filters);
 
+        KitchenCookingStatisticsDTO GetCookingStatistics(
+            DateTime fromDate,
+            DateTime toDate,
+            long? kitchenId,
+            long? mealId);
+
     }
 }
