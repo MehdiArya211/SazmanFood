@@ -7,10 +7,6 @@ using DTO.Entities.Kitchen;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BLL.FoodManag.KitchenBL
 {
@@ -25,7 +21,10 @@ namespace BLL.FoodManag.KitchenBL
 
         public BaseResult CreateKitchens(KitchenCreateDTO creatkitchen)
         {
-            var opsystem = new Kitchens()
+            if (creatkitchen == null)
+                return new BaseResult(false, "اطلاعات آشپزخانه معتبر نیست.");
+
+            var opsystem = new Kitchens
             {
                 Title = creatkitchen.Title,
                 CookingCapacity = creatkitchen.CookingCapacity,
@@ -51,7 +50,12 @@ namespace BLL.FoodManag.KitchenBL
 
         public BaseResult UpdateKitchens(KitchenEditDTO kitchenedit)
         {
+            if (kitchenedit == null)
+                return new BaseResult(false, "اطلاعات آشپزخانه معتبر نیست.");
+
             var per = UOW.kitchen.FirstOrDefault(x => x.Id == kitchenedit.Id);
+            if (per == null)
+                return new BaseResult(false, "آشپزخانه مورد نظر یافت نشد.");
 
             per.Title = kitchenedit.Title;
             per.CookingCapacity = kitchenedit.CookingCapacity;
