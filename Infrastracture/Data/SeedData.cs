@@ -17,7 +17,7 @@ namespace Infrastracture.Data
     public static class SeedData
     {
         // تا آیدی شماره چند منو ساخته شده است؟
-        private static readonly int LastMenuId = 11;
+        private static readonly int LastMenuId = 10;
 
         public static void InitialSeedData(ref ModelBuilder modelBuilder)
         {
@@ -168,24 +168,6 @@ namespace Infrastracture.Data
                 ParentId = 6,
                 MaterialIcon = null,
                 CreateDate = new DateTime(2022, 11, 17)
-            });
-            #endregion
-
-            #region آمار پخت آشپزخانه
-            Menus.Add(new Menu
-            {
-                Id = 11,
-                Title = "آمار پخت آشپزخانه",
-                Area = "FoodPlan",
-                Controller = "KitchenCookingStatistics",
-                Action = "Index",
-                Sort = 6,
-                ParentId = null,
-                MaterialIcon = "restaurant",
-                ShowInMenu = true,
-                IsEnabled = true,
-                HasLink = true,
-                CreateDate = new DateTime(2026, 9, 21)
             });
             #endregion
 
