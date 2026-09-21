@@ -1,266 +1,114 @@
-﻿@model DTO.Entities.ExtraQuotaPersonFormDTO
+@model DTO.Entities.ExtraQuotaPersonFormDTO
 @using DTO.Base
-
 @{
-    var diningHalls =
-        ViewBag.DiningHalls as IEnumerable<SelectListDTO>
-        ?? new List<SelectListDTO>();
-
-    var canManagePersons =
-        ViewBag.CanManagePersons == true;
+    var diningHalls = ViewBag.DiningHalls as IEnumerable<SelectListDTO> ?? new List<SelectListDTO>();
+    var canManagePersons = ViewBag.CanManagePersons == true;
+    var hasCapacity = Model.RemainingCount > 0;
 }
-
 <div class="modal-header">
-    <button type="button"
-            class="close"
-            title="بستن پنجره"
-            data-dismiss="modal"
-            aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-    </button>
-
-    <h4 class="modal-title">
-        اختصاص پرسنل بن مازاد
-    </h4>
+    <button type="button" class="close" title="بستن" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title"><i class="material-icons">group_add</i> اختصاص پرسنل بن مازاد</h4>
 </div>
+<div class="modal-body">
+    <div class="row quota-summary">
+        <div class="col-sm-3"><span>وعده</span><strong>@Model.MealTitle</strong></div>
+        <div class="col-sm-3"><span>ظرفیت</span><strong>@Model.Count</strong></div>
+        <div class="col-sm-3"><span>ثبت‌شده</span><strong>@Model.RegisteredCount</strong></div>
+        <div class="col-sm-3 @(hasCapacity ? "remaining" : "full")"><span>باقی‌مانده</span><strong>@Model.RemainingCount</strong></div>
+    </div>
 
-<div class="modal-body row">
-    <div class="col-md-12">
-        <div class="quota-summary row">
-            <div class="col-md-3">
-                <strong>وعده:</strong>
-                @Model.MealTitle
-            </div>
+    @if (canManagePersons && !hasCapacity)
+    {
+        <div class="alert alert-warning text-center"><i class="material-icons">info_outline</i> ظرفیت این درخواست تکمیل شده است. برای ثبت فرد جدید ابتدا یک نفر را حذف کنید.</div>
+    }
 
-            <div class="col-md-3">
-                <strong>تعداد:</strong>
-                @Model.Count
-            </div>
-
-            <div class="col-md-3">
-                <strong>ثبت‌شده:</strong>
-                @Model.RegisteredCount
-            </div>
-
-            <div class="col-md-3">
-                <strong>باقی‌مانده:</strong>
-                @Model.RemainingCount
-            </div>
-        </div>
-
-        <hr />
-
-        @if (canManagePersons && Model.IsOfficial)
-        {
-            <form action="/FoodPlan/ExtraQuotaPersons/CreateOfficial"
-                  method="post"
-                  class="official-form"
-                  onsubmit="return extraQuotaPersons.official.save(event)">
-                @Html.AntiForgeryToken()
-
-                <input type="hidden"
-                       name="RequestId"
-                       value="@Model.RequestId" />
-
-                <input type="hidden"
-                       id="OfficialPersonId"
-                       name="PersonId" />
-
-                <input type="hidden"
-                       id="OfficialNationalCode"
-                       name="NationalCode" />
-
-                <input type="hidden"
-                       id="OfficialRankTitle"
-                       name="RankTitle" />
-
-                <input type="hidden"
-                       id="OfficialFullName"
-                       name="FullName" />
-
-                <div class="error text-center text-danger"></div>
-
-                <div class="col-md-12">
-                    <div class="form-group col-md-3">
-                        <label class="control-label text-right col-md-12 required">
-                            کد پرسنلی
-                        </label>
-                        <div class="col-md-12">
-                            <input id="OfficialPersonCode"
-                                   name="PersonCode"
-                                   class="form-control" />
-                        </div>
+    @if (canManagePersons && hasCapacity && Model.IsOfficial)
+    {
+        <form action="/FoodPlan/ExtraQuotaPersons/CreateOfficial" method="post" class="official-form" onsubmit="return extraQuotaPersons.official.save(event)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="RequestId" value="@Model.RequestId" />
+            <input type="hidden" id="OfficialPersonId" name="PersonId" />
+            <input type="hidden" id="OfficialNationalCode" name="NationalCode" />
+            <input type="hidden" id="OfficialRankTitle" name="RankTitle" />
+            <input type="hidden" id="OfficialFullName" name="FullName" />
+            <div class="error alert alert-danger" style="display:none"></div>
+            <div class="row entry-panel">
+                <div class="form-group col-md-3">
+                    <label class="required">کد پرسنلی</label>
+                    <div class="input-group">
+                        <input id="OfficialPersonCode" name="PersonCode" class="form-control" autocomplete="off" required />
+                        <span class="input-group-btn"><button id="OfficialSearchButton" type="button" class="btn btn-info btn-sm" onclick="extraQuotaPersons.official.search()"><i class="material-icons">search</i></button></span>
                     </div>
-
-                    <div class="form-group col-md-1">
-                        <button type="button"
-                                class="btn btn-info btn-just-icon"
-                                style="margin-top:25px"
-                                onclick="extraQuotaPersons.official.search()">
-                            <i class="material-icons">search</i>
-                        </button>
-                    </div>
-
-                    <div class="form-group col-md-2">
-                        <label class="control-label text-right col-md-12">
-                            درجه
-                        </label>
-                        <div class="col-md-12">
-                            <input id="OfficialRankTitleDisplay"
-                                   class="form-control"
-                                   readonly />
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-3">
-                        <label class="control-label text-right col-md-12">
-                            نام و نشان
-                        </label>
-                        <div class="col-md-12">
-                            <input id="OfficialFullNameDisplay"
-                                   class="form-control"
-                                   readonly />
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-3">
-                        <label class="control-label text-right col-md-12 required">
-                            سالن غذاخوری
-                        </label>
-                        <div class="col-md-12">
-                            <select name="DiningHallId"
-                                    class="selectpicker"
-                                    data-live-search="true"
-                                    data-size="7"
-                                    data-style="select-with-transition">
-                                <option value="">انتخاب کنید</option>
-                                @foreach (var item in diningHalls)
-                                {
-                                    <option value="@item.Id">
-                                        @item.Title
-                                    </option>
-                                }
-                            </select>
-                        </div>
-                    </div>
+                    <small class="text-muted">کد را وارد و جستجو کنید.</small>
                 </div>
-
-                <div class="form-group col-md-12 text-center">
-                    <button type="submit" class="btn btn-info">
-                        <i class="material-icons">save</i>
-                        ذخیره
-                    </button>
+                <div class="form-group col-md-2"><label>درجه</label><input id="OfficialRankTitleDisplay" class="form-control" readonly /></div>
+                <div class="form-group col-md-3"><label>نام و نشان</label><input id="OfficialFullNameDisplay" class="form-control" readonly /></div>
+                <div class="form-group col-md-3">
+                    <label class="required">سالن غذاخوری</label>
+                    <select name="DiningHallId" class="selectpicker" data-live-search="true" data-size="7" data-width="100%" data-style="select-with-transition" required>
+                        <option value="">انتخاب کنید</option>
+                        @foreach (var item in diningHalls) { <option value="@item.Id">@item.Title</option> }
+                    </select>
                 </div>
-            </form>
-        }
-        else if (canManagePersons && Model.IsDuty)
-        {
-            <form action="/FoodPlan/ExtraQuotaPersons/CreateDuty"
-                  method="post"
-                  class="duty-form"
-                  onsubmit="return extraQuotaPersons.duty.save(event)">
-                @Html.AntiForgeryToken()
-
-                <input type="hidden"
-                       name="RequestId"
-                       value="@Model.RequestId" />
-
-                <div class="error text-center text-danger"></div>
-
-                <div class="col-md-12">
-                    <div class="form-group col-md-4">
-                        <label class="control-label text-right col-md-12 required">
-                            کد ملی
-                        </label>
-                        <div class="col-md-12">
-                            <input name="NationalCode"
-                                   class="form-control"
-                                   maxlength="10" />
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-4">
-                        <label class="control-label text-right col-md-12 required">
-                            شماره پرسنلی
-                        </label>
-                        <div class="col-md-12">
-                            <input name="PersonCode"
-                                   class="form-control" />
-                        </div>
-                    </div>
-
-                    <div class="form-group col-md-4">
-                        <label class="control-label text-right col-md-12 required">
-                            نام و نشان
-                        </label>
-                        <div class="col-md-12">
-                            <input name="FullName"
-                                   class="form-control" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group col-md-12 text-center">
-                    <button type="submit" class="btn btn-info">
-                        <i class="material-icons">save</i>
-                        ذخیره
-                    </button>
-                </div>
-            </form>
-        }
-
-        @if (!canManagePersons)
-        {
-            <div class="col-md-12">
-                <div class="alert alert-info">
-                    شما فقط امکان مشاهده پرسنل تعیین‌شده را دارید.
-                    ثبت یا حذف پرسنل توسط اداری یگان یا رکن چهار پشتیبانی انجام می‌شود.
-                </div>
+                <div class="form-group col-md-1 save-cell"><button id="OfficialSaveButton" type="submit" class="btn btn-success btn-just-icon" disabled title="ابتدا پرسنل را جستجو کنید"><i class="material-icons">save</i></button></div>
             </div>
-        }
+        </form>
+    }
+    else if (canManagePersons && hasCapacity && Model.IsDuty)
+    {
+        <form action="/FoodPlan/ExtraQuotaPersons/CreateDuty" method="post" class="duty-form" onsubmit="return extraQuotaPersons.duty.save(event)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="RequestId" value="@Model.RequestId" />
+            <div class="error alert alert-danger" style="display:none"></div>
+            <div class="row entry-panel">
+                <div class="form-group col-md-2"><label class="required">کد ملی</label><input name="NationalCode" class="form-control numeric-only" maxlength="10" minlength="10" inputmode="numeric" required /></div>
+                <div class="form-group col-md-2"><label class="required">شماره پرسنلی</label><input name="PersonCode" class="form-control numeric-only" autocomplete="off" required /></div>
+                <div class="form-group col-md-3"><label class="required">نام و نشان</label><input name="FullName" class="form-control" maxlength="200" autocomplete="off" required /></div>
+                <div class="form-group col-md-4">
+                    <label class="required">سالن غذاخوری</label>
+                    <select name="DiningHallId" class="selectpicker" data-live-search="true" data-size="7" data-width="100%" data-style="select-with-transition" required>
+                        <option value="">انتخاب کنید</option>
+                        @foreach (var item in diningHalls) { <option value="@item.Id">@item.Title</option> }
+                    </select>
+                </div>
+                <div class="form-group col-md-1 save-cell"><button type="submit" class="btn btn-success btn-just-icon"><i class="material-icons">save</i></button></div>
+            </div>
+        </form>
+    }
 
-        <div class="col-md-12">
-            <h4>پرسنل ثبت‌شده</h4>
+    @if (!canManagePersons)
+    {
+        <div class="alert alert-info text-center">شما فقط امکان مشاهده پرسنل تعیین‌شده را دارید.</div>
+    }
 
-            <table class="table table-striped table-no-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>ردیف</th>
-                        <th>درجه</th>
-                        <th>نام و نشان</th>
-                        <th>کد پرسنلی</th>
-                        <th>عملیات</th>
-                    </tr>
-                </thead>
+    <div class="persons-list">
+        <h4><i class="material-icons">people</i> پرسنل ثبت‌شده <span class="badge">@Model.RegisteredCount</span></h4>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead><tr><th>ردیف</th><th>درجه</th><th>نام و نشان</th><th>کد پرسنلی</th><th>عملیات</th></tr></thead>
                 <tbody>
-                    @{
-                        var row = 1;
-                    }
-
-                    @foreach (var item in Model.Persons)
+                @if (Model.Persons == null || !Model.Persons.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted empty-persons">هنوز فردی برای این بن ثبت نشده است.</td></tr>
+                }
+                else
+                {
+                    var row = 1;
+                    foreach (var item in Model.Persons)
                     {
-                        <tr>
-                            <td>@row</td>
-                            <td>@item.RankTitle</td>
-                            <td>@item.FullName</td>
-                            <td>@item.PersonCode</td>
-                            <td>
-                                @if (canManagePersons)
-                                {
-                                    <a onclick="extraQuotaPersons.person.delete(@item.Id, @Model.RequestId)"
-                                       class="btn btn-simple btn-danger btn-icon"
-                                       title="حذف"
-                                       data-toggle="tooltip">
-                                        <i class="material-icons">close</i>
-                                    </a>
-                                }
-                            </td>
+                        <tr><td>@row</td><td>@item.RankTitle</td><td>@item.FullName</td><td>@item.PersonCode</td>
+                            <td>@if (canManagePersons) { <button type="button" onclick="extraQuotaPersons.person.delete(@item.Id, @Model.RequestId)" class="btn btn-simple btn-danger btn-icon" title="حذف"><i class="material-icons">delete</i></button> }</td>
                         </tr>
-
                         row++;
                     }
+                }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+<style>
+.quota-summary{background:#f6f7f9;border-radius:8px;margin:0 0 16px;padding:12px}.quota-summary div{border-left:1px solid #ddd}.quota-summary div:last-child{border:0}.quota-summary span{display:block;color:#777;font-size:12px}.quota-summary strong{font-size:19px}.quota-summary .remaining strong{color:#2e7d32}.quota-summary .full strong{color:#c62828}
+.entry-panel{border:1px solid #e5e5e5;border-radius:8px;margin:0 0 18px;padding:12px 5px 4px}.entry-panel label{font-size:12px;color:#555}.save-cell{padding-top:20px}.persons-list h4{display:flex;align-items:center;gap:6px}.empty-persons{padding:28px!important}.error:empty{display:none!important}
+@@media(max-width:767px){.quota-summary div{border:0;margin-bottom:8px}.save-cell{padding-top:0}}
+</style>
