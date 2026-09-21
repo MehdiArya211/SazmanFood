@@ -46,7 +46,7 @@ public class KitchenCookingStatisticsController : Controller
 
         var kitchens = await context.Kitchens
             .AsNoTracking()
-            .Where(x => !x.IsDeleted && x.IsActive)
+            .Where(x => x.IsDeleted != true && x.IsActive == true)
             .OrderBy(x => x.OrgTitle)
             .ThenBy(x => x.Title)
             .Select(x => new
@@ -61,7 +61,7 @@ public class KitchenCookingStatisticsController : Controller
 
         var allocations = await context.QoutaAllocations
             .AsNoTracking()
-            .Where(x => !x.IsDeleted &&
+            .Where(x => x.IsDeleted != true &&
                         x.QoutaAllocationDate >= from &&
                         x.QoutaAllocationDate < to.AddDays(1) &&
                         (!mealId.HasValue || x.MealId == mealId.Value))
@@ -73,8 +73,8 @@ public class KitchenCookingStatisticsController : Controller
                 MealTitle = x.MealTitle ?? x.Meal.Title,
                 QuotaCount = x.OfficerCapacity + x.SoldierCapacity +
                              x.GuestCapacity + x.ManagementTokenCapacity,
-                ReservedCount = x.QoutaPerson.Count(p => !p.IsDeleted),
-                DeliveredCount = x.QoutaPerson.Count(p => !p.IsDeleted && p.IsDelivered)
+                ReservedCount = x.QoutaPerson.Count(p => p.IsDeleted != true),
+                DeliveredCount = x.QoutaPerson.Count(p => p.IsDeleted != true && p.IsDelivered == true)
             })
             .ToListAsync();
 
