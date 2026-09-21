@@ -20,7 +20,6 @@ using BLL.FoodManag.FoodTypesBl;
 using BLL.FoodManag.KitchenBL;
 using BLL.Garrision;
 using BLL.ReserveManagment;
-using Food.HostedServices;
 using Food.Hubs;
 using Food.Hubs.ZP;
 using DTO.Base;
@@ -225,15 +224,8 @@ internal class Program
         #endregion
 
         #region Qouta
-        services.AddScoped<IQoutaAllocationManager, QoutaAllocationManager>();
         services.AddScoped<IQoutaPersonManager, QoutaPersonManager>();
         services.AddScoped<IUnitQuotaManager, UnitQuotaManager>();
-
-        #endregion
-
-        #region Garrison
-        services.AddScoped<IOrganGarrisionManager, OrganGarrisionManager>();
-        services.AddScoped<IOrganGarrisionTypeManager, OrganGarrisionTypeManager>();
 
         #endregion
 
@@ -328,7 +320,6 @@ internal class Program
 
 
         #region MyRegion
-        services.AddHostedService<DimaHostedService>();
         #endregion
 
         services.AddSingleton<ApiTokenCacheClient>();

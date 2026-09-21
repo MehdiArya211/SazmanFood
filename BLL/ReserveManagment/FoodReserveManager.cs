@@ -1,7 +1,6 @@
 ﻿using Domain.Entities.FoodReservation;
 using DTO.Base;
 using DTO.Entities.FoodReservation;
-using DTO.Entities.MaxaRabbitMQ;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -137,52 +136,6 @@ namespace BLL.ReserveManagment
 
             return list;
         }
-
-        /// <summary>
-        /// چاپ ژتون
-        /// </summary>
-        /// <param name="foodReserveDetaileIds"></param>
-        /// <param name="UserId"></param>
-        /// <param name="FullName"></param>
-        /// <returns></returns>
-        public async Task PrintFoodReserveAsyncMaxa(List<long> foodReserveDetaileIds, long UserId, string FullName)
-        {
-
-            foreach (var foodReserveDetaileId in foodReserveDetaileIds)
-            {
-
-                var detail = UOW.FoodReserveDetail.Get(
-                    filter: x => x.Id == foodReserveDetaileId,
-                    includeExpressions: q => q
-                        .Include(x => x.Day)
-                        .Include(x => x.Meal)
-                        .Include(x => x.MainFood)
-                        .Include(x => x.Dessert)
-                        .Include(x => x.SideDish)
-                ).FirstOrDefault();
-
-
-
-                var foodPrint = new Dima_Printer()
-                {
-                    Id = Guid.NewGuid(),
-                    CorrelationId = Guid.NewGuid(),
-                    Employee_Id = UserId,
-                    Full_Name = FullName,
-                    Meal_Type = detail.Meal?.Title ?? "-",
-                    Meal_Details = $"{detail.Day?.Title ?? "-"} | {detail.MainFood?.Title ?? "-"} | {detail.Dessert?.Title ?? "-"} | {detail.SideDish?.Title ?? "-"}",
-                    TimeStamp = DateTime.Now
-                };
-
-
-
-                // await _publisher.Publish(foodPrint);
-            }
-
-
-
-        }
-
 
 
         private static readonly ConcurrentDictionary<long, byte> _printedFoodReserveDetailIds = new();

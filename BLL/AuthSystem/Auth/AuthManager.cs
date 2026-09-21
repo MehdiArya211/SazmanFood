@@ -3,7 +3,6 @@ using Domain.Entities;
 using Domain.Constants;
 using Domain.Enums;
 using DTO.Base;
-using DTO.Entities.MaxaRabbitMQ;
 using DTO.Menu;
 using DTO.User;
 using Infrastructure.Data;
@@ -172,22 +171,7 @@ namespace BLL
             };
         }
 
-        public UserSessionDTO LoginWithFace(AccessLogMonitoringEvent deviceEvent)
-        {
-            var filter = PredicateBuilder.New<User>(true);
-            filter.And(x => x.Username == deviceEvent.UserId.ToString());
 
-            var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
-            try
-            {
-                SetAuthenticatedUser(user);
-            }
-            catch (Exception ex)
-            {
-
-            }
-            return user;
-        }
 
         public UserSessionDTO LoginWithFaceZP(long userId)
         {
