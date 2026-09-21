@@ -65,5 +65,19 @@ namespace BLL.FoodManag.KitchenBL
 
             return base.Update(per);
         }
+
+        public KitchenCookingStatisticsDTO GetCookingStatistics(
+            DateTime fromDate,
+            DateTime toDate,
+            long? kitchenId,
+            long? mealId)
+        {
+            return UOW.kitchen.GetCookingStatistics(
+                fromDate,
+                toDate,
+                kitchenId,
+                mealId);
+        }
+
     }
 }
