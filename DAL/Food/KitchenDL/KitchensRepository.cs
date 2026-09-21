@@ -84,24 +84,63 @@ namespace DAL.Food.KitchenDL
             toDate = toDate.Date;
             var endDate = toDate.AddDays(1);
 
+            var kitchens = Entities
+                .AsNoTracking()
+                .Where(x =>
+                    x.IsDeleted != true &&
+                    x.IsActive == true)
+                .OrderBy(x => x.OrgTitle)
+                .ThenBy(x => x.Title)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Title,
+                    x.OrgId,
+                    x.OrgTitle,
+                    CookingCapacity = x.CookingCapacity ?? 0
+                })
+                .ToList();
+
+            var allocations = Context.Set<QoutaAllocation>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.IsDeleted != true &&
+                    x.QoutaAllocationDate >= fromDate &&
+                    x.QoutaAllocationDate < endDate &&
+                    (!mealId.HasValue ||
+                     x.MealId == mealId.Value))
+                .Select(x => new
+                {
+                    x.OrgId,
+                    Date = x.QoutaAllocationDate.Date,
+                    x.MealId,
+                    x.MealTitle,
+                    QuotaCount =
+                        x.OfficerCapacity +
+                        x.SoldierCapacity +
+                        x.GuestCapacity +
+                        x.ManagementTokenCapacity,
+                    ReservedCount = x.QoutaPerson.Count(p =>
+                        p.IsDeleted != true),
+                    DeliveredCount = x.QoutaPerson.Count(p =>
+                        p.IsDeleted != true &&
+                        p.IsDelivered == true)
+                })
+                .ToList();
+
             var rows = (
-                from kitchen in Entities.AsNoTracking()
-                join allocation in Context.Set<QoutaAllocation>().AsNoTracking()
+                from kitchen in kitchens
+                where !kitchenId.HasValue ||
+                      kitchen.Id == kitchenId.Value
+                join allocation in allocations
                     on (long?)kitchen.OrgId equals allocation.OrgId
-                where kitchen.IsDeleted != true &&
-                      kitchen.IsActive == true &&
-                      allocation.IsDeleted != true &&
-                      allocation.QoutaAllocationDate >= fromDate &&
-                      allocation.QoutaAllocationDate < endDate &&
-                      (!kitchenId.HasValue || kitchen.Id == kitchenId.Value) &&
-                      (!mealId.HasValue || allocation.MealId == mealId.Value)
                 group allocation by new
                 {
                     kitchen.Id,
                     KitchenTitle = kitchen.Title,
                     kitchen.OrgTitle,
-                    CookingCapacity = kitchen.CookingCapacity ?? 0,
-                    Date = allocation.QoutaAllocationDate.Date,
+                    kitchen.CookingCapacity,
+                    allocation.Date,
                     allocation.MealId,
                     allocation.MealTitle
                 }
@@ -118,24 +157,13 @@ namespace DAL.Food.KitchenDL
                     MealId = grouped.Key.MealId,
                     MealTitle = grouped.Key.MealTitle ?? "-",
                     CookingCapacity = grouped.Key.CookingCapacity,
-                    QuotaCount = grouped.Sum(x =>
-                        x.OfficerCapacity +
-                        x.SoldierCapacity +
-                        x.GuestCapacity +
-                        x.ManagementTokenCapacity),
-                    ReservedCount = grouped.Sum(x =>
-                        x.QoutaPerson.Count(p => p.IsDeleted != true)),
-                    DeliveredCount = grouped.Sum(x =>
-                        x.QoutaPerson.Count(p =>
-                            p.IsDeleted != true &&
-                            p.IsDelivered == true))
-                }).ToList();
+                    QuotaCount = grouped.Sum(x => x.QuotaCount),
+                    ReservedCount = grouped.Sum(x => x.ReservedCount),
+                    DeliveredCount = grouped.Sum(x => x.DeliveredCount)
+                })
+                .ToList();
 
-            var kitchens = Entities
-                .AsNoTracking()
-                .Where(x => x.IsDeleted != true && x.IsActive == true)
-                .OrderBy(x => x.OrgTitle)
-                .ThenBy(x => x.Title)
+            var kitchenFilters = kitchens
                 .Select(x => new KitchenCookingFilterDTO
                 {
                     Id = x.Id,
@@ -160,10 +188,9 @@ namespace DAL.Food.KitchenDL
                 ToDate = toDate,
                 KitchenId = kitchenId,
                 MealId = mealId,
-                Kitchens = kitchens,
+                Kitchens = kitchenFilters,
                 Meals = meals,
                 Rows = rows
             };
-        }
-    }
+        }    }
 }
