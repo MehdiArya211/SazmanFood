@@ -3,6 +3,7 @@ using BLL.FajrLog;
 using BLL.Interface;
 using DTO.Entities.MaxaRabbitMQ;
 using DTO.User;
+using ITOWebApiClient;
 using FajrLog.Enum;
 using Microsoft.AspNetCore.Mvc;
 using Services.CookieServices;
@@ -25,14 +26,28 @@ public class AuthenticationController : Controller
     private readonly ISession Session;
     private readonly IFajrLogManager FajrLogManager;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthenticationController> _logger;
+    private readonly IUserManager UserManager;
+    private readonly IWebApiManager WebApiManager;
+    private readonly ApiTokenCacheClient ApiTokenClient;
 
 
     public AuthenticationController(IAuthManager _AuthManager, IUserLogManager _UserLogManager,
         IConfiguration configuration,
-        IRedisManager _Redis, IConstantManager constantManager, IFajrLogManager fajrLogManager = null
+        IRedisManager _Redis,
+        IConstantManager constantManager,
+        ILogger<AuthenticationController> logger,
+        IUserManager userManager,
+        IWebApiManager webApiManager,
+        ApiTokenCacheClient apiTokenClient,
+        IFajrLogManager fajrLogManager = null
         ) : base()
     {
         _configuration = configuration;
+        _logger = logger;
+        UserManager = userManager;
+        WebApiManager = webApiManager;
+        ApiTokenClient = apiTokenClient;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
         Redis = _Redis;
@@ -119,18 +134,85 @@ public class AuthenticationController : Controller
         #endregion
 
         #region عملیات لاگین
+        Mobile = Mobile?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
+        Password = Password?.Trim().ToEnglishNumber();
+
         var res = AuthManager.Login(Mobile, Password);
         var User = res.Model as UserSessionDTO;
-        if (!res.Status)
-        {
-            await Redis.db.SetLoginLog(Redis.ContextAccessor, fajrActionType, Mobile, User?.FullName, User?.Id, false, res.Message);
-            if (User == null)
-            {
-                ViewBag.Error = res.Message;
-                ViewBag.InvalidLogin = true;
 
-                return View();
+        if (!res.Status && User == null && !UserManager.ExistsByUsername(Mobile))
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(Mobile) || Password != Mobile)
+                {
+                    res.Message =
+                        "کاربر در سامانه یافت نشد. در اولین ورود، نام کاربری و کلمه عبور باید همان کد پرسنلی باشند.";
+                }
+                else
+                {
+                    var accessToken = await ApiTokenClient.GetApiToken(
+                        CustomSettings.Instance.ClientId,
+                        CustomSettings.Instance.Scope,
+                        CustomSettings.Instance.ClientSecret,
+                        CustomSettings.Instance.ROPC_UserName,
+                        CustomSettings.Instance.ROPC_Password);
+
+                    var person = WebApiManager.GetPersonalByPersonCode(Mobile, accessToken);
+
+                    if (person == null ||
+                        string.IsNullOrWhiteSpace(person.personalCode) ||
+                        person.personalCode.Trim().ToEnglishNumber() != Mobile)
+                    {
+                        res.Message = "پرسنلی با این کد پرسنلی در سرویس پرسنلی یافت نشد.";
+                    }
+                    else
+                    {
+                        var createResult =
+                            UserManager.CreateMealBookerFromPersonnel(person, Password);
+
+                        if (!createResult.Status)
+                        {
+                            res.Message = createResult.Message;
+                        }
+                        else
+                        {
+                            _logger.LogInformation(
+                                "کاربر رزروکننده غذا از سرویس پرسنلی ایجاد شد. PersonCode: {PersonCode}",
+                                Mobile);
+
+                            res = AuthManager.Login(Mobile, Password);
+                            User = res.Model as UserSessionDTO;
+                        }
+                    }
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "استعلام سرویس پرسنلی یا ساخت خودکار کاربر ناموفق بود. PersonCode: {PersonCode}",
+                    Mobile);
+
+                res.Message =
+                    "در حال حاضر ارتباط با سرویس پرسنلی برقرار نیست. لطفاً دوباره تلاش کنید.";
+            }
+        }
+
+        if (!res.Status || User == null)
+        {
+            await Redis.db.SetLoginLog(
+                Redis.ContextAccessor,
+                fajrActionType,
+                Mobile,
+                User?.FullName,
+                User?.Id,
+                false,
+                res.Message);
+
+            ViewBag.Error = res.Message;
+            ViewBag.InvalidLogin = true;
+            return View();
         }
         #endregion
 
@@ -152,6 +234,16 @@ public class AuthenticationController : Controller
         // حذف اطلاعات مربوط به کنترل تعداد دفعات تلاش برای لاگین
         await Redis.db.RemoveLoginLog(Mobile);
         #endregion
+
+        // کاربری که با کد پرسنلی ساخته شده، پیش از دسترسی به سامانه
+        // باید رمز اولیه خود را تغییر دهد.
+        if (!User.PasswordIsChanged)
+        {
+            return RedirectToAction(
+                "ChangePassword",
+                "Profile",
+                new { area = "Admin" });
+        }
 
         // فقط بازگشت به مسیرهای داخلی مجاز است تا از Open Redirect جلوگیری شود.
         if (!string.IsNullOrWhiteSpace(RetUrl) && Url.IsLocalUrl(RetUrl))
@@ -177,7 +269,15 @@ public class AuthenticationController : Controller
     [HttpGet]
     public IActionResult IndexZP(long? mid)
     {
-        ViewBag.ApiBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
+        var hubBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
+        var configuredKioskId = _configuration.GetValue<int?>("ApiAddress:KioskId");
+
+        ViewBag.ApiBaseUrl = hubBaseUrl;
+        ViewBag.KioskId = configuredKioskId;
+
+        _logger.LogInformation(
+            "ورود بیومتریک: صفحه برای کیوسک {KioskId} آماده شد.",
+            configuredKioskId);
 
         if (mid == null)
         {
@@ -196,9 +296,19 @@ public class AuthenticationController : Controller
     [HttpGet]
     public async Task<IActionResult> FinalizeFaceLogin(int kioskId, long enrollId)
     {
+        _logger.LogInformation(
+            "ورود بیومتریک: درخواست ورود دریافت شد. KioskId: {KioskId}، کد پرسنلی: {EnrollId}",
+            kioskId,
+            enrollId);
+
         if (kioskId <= 0 || enrollId <= 0)
         {
-            TempData["Message"] = "اطلاعات ورود معتبر نیست.";
+            _logger.LogWarning(
+                "ورود بیومتریک: اطلاعات نامعتبر است. KioskId: {KioskId}، کد پرسنلی: {EnrollId}",
+                kioskId,
+                enrollId);
+
+            TempData["FaceLoginMessage"] = "اطلاعات ورود معتبر نیست.";
             return RedirectToAction("IndexZP");
         }
 
@@ -206,13 +316,28 @@ public class AuthenticationController : Controller
 
         if (user == null)
         {
-            TempData["Message"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
+            _logger.LogWarning(
+                "ورود بیومتریک: کاربر پیدا نشد. KioskId: {KioskId}، کد پرسنلی: {EnrollId}",
+                kioskId,
+                enrollId);
+
+            TempData["FaceLoginMessage"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
             return RedirectToAction("IndexZP");
         }
+
+        _logger.LogInformation(
+            "ورود بیومتریک: کاربر پیدا شد. KioskId: {KioskId}، کد پرسنلی: {EnrollId}، UserId: {UserId}",
+            kioskId,
+            enrollId,
+            user.Id);
 
         var token = await Redis.db.SetLoginToken(user.Id);
         HttpContext.SetCookieUserToken(token);
         HttpContext.Session.SetUser(user);
+
+        _logger.LogInformation(
+            "ورود بیومتریک: موفق؛ انتقال به داشبورد. UserId: {UserId}",
+            user.Id);
 
         return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
     }
@@ -221,6 +346,11 @@ public class AuthenticationController : Controller
     #region خروج از حساب کاربری - logout
     public async Task<ActionResult> Logout()
     {
+        // پیام‌های مربوط به کاربر قبلی نباید در صفحه عمومی تشخیص چهره نمایش داده شوند.
+        TempData.Remove("Message");
+        TempData.Remove("Error");
+        TempData.Remove("Success");
+
         var user = Session.GetUser();
         if (user != null)
         {

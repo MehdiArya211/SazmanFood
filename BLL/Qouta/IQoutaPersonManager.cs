@@ -93,6 +93,11 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     BaseResult DeliverFoodByCode(DeliverFoodByCodeDTO model);
 
     /// <summary>
+    /// ثبت یک‌بارمصرف تحویل غذا با اطلاعات امن QR.
+    /// </summary>
+    BaseResult DeliverFoodByQr(string deliveryCode, string deliveryHash, long mealId);
+
+    /// <summary>
     /// دریافت وضعیت ظرفیت، ثبت شده و باقی مانده سهمیه
     /// </summary>
     /// <param name="qoutaAllocationId">شناسه سهمیه بندی</param>
@@ -114,4 +119,19 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     DataTableResponseDTO<QoutaPersonSelectableDTO> GetSelectablePersonsForQuota(
         DataTableSearchDTO searchData,
         long qoutaAllocationId);
+
+    /// <summary>
+    /// بررسی وجود سهمیه فعال برای کد پرسنلی.
+    /// </summary>
+    bool HasActiveQuota(string personalCode);
+
+
+    /// <summary>
+    /// دریافت تاریخ و وعده‌هایی که برای کد پرسنلی سهمیه ثبت شده است.
+    /// </summary>
+    IReadOnlyCollection<(DateTime Date, long MealId)> GetReservableSlots(
+        string personalCode,
+        DateTime fromDate,
+        DateTime toDate);
+
 }

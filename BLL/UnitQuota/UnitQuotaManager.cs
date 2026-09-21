@@ -46,7 +46,7 @@ public class UnitQuotaManager
 
         var quota = UOW.UnitQuota.FirstOrDefault(x =>
             x.Id == unitQuotaId &&
-            x.OrgId == user.OmdOrgId);
+            (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId));
 
         if (quota == null)
             return null;
@@ -84,7 +84,7 @@ public class UnitQuotaManager
 
         var quota = UOW.UnitQuota.FirstOrDefault(x =>
             x.Id == unitQuotaId &&
-            x.OrgId == user.OmdOrgId);
+            (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId));
 
         if (quota == null)
             return null;
@@ -204,7 +204,7 @@ public class UnitQuotaManager
 
         var quota = UOW.UnitQuota.FirstOrDefault(x =>
             x.Id == model.UnitQuotaId &&
-            x.OrgId == user.OmdOrgId);
+            (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId));
 
         if (quota == null)
         {
@@ -284,12 +284,12 @@ public class UnitQuotaManager
                 $"برای وعده «{meal.Title}» سهمیه‌ای وجود ندارد.");
         }
 
-        if (person.UnitCode != quota.OrgId)
-        {
-            return new BaseResult(
-                false,
-                "این پرسنل متعلق به یگان سهمیه نیست.");
-        }
+        //if (person.UnitCode != quota.OrgId)
+        //{
+        //    return new BaseResult(
+        //        false,
+        //        "این پرسنل متعلق به یگان سهمیه نیست.");
+        //}
 
         var fullName =
             !string.IsNullOrWhiteSpace(person.FullName)
@@ -486,7 +486,7 @@ public class UnitQuotaManager
 
         var quota = UOW.UnitQuota.FirstOrDefault(x =>
             x.Id == model.UnitQuotaId &&
-            x.OrgId == user.OmdOrgId);
+            (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId));
 
         if (quota == null)
         {
@@ -739,7 +739,7 @@ public class UnitQuotaManager
 
         var quota = UOW.UnitQuota.FirstOrDefault(x =>
             x.Id == unitQuotaId &&
-            x.OrgId == user.OmdOrgId);
+            (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId));
 
         if (quota == null)
             return new List<UnitQuotaPersonDTO>();
@@ -787,7 +787,7 @@ public class UnitQuotaManager
         var user = Session?.GetUser();
 
         if (user == null ||
-            user.OmdOrgId != orgId)
+            (user.RoleId != RoleConstant.Admin && user.OmdOrgId != orgId))
         {
             return new List<SelectListDTO>();
         }
@@ -832,7 +832,7 @@ public class UnitQuotaManager
                 "اطلاعات فرد مورد نظر یافت نشد.");
         }
 
-        if (person.OrgId != user.OmdOrgId)
+        if (user.RoleId != RoleConstant.Admin && person.OrgId != user.OmdOrgId)
         {
             return new BaseResult(
                 false,
@@ -999,7 +999,7 @@ public class UnitQuotaManager
         {
             quotas = quotas
                 .Where(x =>
-                    x.OrgId == user.OmdOrgId)
+                    (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId))
                 .ToList();
         }
         else if (filters.OrgId.HasValue &&

@@ -785,6 +785,102 @@ if (!accessResult.Status)
             return new BaseResult(false, "تحویل غذا با خطا همراه بوده است");
         }
     }
+    /// <summary>
+    /// QR را اعتبارسنجی و ژتون را به‌صورت اتمیک مصرف می‌کند.
+    /// شرط IsDelivered در خود دستور Update مانع مصرف هم‌زمان یا دوباره می‌شود.
+    /// </summary>
+    public BaseResult DeliverFoodByQr(
+        string deliveryCode,
+        string deliveryHash,
+        long mealId)
+    {
+        try
+        {
+            deliveryCode = deliveryCode?.Trim();
+            deliveryHash = deliveryHash?.Trim();
+
+            if (string.IsNullOrWhiteSpace(deliveryCode) ||
+                string.IsNullOrWhiteSpace(deliveryHash) ||
+                mealId <= 0)
+            {
+                return new BaseResult(false, "اطلاعات QR ژتون معتبر نیست");
+            }
+
+            var token = UOW.QoutaPerson
+                .Get(
+                    x => x.DeliveryCode == deliveryCode &&
+                         x.DeliveryHash == deliveryHash &&
+                         x.IsDeleted == false,
+                    null,
+                    null,
+                    null,
+                    x => x.Include(i => i.QoutaAllocation)
+                          .Include(i => i.MainFood)
+                          .Include(i => i.FoodTokenType)
+                          .Include(i => i.FoodReceiverType))
+                .SingleOrDefault();
+
+            if (token == null)
+                return new BaseResult(false, "ژتون مورد نظر یافت نشد یا QR معتبر نیست");
+
+            if (token.QoutaAllocation == null)
+                return new BaseResult(false, "اطلاعات سهمیه ژتون یافت نشد");
+
+            if (token.QoutaAllocation.QoutaAllocationDate.Date != DateTime.Today)
+                return new BaseResult(false, "این ژتون مربوط به امروز نیست");
+
+            if (token.QoutaAllocation.MealId != mealId)
+                return new BaseResult(false, "این ژتون مربوط به این وعده غذایی نیست");
+
+            if (token.IsDelivered)
+            {
+                return new BaseResult(false, "این ژتون قبلاً استفاده شده است")
+                {
+                    Model = new
+                    {
+                        token.DeliveredDate
+                    }
+                };
+            }
+
+            var currentUser = Session?.GetUser();
+            var deliveredAt = DateTime.Now;
+
+            var affectedRows = UpdateWithCommit(
+                x => x.Id == token.Id &&
+                     x.IsDeleted == false &&
+                     x.IsDelivered == false,
+                x => new QoutaPerson
+                {
+                    IsDelivered = true,
+                    DeliveredDate = deliveredAt,
+                    DeliveredUserId = currentUser != null ? currentUser.Id : null,
+                    LastEditUserId = currentUser != null ? currentUser.Id : null,
+                    LastEditDate = deliveredAt
+                });
+
+            if (affectedRows != 1)
+                return new BaseResult(false, "این ژتون قبلاً استفاده شده است");
+
+            return new BaseResult(true, "ژتون معتبر است؛ غذا با موفقیت تحویل شد")
+            {
+                Model = new
+                {
+                    FullName = $"{token.FName} {token.LName}".Trim(),
+                    FoodTitle = token.MainFood?.Title,
+                    ReceiverType = token.FoodReceiverType?.Title,
+                    TokenType = token.FoodTokenType?.Title,
+                    DeliveredDate = deliveredAt
+                }
+            };
+        }
+        catch
+        {
+            return new BaseResult(false, "بررسی و ثبت QR ژتون با خطا همراه بود");
+        }
+    }
+
+
     public QoutaAllocationCapacityDTO GetCapacityStatus(long qoutaAllocationId)
     {
         var allocation = UOW.QoutaAllocation
@@ -1001,4 +1097,61 @@ if (!accessResult.Status)
     }
 
     #endregion
+
+    /// <summary>
+    /// بررسی می‌کند برای کد پرسنلی، سهمیه امروز یا آینده ثبت شده باشد.
+    /// </summary>
+    public bool HasActiveQuota(string personalCode)
+    {
+        personalCode = personalCode?.Trim();
+
+        if (string.IsNullOrWhiteSpace(personalCode))
+            return false;
+
+        var today = DateTime.Today;
+
+        return UOW.QoutaPerson.Any(x =>
+            x.PersonalCode == personalCode &&
+            x.IsDeleted == false &&
+            x.QoutaAllocation != null &&
+            x.QoutaAllocation.IsDeleted == false &&
+            x.QoutaAllocation.QoutaAllocationDate >= today);
+    }
+
+
+    /// <summary>
+    /// تاریخ و وعده‌های دارای سهمیه پرسنل را برای جلوگیری از رزرو خارج از سهمیه برمی‌گرداند.
+    /// </summary>
+    public IReadOnlyCollection<(DateTime Date, long MealId)> GetReservableSlots(
+        string personalCode,
+        DateTime fromDate,
+        DateTime toDate)
+    {
+        personalCode = personalCode?.Trim();
+        fromDate = fromDate.Date;
+        toDate = toDate.Date;
+
+        if (string.IsNullOrWhiteSpace(personalCode) || fromDate > toDate)
+            return Array.Empty<(DateTime Date, long MealId)>();
+
+        return UOW.QoutaPerson
+            .Get(
+                x => x.PersonalCode == personalCode &&
+                     x.IsDeleted == false &&
+                     x.QoutaAllocation != null &&
+                     x.QoutaAllocation.IsDeleted == false &&
+                     x.QoutaAllocation.QoutaAllocationDate >= fromDate &&
+                     x.QoutaAllocation.QoutaAllocationDate <= toDate,
+                null,
+                null,
+                null,
+                x => x.Include(i => i.QoutaAllocation))
+            .ToList()
+            .Select(x => (
+                x.QoutaAllocation.QoutaAllocationDate.Date,
+                x.QoutaAllocation.MealId))
+            .Distinct()
+            .ToList();
+    }
+
 }

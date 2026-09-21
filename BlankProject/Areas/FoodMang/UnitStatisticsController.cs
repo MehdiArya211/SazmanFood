@@ -1,12 +1,15 @@
 ﻿using BLL;
 using BLL.Interface;
 using Domain.Enums;
+using Domain.Constants;
 using DTO.Entities;
 using DTO.User;
 using Filters;
 using ITOWebApiClient;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Services.SessionServices;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Food.Areas.FoodMang.Controllers
 {
@@ -20,12 +23,6 @@ namespace Food.Areas.FoodMang.Controllers
         Action: "index")]
     public class UnitStatisticsController : Controller
     {
-        #region MyRegion
-
-        #endregion
-        private const string RegistrarRole = "ثبت‌کننده آمار یگان";
-        private const string ApproverRole = "تایید کننده آمار یگان";
-
         private readonly IUnitStatisticManager unitStatisticManager;
         private readonly IDataTableManager dataTableManager;
         private readonly IWebApiManager webApiManager;
@@ -57,14 +54,13 @@ namespace Food.Areas.FoodMang.Controllers
                 throw new ArgumentNullException(nameof(apiTokenClient));
 
             Session = httpContextAccessor?.HttpContext?.Session;
-            access_token = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjkxRUQ1RDFGMEIxQzg3ODQ3NzE4QjMyNEQwQkM5QkU5IiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3ODU0MDEyNDgsImV4cCI6MTc4NTQwNDg0OCwiaXNzIjoiaHR0cDovL2l0b2lkZW50aXR5c2VydmVyLm5lei5uZXQiLCJhdWQiOlsiT3JnYW5BcGkiLCJQZXJzb25lbEFwaSIsIlByb3ZpbmNlQXBpIl0sImNsaWVudF9pZCI6IkRlcHJpdmF0aW9uIiwic3ViIjoiZGVwcml2YXRpb24iLCJhdXRoX3RpbWUiOjE3ODU0MDEyNDgsImlkcCI6ImxvY2FsIiwianRpIjoiMUJCM0FEQzIwNjg0NDYxNDNFOTkyMzM3M0RENUJGMkUiLCJpYXQiOjE3ODU0MDEyNDgsInNjb3BlIjpbIm9yZ2FuLmluZm8iLCJwZXJzb25hbC5pbmZvIiwicHJvdmluY2UuaW5mbyJdLCJhbXIiOlsiY3VzdG9tIl19.GcBFFzII5Q66M35Rr2Mk6_FWPE-YihRJco5TDz3q91vjOvO4_KpemZDtQsX3o9SeplTTls-mjEeLWxmkBD6f56fnsGyGNkDFSK5yPZ_C3B83413r_E1s2mOu8yU7yeDznMH5sagFRH5BQX32Kw3tk2mO-vgIXdscr2VvQZmnDPfw_K0Z9HSiJt6VAEN_9jdYsrZoInvjAyDBSSYvdSTQGjHCAbcSGmMNgScfUB4IjlwD1xhMMmt_WiNHupRI7QwXZ4WGRiN1oNtrU-1T7GnlKukVL1kR4_V3uR_ZmT5UwZnSCbtq8hxv9tOK3UqAEM5kucGxYtldeCj8jmWXnoXp7g";
-            //access_token = apiTokenClient.GetApiToken(
-            //    CustomSettings.Instance.ClientId,
-            //    CustomSettings.Instance.Scope,
-            //    CustomSettings.Instance.ClientSecret,
-            //    CustomSettings.Instance.ROPC_UserName,
-            //    CustomSettings.Instance.ROPC_Password
-            //).Result;
+            access_token = apiTokenClient.GetApiToken(
+                CustomSettings.Instance.ClientId,
+                CustomSettings.Instance.Scope,
+                CustomSettings.Instance.ClientSecret,
+                CustomSettings.Instance.ROPC_UserName,
+                CustomSettings.Instance.ROPC_Password
+            ).GetAwaiter().GetResult();
         }
 
         #region دسترسی‌ها
@@ -77,25 +73,13 @@ namespace Food.Areas.FoodMang.Controllers
         private bool IsRegistrar()
         {
             var user = GetCurrentUser();
-
-            return user != null &&
-                   user.IsEnabled &&
-                   string.Equals(
-                       user.Role?.Trim(),
-                       RegistrarRole,
-                       StringComparison.OrdinalIgnoreCase);
+            return user?.IsEnabled == true && (user.RoleId == RoleConstant.Admin || user.RoleId == RoleConstant.FoodRegistrar);
         }
 
         private bool IsApprover()
         {
             var user = GetCurrentUser();
-
-            return user != null &&
-                   user.IsEnabled &&
-                   string.Equals(
-                       user.Role?.Trim(),
-                       ApproverRole,
-                       StringComparison.OrdinalIgnoreCase);
+            return user?.IsEnabled == true && (user.RoleId == RoleConstant.Admin || user.RoleId == RoleConstant.FoodApprover);
         }
 
         private bool CanView()
@@ -127,17 +111,38 @@ namespace Food.Areas.FoodMang.Controllers
                 Message = string.Join("</br>", errors)
             });
         }
-
         private string GetOrgTitle(int orgId)
         {
             if (orgId <= 0)
                 return null;
 
-            return webApiManager
-                .GetListOrganInfoV1(access_token)
-                .Where(x => x.Id == orgId)
-                .Select(x => x.UnitTitle)
-                .FirstOrDefault();
+
+            var organ = webApiManager
+                .GetOrganInfoById(orgId, access_token);
+
+
+            return organ?.UnitTitle;
+        }
+        private string GetOrgTitle0(int orgId)
+        {
+            if (orgId <= 0)
+                return null;
+
+            var res1 = webApiManager
+                .GetOrganByGharargahId(orgId , access_token).Where(x => x.Id == orgId).FirstOrDefault();
+            //var res = webApiManager
+            //    .GetListOrganInfoV1(access_token)
+            //    .Where(x => x.Id == orgId)
+            //    .Select(x => x.Title)
+            //    .FirstOrDefault();
+
+            var res = webApiManager
+    .GetOrganByCategoryCode(access_token)
+    .Where(x => x.Id == orgId)
+    .Select(x => x.Title)
+    .FirstOrDefault();
+
+            return res;
         }
 
         #endregion
@@ -166,7 +171,7 @@ namespace Food.Areas.FoodMang.Controllers
             if (user == null)
                 return AccessDenied("اطلاعات کاربر در سشن یافت نشد.");
 
-            if (user.OmdOrgId <= 0)
+            if (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0)
                 return AccessDenied("یگان کاربر مشخص نشده است.");
 
             filters ??= new UnitStatisticFilterDTO();
@@ -175,7 +180,8 @@ namespace Food.Areas.FoodMang.Controllers
              * کاربر فقط آمار یگان خودش را مشاهده می‌کند.
              * OrgId ارسال‌شده از مرورگر نادیده گرفته می‌شود.
              */
-            filters.OrgId = user.OmdOrgId;
+            if (user.RoleId != RoleConstant.Admin)
+                filters.OrgId = user.OmdOrgId;
 
             var searchModel = dataTableManager.GetSearchModel();
 
@@ -203,13 +209,21 @@ namespace Food.Areas.FoodMang.Controllers
             if (user == null)
                 return AccessDenied("اطلاعات کاربر در سشن یافت نشد.");
 
-            if (user.OmdOrgId <= 0)
+            if (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0)
             {
                 return BadRequest(new
                 {
                     Status = false,
                     Message = "یگان کاربر مشخص نشده است."
                 });
+            }
+
+            if (user.RoleId == RoleConstant.Admin)
+            {
+                ViewBag.Organizations = new SelectList(
+                    webApiManager.GetListOrganInfoV1(access_token),
+                    "Id", "UnitTitle");
+                return PartialView("_Create", new UnitStatisticCreateDTO());
             }
 
             var orgTitle = GetOrgTitle(user.OmdOrgId);
@@ -249,7 +263,7 @@ namespace Food.Areas.FoodMang.Controllers
                 if (user == null)
                     return AccessDenied("اطلاعات کاربر در سشن یافت نشد.");
 
-                if (user.OmdOrgId <= 0)
+                if (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0)
                 {
                     return Json(new
                     {
@@ -271,8 +285,9 @@ namespace Food.Areas.FoodMang.Controllers
                  * شناسه و عنوان یگان از سشن و وب‌سرویس گرفته می‌شود؛
                  * مقادیر ارسال‌شده از مرورگر قابل اعتماد نیست.
                  */
-                model.OrgId = user.OmdOrgId;
-                model.OrgTitle = GetOrgTitle(user.OmdOrgId);
+                if (user.RoleId != RoleConstant.Admin)
+                    model.OrgId = user.OmdOrgId;
+                model.OrgTitle = GetOrgTitle(model.OrgId);
 
                 ModelState.Remove(nameof(model.OrgId));
                 ModelState.Remove(nameof(model.OrgTitle));
@@ -331,7 +346,7 @@ namespace Food.Areas.FoodMang.Controllers
             if (model == null)
                 return NotFound();
 
-            if (model.OrgId != user.OmdOrgId)
+            if (user.RoleId != RoleConstant.Admin && model.OrgId != user.OmdOrgId)
             {
                 return AccessDenied(
                     "شما اجازه ویرایش آمار این یگان را ندارید.");
@@ -389,7 +404,7 @@ namespace Food.Areas.FoodMang.Controllers
                     });
                 }
 
-                if (current.OrgId != user.OmdOrgId)
+                if (user.RoleId != RoleConstant.Admin && current.OrgId != user.OmdOrgId)
                 {
                     return AccessDenied(
                         "شما اجازه ویرایش آمار این یگان را ندارید.");
@@ -457,7 +472,7 @@ namespace Food.Areas.FoodMang.Controllers
             if (model == null)
                 return NotFound();
 
-            if (model.OrgId != user.OmdOrgId)
+            if (user.RoleId != RoleConstant.Admin && model.OrgId != user.OmdOrgId)
             {
                 return AccessDenied(
                     "شما اجازه مشاهده آمار این یگان را ندارید.");
@@ -492,7 +507,7 @@ namespace Food.Areas.FoodMang.Controllers
                 if (user == null)
                     return AccessDenied("اطلاعات کاربر در سشن یافت نشد.");
 
-                if (user.OmdOrgId <= 0)
+                if (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0)
                     return AccessDenied("یگان کاربر مشخص نشده است.");
 
                 if (model == null || model.Id <= 0)
@@ -515,7 +530,7 @@ namespace Food.Areas.FoodMang.Controllers
                     });
                 }
 
-                if (current.OrgId != user.OmdOrgId)
+                if (user.RoleId != RoleConstant.Admin && current.OrgId != user.OmdOrgId)
                 {
                     return AccessDenied(
                         "شما اجازه ثبت جزئیات این یگان را ندارید.");
@@ -614,7 +629,7 @@ namespace Food.Areas.FoodMang.Controllers
                 if (user == null)
                     return AccessDenied("اطلاعات کاربر در سشن یافت نشد.");
 
-                if (user.OmdOrgId <= 0)
+                if (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0)
                     return AccessDenied("یگان کاربر مشخص نشده است.");
 
                 if (id <= 0)
@@ -637,7 +652,7 @@ namespace Food.Areas.FoodMang.Controllers
                     });
                 }
 
-                if (current.OrgId != user.OmdOrgId)
+                if (user.RoleId != RoleConstant.Admin && current.OrgId != user.OmdOrgId)
                 {
                     return AccessDenied(
                         "شما اجازه ارسال آمار این یگان را ندارید.");
@@ -687,7 +702,7 @@ namespace Food.Areas.FoodMang.Controllers
                 if (user == null)
                     return AccessDenied("اطلاعات کاربر در سشن یافت نشد.");
 
-                if (user.OmdOrgId <= 0)
+                if (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0)
                     return AccessDenied("یگان کاربر مشخص نشده است.");
 
                 if (id <= 0)
@@ -710,7 +725,7 @@ namespace Food.Areas.FoodMang.Controllers
                     });
                 }
 
-                if (current.OrgId != user.OmdOrgId)
+                if (user.RoleId != RoleConstant.Admin && current.OrgId != user.OmdOrgId)
                 {
                     return AccessDenied(
                         "شما اجازه تأیید آمار این یگان را ندارید.");

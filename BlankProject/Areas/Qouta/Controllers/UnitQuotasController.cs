@@ -1,5 +1,6 @@
 ﻿using BLL;
 using BLL.Interface;
+using Domain.Constants;
 using DTO.Entities;
 using DTO.User;
 using Filters;
@@ -20,10 +21,7 @@ namespace Food.Areas.Qouta.Controllers;
 [UserAuthorize(Area: "Qouta", Controller: "UnitQuotas", Action: "index")]
 public class UnitQuotasController : Controller
 {
-    private const string SupportRole =
-        "رکن 4 پشتیبانی قرارگاه";
-
-    private readonly IUnitQuotaManager unitQuotaManager;
+private readonly IUnitQuotaManager unitQuotaManager;
     private readonly IWebApiManager webApiManager;
     private readonly ISession Session;
     private readonly ApiTokenCacheClient apiTokenClient;
@@ -74,35 +72,11 @@ public class UnitQuotasController : Controller
         return Session?.GetUser();
     }
 
-    private string NormalizeRole(string role)
-    {
-        if (string.IsNullOrWhiteSpace(role))
-            return string.Empty;
-
-        return role
-            .Trim()
-            .Replace("\u200c", "")
-            .Replace(" ", "")
-            .Replace("ي", "ی")
-            .Replace("ك", "ک");
-    }
-
-    private bool HasRole(string roleTitle)
-    {
-        var user = GetCurrentUser();
-
-        if (user == null || !user.IsEnabled)
-            return false;
-
-        return string.Equals(
-            NormalizeRole(user.Role),
-            NormalizeRole(roleTitle),
-            StringComparison.OrdinalIgnoreCase);
-    }
-
     private bool CanViewAllOrganizations()
     {
-        return HasRole(SupportRole);
+        var user = GetCurrentUser();
+        return user?.IsEnabled == true &&
+               (user.RoleId == RoleConstant.Admin || user.RoleId == RoleConstant.FoodSupport);
     }
 
     private bool CanView()
@@ -127,8 +101,8 @@ public class UnitQuotasController : Controller
          * رکن 4 همه یگان‌ها را مشاهده می‌کند،
          * اما ثبت و حذف فقط برای یگان خود کاربر است.
          */
-        return user.OmdOrgId > 0 &&
-               user.OmdOrgId == orgId;
+        return user.RoleId == RoleConstant.Admin ||
+               (user.OmdOrgId > 0 && user.OmdOrgId == orgId);
     }
 
     private IActionResult AccessDenied(
@@ -340,16 +314,16 @@ public class UnitQuotasController : Controller
             /*
              * جست‌وجوی کادر فقط برای یگان خود کاربر.
              */
-            if (person.UnitCode !=
-                user.OmdOrgId)
-            {
-                return Json(new
-                {
-                    Status = false,
-                    Message =
-                        "این پرسنل متعلق به یگان شما نیست."
-                });
-            }
+            //if (user.RoleId != RoleConstant.Admin && person.UnitCode !=
+            //    user.OmdOrgId)
+            //{
+            //    return Json(new
+            //    {
+            //        Status = false,
+            //        Message =
+            //            "این پرسنل متعلق به یگان شما نیست."
+            //    });
+            //}
 
             var fullName =
                 !string.IsNullOrWhiteSpace(

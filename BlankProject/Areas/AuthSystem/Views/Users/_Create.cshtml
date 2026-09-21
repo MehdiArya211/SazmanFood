@@ -1,7 +1,6 @@
 ﻿@model DTO.User.UserCreateDTO
 @using Services.SessionServices
 
-
 <div class="modal-header">
 
     <button type="button"
@@ -10,7 +9,9 @@
             data-dismiss="modal"
             aria-label="Close">
 
-        <span aria-hidden="true">&times;</span>
+        <span aria-hidden="true">
+            &times;
+        </span>
 
     </button>
 
@@ -28,393 +29,319 @@
 
 
 
-
 <div class="modal-body row">
 
+    <div class="col-md-12">
 
-<div class="col-md-12">
 
+        <form asp-action="Create"
+              class="create-form"
+              onsubmit="return user.create.save(event)">
 
-<form asp-action="Create"
-      class="create-form"
-      onsubmit="return user.create.save(event)">
 
+            <div class="form-horizontal">
 
-<div class="form-horizontal">
 
+                <hr />
 
-<hr />
 
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger">
+                </div>
 
-<div asp-validation-summary="ModelOnly"
-     class="text-danger">
-</div>
 
+                <div class="error text-center text-danger">
+                    @ViewBag.Error
+                </div>
 
-<div class="error text-center text-danger">
-    @ViewBag.Error
-</div>
 
 
+                <!-- اطلاعات کاربر -->
 
+                <div class="col-md-12">
 
 
-<!-- اطلاعات کاربر -->
+                    <div class="form-group col-md-4">
 
-<div class="col-md-12">
+                        <label asp-for="Username"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
-<div class="form-group col-md-4">
+                        <div class="col-md-12">
 
+                            <input asp-for="Username"
+                                   class="form-control" />
 
-<label asp-for="Username"
-       class="control-label text-right col-md-12 required">
-</label>
 
+                            <span asp-validation-for="Username"
+                                  class="text-danger">
+                            </span>
 
-<div class="col-md-12">
+                        </div>
 
+                    </div>
 
-<input asp-for="Username"
-       class="form-control" />
 
 
-<span asp-validation-for="Username"
-      class="text-danger">
-</span>
 
+                    <div class="form-group col-md-4">
 
-</div>
+                        <label asp-for="Name"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
-</div>
+                        <div class="col-md-12">
 
 
+                            <input asp-for="Name"
+                                   class="form-control" />
 
 
+                            <span asp-validation-for="Name"
+                                  class="text-danger">
+                            </span>
 
 
-<div class="form-group col-md-4">
+                        </div>
 
 
-<label asp-for="Name"
-       class="control-label text-right col-md-12 required">
-</label>
+                    </div>
 
 
-<div class="col-md-12">
 
 
-<input asp-for="Name"
-       class="form-control" />
+                    <div class="form-group col-md-4">
 
 
-<span asp-validation-for="Name"
-      class="text-danger">
-</span>
+                        <label asp-for="Mobile"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
-</div>
+                        <div class="col-md-12">
 
 
-</div>
+                            <input asp-for="Mobile"
+                                   class="form-control"
+                                   placeholder="09*********"
+                                   style="direction:ltr;text-align:right" />
 
 
+                            <span asp-validation-for="Mobile"
+                                  class="text-danger">
+                            </span>
 
 
+                        </div>
 
 
-<div class="form-group col-md-4">
+                    </div>
 
 
-<label asp-for="Mobile"
-       class="control-label text-right col-md-12 required">
-</label>
+                </div>
 
 
-<div class="col-md-12">
 
 
-<input asp-for="Mobile"
-       class="form-control"
-       placeholder="09*********"
-       style="direction:ltr;text-align:right" />
 
+                <!-- رمز عبور و نقش -->
 
-<span asp-validation-for="Mobile"
-      class="text-danger">
-</span>
+                <div class="col-md-12">
 
 
-</div>
+                    <div class="form-group col-md-4">
 
 
-</div>
+                        <label asp-for="Password"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
+                        <div class="col-md-12">
 
-</div>
 
+                            <input asp-for="Password"
+                                   class="form-control" />
 
 
+                            <span asp-validation-for="Password"
+                                  class="text-danger">
+                            </span>
 
 
+                        </div>
 
 
-<!-- رمز عبور و نقش -->
+                    </div>
 
-<div class="col-md-12">
 
 
-<div class="form-group col-md-4">
 
 
-<label asp-for="Password"
-       class="control-label text-right col-md-12 required">
-</label>
+                    <div class="form-group col-md-4">
 
 
-<div class="col-md-12">
+                        <label asp-for="RePassword"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
 
-<input asp-for="Password"
-       class="form-control" />
+                        <div class="col-md-12">
 
 
-<span asp-validation-for="Password"
-      class="text-danger">
-</span>
+                            <input asp-for="RePassword"
+                                   class="form-control" />
 
 
-</div>
+                            <span asp-validation-for="RePassword"
+                                  class="text-danger">
+                            </span>
 
 
-</div>
+                        </div>
 
 
+                    </div>
 
 
 
 
-<div class="form-group col-md-4">
 
+                    <div class="form-group col-md-4">
 
-<label asp-for="RePassword"
-       class="control-label text-right col-md-12 required">
-</label>
 
+                        <label asp-for="RoleId"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
-<div class="col-md-12">
 
+                        <div class="col-md-12">
 
-<input asp-for="RePassword"
-       class="form-control" />
 
+                            <select asp-for="RoleId"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.RoleId">
 
-<span asp-validation-for="RePassword"
-      class="text-danger">
-</span>
 
+                            </select>
 
-</div>
 
+                            <span asp-validation-for="RoleId"
+                                  class="text-danger">
+                            </span>
 
-</div>
 
+                        </div>
 
 
+                    </div>
 
 
+                </div>
 
-<div class="form-group col-md-4">
 
 
-<label asp-for="RoleId"
-       class="control-label text-right col-md-12 required">
-</label>
 
 
-<div class="col-md-12">
 
+                <!-- یگان -->
 
-<select asp-for="RoleId"
-        class="selectpicker"
-        data-live-search="true"
-        data-size="7"
-        tabindex="-98"
-        data-style="select-with-transition"
-        asp-items="ViewBag.RoleId">
+                <div class="col-md-12">
 
 
-</select>
+                    <div class="form-group col-md-4">
 
 
+                        <label asp-for="OmdOrgId"
+                               class="control-label text-right col-md-12 required">
+                        </label>
 
-<span asp-validation-for="RoleId"
-      class="text-danger">
-</span>
 
+                        <div class="col-md-12">
 
-</div>
 
+                            <select asp-for="OmdOrgId"
+                                    id="orgList"
+                                    class="selectpicker"
+                                    data-live-search="true"
+                                    data-size="7"
+                                    tabindex="-98"
+                                    data-style="select-with-transition"
+                                    asp-items="ViewBag.Gharargah">
 
-</div>
 
+                                <option value="">
+                                    لطفا یگان را انتخاب نمایید
+                                </option>
 
 
-</div>
+                            </select>
 
 
 
+                            <span asp-validation-for="OmdOrgId"
+                                  class="text-danger">
+                            </span>
 
 
+                        </div>
 
 
+                    </div>
 
 
-<!-- قرارگاه و یگان -->
+                </div>
 
-<div class="col-md-12">
 
 
 
-<div class="form-group col-md-4">
 
 
-<label asp-for="GharargahId"
-       class="control-label text-right col-md-12 required">
-</label>
 
+                <!-- ذخیره -->
 
+                <div class="form-group col-md-12 text-center">
 
-<div class="col-md-12">
 
+                    <div class="btn-group">
 
-<select asp-for="GharargahId"
-        id="gharargahList"
-        class="selectpicker"
-        data-live-search="true"
-        data-size="7"
-        tabindex="-98"
-        data-style="select-with-transition"
-        asp-items="ViewBag.Gharargah">
 
+                        <button type="submit"
+                                class="btn btn-info">
 
-<option value="">
-    لطفا قرارگاه را انتخاب نمایید
-</option>
 
+                            <i class="material-icons">
+                                send
+                            </i>
 
-</select>
 
+                            ذخیره اطلاعات
 
 
-<span asp-validation-for="GharargahId"
-      class="text-danger">
-</span>
+                        </button>
 
 
-</div>
+                    </div>
 
 
-</div>
+                </div>
 
 
 
 
+            </div>
 
 
+        </form>
 
-<div class="form-group col-md-4">
 
-
-<label asp-for="OmdOrgId"
-       class="control-label text-right col-md-12 required">
-</label>
-
-
-
-<div class="col-md-12">
-
-
-<select asp-for="OmdOrgId"
-        id="orgList"
-        class="selectpicker"
-        data-live-search="true"
-        data-size="7"
-        tabindex="-98"
-        data-style="select-with-transition">
-
-
-<option value="">
-    ابتدا قرارگاه را انتخاب نمایید
-</option>
-
-
-</select>
-
-
-
-<span asp-validation-for="OmdOrgId"
-      class="text-danger">
-</span>
-
-
-</div>
-
-
-</div>
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-<div class="form-group col-md-12 text-center">
-
-
-<div class="btn-group">
-
-
-<button type="submit"
-        class="btn btn-info">
-
-
-<i class="material-icons">
-send
-</i>
-
-
-ذخیره اطلاعات
-
-
-</button>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-</form>
-
-
-</div>
+    </div>
 
 
 </div>

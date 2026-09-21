@@ -9,6 +9,8 @@ using Services.SessionServices;
 using Utilities;
 using LinqKit;
 using Domain.Enums;
+using Domain.Constants;
+using DTO;
 using Utilities.Extentions;
 using Infrastructure.Data;
 using DocumentFormat.OpenXml.InkML;
@@ -397,6 +399,84 @@ namespace BLL
 
             return UOW.Users.GetDTO<SelectListDTO>(SelectListDTO.UserSelector, filter, take: 20).ToList();
         }
+
+        /// <summary>
+        /// بررسی وجود کاربر در جدول کاربران بدون بررسی کلمه عبور.
+        /// </summary>
+        public bool ExistsByUsername(string username)
+        {
+            username = username?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
+
+            return !string.IsNullOrWhiteSpace(username) &&
+                   UOW.Users.Any(x => x.Username == username && x.IsDeleted == false);
+        }
+
+        /// <summary>
+        /// ایجاد کاربر رزروکننده غذا از اطلاعات معتبر سرویس پرسنلی.
+        /// نام کاربری و رمز اولیه همان کد پرسنلی است و کاربر در اولین ورود
+        /// ملزم به تغییر کلمه عبور خواهد بود.
+        /// </summary>
+        public BaseResult CreateMealBookerFromPersonnel(PersonalInfDTO person, string initialPassword)
+        {
+            if (person == null || string.IsNullOrWhiteSpace(person.personalCode))
+                return new BaseResult(false, "اطلاعات پرسنلی معتبر نیست.");
+
+            var personCode = person.personalCode
+                .Trim()
+                .ToEnglishNumber()
+                .ToPersianCharacter();
+
+            if (ExistsByUsername(personCode))
+                return new BaseResult(false, "حساب کاربری قبلاً ایجاد شده است.");
+
+            if (initialPassword?.Trim().ToEnglishNumber() != personCode)
+                return new BaseResult(false, "در اولین ورود، کلمه عبور باید همان کد پرسنلی باشد.");
+
+            var fullName = !string.IsNullOrWhiteSpace(person.FullName)
+                ? person.FullName.Trim().ToPersianCharacter()
+                : ($"{person.FirstName} {person.LastName}").Trim().ToPersianCharacter();
+
+            int? parsedPersonCode = int.TryParse(personCode, out var personCodeValue)
+                ? personCodeValue
+                : null;
+
+            int? nationalCode = int.TryParse(
+                person.MelliCode?.Trim().ToEnglishNumber(),
+                out var nationalCodeValue)
+                    ? nationalCodeValue
+                    : null;
+
+            var mobile = personCode.Length >= 11
+                ? personCode.Substring(personCode.Length - 11)
+                : personCode.PadLeft(11, '0');
+
+            var user = new User
+            {
+                Name = string.IsNullOrWhiteSpace(fullName) ? personCode : fullName,
+                Username = personCode,
+                Password = personCode.GetHash(),
+                Mobile = mobile,
+                RoleId = RoleConstant.MealBooker,
+                IsEnabled = true,
+                PasswordIsChanged = false,
+                OmdOrgId = person.UnitCode,
+                PersonId = person.Id > 0 ? person.Id : null,
+                PersonCode = parsedPersonCode,
+                NationalCode = nationalCode,
+                CreateDate = DateTime.Now,
+                IsDeleted = false
+            };
+
+            var result = base.Create(user);
+            if (result.Status)
+            {
+                result.Message =
+                    "حساب رزرو غذا ایجاد شد. برای ادامه باید کلمه عبور خود را تغییر دهید.";
+            }
+
+            return result;
+        }
+
 
         public long GetUserIdWithUserName(string UserName)
         {

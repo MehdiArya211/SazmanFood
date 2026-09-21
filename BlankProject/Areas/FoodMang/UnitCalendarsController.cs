@@ -2,6 +2,7 @@
 using BLL;
 using BLL.Interface;
 using Domain.Enums;
+using Domain.Constants;
 using DTO.Entities;
 using DTO.User;
 using Filters;
@@ -20,12 +21,6 @@ namespace Food.Areas.FoodMang.Controllers
     public class UnitCalendarsController
         : Controller
     {
-        private const string RegistrarRole =
-            "ثبت‌کننده آمار یگان";
-
-        private const string ApproverRole =
-            "تایید کننده آمار یگان";
-
         private readonly IUnitCalendarManager
             unitCalendarManager;
 
@@ -66,16 +61,13 @@ namespace Food.Areas.FoodMang.Controllers
                     .HttpContext?
                     .Session;
 
-            //accessToken =
-            //    apiTokenClient.GetApiToken(
-            //        CustomSettings.Instance.ClientId,
-            //        CustomSettings.Instance.Scope,
-            //        CustomSettings.Instance.ClientSecret,
-            //        CustomSettings.Instance.ROPC_UserName,
-            //        CustomSettings.Instance.ROPC_Password
-            //    ).Result;
-
-            accessToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjkxRUQ1RDFGMEIxQzg3ODQ3NzE4QjMyNEQwQkM5QkU5IiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3ODU0MDEyNDgsImV4cCI6MTc4NTQwNDg0OCwiaXNzIjoiaHR0cDovL2l0b2lkZW50aXR5c2VydmVyLm5lei5uZXQiLCJhdWQiOlsiT3JnYW5BcGkiLCJQZXJzb25lbEFwaSIsIlByb3ZpbmNlQXBpIl0sImNsaWVudF9pZCI6IkRlcHJpdmF0aW9uIiwic3ViIjoiZGVwcml2YXRpb24iLCJhdXRoX3RpbWUiOjE3ODU0MDEyNDgsImlkcCI6ImxvY2FsIiwianRpIjoiMUJCM0FEQzIwNjg0NDYxNDNFOTkyMzM3M0RENUJGMkUiLCJpYXQiOjE3ODU0MDEyNDgsInNjb3BlIjpbIm9yZ2FuLmluZm8iLCJwZXJzb25hbC5pbmZvIiwicHJvdmluY2UuaW5mbyJdLCJhbXIiOlsiY3VzdG9tIl19.GcBFFzII5Q66M35Rr2Mk6_FWPE-YihRJco5TDz3q91vjOvO4_KpemZDtQsX3o9SeplTTls-mjEeLWxmkBD6f56fnsGyGNkDFSK5yPZ_C3B83413r_E1s2mOu8yU7yeDznMH5sagFRH5BQX32Kw3tk2mO-vgIXdscr2VvQZmnDPfw_K0Z9HSiJt6VAEN_9jdYsrZoInvjAyDBSSYvdSTQGjHCAbcSGmMNgScfUB4IjlwD1xhMMmt_WiNHupRI7QwXZ4WGRiN1oNtrU-1T7GnlKukVL1kR4_V3uR_ZmT5UwZnSCbtq8hxv9tOK3UqAEM5kucGxYtldeCj8jmWXnoXp7g";
+            accessToken = apiTokenClient.GetApiToken(
+                CustomSettings.Instance.ClientId,
+                CustomSettings.Instance.Scope,
+                CustomSettings.Instance.ClientSecret,
+                CustomSettings.Instance.ROPC_UserName,
+                CustomSettings.Instance.ROPC_Password
+            ).GetAwaiter().GetResult();
 
         }
 
@@ -84,43 +76,13 @@ namespace Food.Areas.FoodMang.Controllers
             return Session?.GetUser();
         }
 
-        private static string NormalizeRole(
-            string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return string.Empty;
-
-            return value
-                .Trim()
-                .Replace("\u200c", "")
-                .Replace(" ", "")
-                .Replace("ي", "ی")
-                .Replace("ك", "ک");
-        }
-
-        private bool HasRole(
-            string roleTitle)
-        {
-            var user =
-                GetCurrentUser();
-
-            if (user == null ||
-                !user.IsEnabled)
-            {
-                return false;
-            }
-
-            return string.Equals(
-                NormalizeRole(user.Role),
-                NormalizeRole(roleTitle),
-                StringComparison.OrdinalIgnoreCase);
-        }
-
         private bool CanManage()
         {
-            return
-                HasRole(RegistrarRole) ||
-                HasRole(ApproverRole);
+            var user = GetCurrentUser();
+            return user?.IsEnabled == true &&
+                   (user.RoleId == RoleConstant.Admin ||
+                    user.RoleId == RoleConstant.FoodRegistrar ||
+                    user.RoleId == RoleConstant.FoodApprover);
         }
 
         private IActionResult AccessDenied(
@@ -250,6 +212,9 @@ namespace Food.Areas.FoodMang.Controllers
 
             LoadDayTypes(
                 DayType.Normal);
+            if (GetCurrentUser()?.RoleId == RoleConstant.Admin)
+                ViewBag.Organizations = new SelectList(
+                    webApiManager.GetListOrganInfoV1(accessToken), "Id", "UnitTitle");
 
             return PartialView(
                 "_Create",
@@ -271,6 +236,9 @@ namespace Food.Areas.FoodMang.Controllers
             if (!CanManage())
                 return AccessDenied();
 
+            if (model == null)
+                return BadRequest(new { Status = false, Message = "اطلاعات ارسالی معتبر نیست." });
+
             if (!ModelState.IsValid)
                 return ModelStateError();
 
@@ -278,20 +246,25 @@ namespace Food.Areas.FoodMang.Controllers
                 GetCurrentUser();
 
             if (user == null ||
-                user.OmdOrgId <= 0)
+                (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0))
             {
                 return AccessDenied(
                     "یگان کاربر مشخص نشده است.");
             }
 
-            var orgTitle =
-                GetOrgTitle(
-                    user.OmdOrgId);
+            var orgId = user.RoleId == RoleConstant.Admin
+                ? model.OrgId.GetValueOrDefault()
+                : user.OmdOrgId;
+
+            if (orgId <= 0)
+                return Json(new { Status = false, Message = "یگان را انتخاب کنید." });
+
+            var orgTitle = GetOrgTitle(orgId);
 
             var result =
                 unitCalendarManager.Create(
                     model,
-                    user.OmdOrgId,
+                    orgId,
                     orgTitle,
                     user.Id);
 
@@ -334,7 +307,7 @@ namespace Food.Areas.FoodMang.Controllers
                 GetCurrentUser();
 
             if (user == null ||
-                user.OmdOrgId <= 0)
+                (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0))
             {
                 return AccessDenied(
                     "یگان کاربر مشخص نشده است.");
@@ -361,7 +334,7 @@ namespace Food.Areas.FoodMang.Controllers
                 GetCurrentUser();
 
             if (user == null ||
-                user.OmdOrgId <= 0)
+                (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0))
             {
                 return AccessDenied(
                     "یگان کاربر مشخص نشده است.");

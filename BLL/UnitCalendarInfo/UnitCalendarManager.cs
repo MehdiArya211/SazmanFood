@@ -1,5 +1,6 @@
 ﻿using BLL.Interface;
 using Domain.Entities;
+using Domain.Constants;
 using Domain.Enums;
 using DTO.Base;
 using DTO.Entities;
@@ -35,7 +36,7 @@ namespace BLL
                 Session?.GetUser();
 
             if (user == null ||
-                user.OmdOrgId <= 0)
+                (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0))
             {
                 return new List<UnitCalendarDTO>();
             }
@@ -46,12 +47,9 @@ namespace BLL
             var orgId =
                 user.OmdOrgId;
 
-            var query =
-                UOW.UnitCalendar
-                    .GetAll()
-                    .Where(x =>
-                        x.OrgId == orgId &&
-                        x.IsDeleted != true);
+            var query = UOW.UnitCalendar.GetAll().Where(x => x.IsDeleted != true);
+            if (user.RoleId != RoleConstant.Admin)
+                query = query.Where(x => x.OrgId == orgId);
 
             if (filters.FromDate.HasValue)
             {
@@ -111,7 +109,7 @@ namespace BLL
                 Session?.GetUser();
 
             if (user == null ||
-                user.OmdOrgId <= 0)
+                (user.RoleId != RoleConstant.Admin && user.OmdOrgId <= 0))
             {
                 return null;
             }
@@ -119,7 +117,7 @@ namespace BLL
             var entity =
                 UOW.UnitCalendar.FirstOrDefault(x =>
                     x.Id == id &&
-                    x.OrgId == user.OmdOrgId &&
+                    (user.RoleId == RoleConstant.Admin || x.OrgId == user.OmdOrgId) &&
                     x.IsDeleted != true);
 
             if (entity == null)
@@ -252,10 +250,12 @@ namespace BLL
                     "نوع روز معتبر نیست.");
             }
 
+            var isAdmin = Session?.GetUser()?.RoleId == RoleConstant.Admin;
+
             var entity =
                 UOW.UnitCalendar.FirstOrDefault(x =>
                     x.Id == model.Id &&
-                    x.OrgId == orgId &&
+                    (isAdmin || x.OrgId == orgId) &&
                     x.IsDeleted != true);
 
             if (entity == null)
@@ -269,7 +269,7 @@ namespace BLL
                 model.CalendarDate.Value.Date;
 
             if (UOW.UnitCalendar.Exists(
-                    orgId,
+                    entity.OrgId,
                     date,
                     entity.Id))
             {
@@ -305,10 +305,12 @@ namespace BLL
             int orgId,
             long userId)
         {
+            var isAdmin = Session?.GetUser()?.RoleId == RoleConstant.Admin;
+
             var entity =
                 UOW.UnitCalendar.FirstOrDefault(x =>
                     x.Id == id &&
-                    x.OrgId == orgId &&
+                    (isAdmin || x.OrgId == orgId) &&
                     x.IsDeleted != true);
 
             if (entity == null)

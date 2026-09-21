@@ -158,20 +158,10 @@ namespace DTO.User
 
                     Type = model.Type,
 
-
                     // یگان
                     OmdOrgId = model.OmdOrgId,
-
-
                     // قرارگاه
                     GharargahId = model.GharargahId,
-
-
-
-                    ProvinceId = model.ProvinceId,
-
-                    CityId = model.CityId,
-
 
                     PersonId = model.PersonId,
 
