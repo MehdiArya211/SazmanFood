@@ -19,6 +19,12 @@ namespace BLL.FoodManag.KitchenBL
         BaseResult CreateKitchens(KitchenCreateDTO creatkitchen);
 
         KitchenEditDTO GetKitchenForEditDTO(long? id);
+
+        KitchenCookingStatisticsDTO GetCookingStatistics(
+            DateTime fromDate,
+            DateTime toDate,
+            long? kitchenId,
+            long? mealId);
         BaseResult UpdateKitchens(KitchenEditDTO kitchenedit);
     }
 }
