@@ -25,7 +25,7 @@
                 <div class="col-md-2 form-group">
                     <label>از تاریخ</label>
                     <div id="VueReportFromDate"
-                         data-date="@Model.FromDate.ToPersianDateTime().Split(' ')[0]">
+                         data-date="@Model.FromDate.ToPersianDateTime().ToString().Split(' ')[0]">
                         <date-picker v-model="date"
                                      type="date"
                                      editable="true"
@@ -39,7 +39,7 @@
                 <div class="col-md-2 form-group">
                     <label>تا تاریخ</label>
                     <div id="VueReportToDate"
-                         data-date="@Model.ToDate.ToPersianDateTime().Split(' ')[0]">
+                         data-date="@Model.ToDate.ToPersianDateTime().ToString().Split(' ')[0]">
                         <date-picker v-model="date"
                                      type="date"
                                      editable="true"
@@ -109,7 +109,7 @@
                         {
                             var progress = Math.Min(row.CapacityUsage, 100);
                             <tr class="@(row.IsOverCapacity ? "danger-row" : "")">
-                                <td>@row.Date.ToPersianDateTime().Split(' ')[0]</td>
+                                <td>@row.Date.ToPersianDateTime().ToString().Split(' ')[0]</td>
                                 <td><strong>@row.KitchenTitle</strong><small>@row.OrgTitle</small></td>
                                 <td>@row.MealTitle</td>
                                 <td>@row.CookingCapacity.ToString("N0")</td>
