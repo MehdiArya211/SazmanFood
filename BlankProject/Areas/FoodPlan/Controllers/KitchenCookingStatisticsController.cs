@@ -82,7 +82,7 @@ public class KitchenCookingStatisticsController : Controller
             from kitchen in kitchens
             where !kitchenId.HasValue || kitchen.Id == kitchenId.Value
             join allocation in allocations
-                on (long)kitchen.OrgId equals allocation.OrgId
+                on (long?)kitchen.OrgId equals allocation.OrgId
             group allocation by new
             {
                 kitchen.Id,
