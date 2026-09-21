@@ -2,6 +2,7 @@
 using Domain.Entities;
 using Domain.Entities.FoodManage;
 using DTO.DataTable;
+using DTO.Entities.FoodMang;
 using DTO.Entities.Kitchen;
 using LinqKit;
 using Microsoft.EntityFrameworkCore;
