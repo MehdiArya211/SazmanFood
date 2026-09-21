@@ -45,7 +45,10 @@ namespace Food.Areas.ReserveManagment.Controllers
         public IActionResult Index()
         {
             var user = HttpContext.Session.GetUser();
-            long currentUserId = user.Id; // فرض می‌کنیم شناسه کاربر به این شکل است
+            if (user == null)
+                return RedirectToAction("IndexZP", "Authentication", new { area = "" });
+
+            long currentUserId = user.Id;
 
             // --- محاسبه محدوده زمانی هفته جاری ---
             var now = DateTime.Now;
@@ -144,6 +147,9 @@ namespace Food.Areas.ReserveManagment.Controllers
         public IActionResult Index(IFormCollection form)
         {
             var user = HttpContext.Session.GetUser();
+            if (user == null)
+                return RedirectToAction("IndexZP", "Authentication", new { area = "" });
+
             long userId = user.Id;
 
             try
@@ -274,7 +280,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             catch (Exception ex)
             {
                 TempData["Error"] = "خطا در ثبت برنامه غذایی: " + ex.Message;
-                return RedirectToAction("Create");
+                return RedirectToAction("Index");
             }
         }
 
