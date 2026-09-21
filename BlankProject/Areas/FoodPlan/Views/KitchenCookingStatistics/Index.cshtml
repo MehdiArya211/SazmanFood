@@ -1,4 +1,5 @@
 @model Food.Areas.FoodPlan.Models.KitchenCookingStatisticsViewModel
+@using Utilities.Extentions
 @{
     ViewData["Title"] = "آمار پخت آشپزخانه";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
@@ -23,11 +24,31 @@
             <form method="get" class="row report-filter no-print">
                 <div class="col-md-2 form-group">
                     <label>از تاریخ</label>
-                    <input type="date" name="fromDate" value="@Model.FromDate.ToString("yyyy-MM-dd")" class="form-control" required />
+                    <div id="VueReportFromDate"
+                         data-date="@Model.FromDate.ToPersianDateTime().Split(' ')[0]">
+                        <date-picker v-model="date"
+                                     type="date"
+                                     editable="true"
+                                     auto-submit="true"
+                                     input-class="form-control"
+                                     alt-format="YYYY-MM-DD HH:mm:ss"
+                                     alt-name="fromDate">
+                        </date-picker>
+                    </div>
                 </div>
                 <div class="col-md-2 form-group">
                     <label>تا تاریخ</label>
-                    <input type="date" name="toDate" value="@Model.ToDate.ToString("yyyy-MM-dd")" class="form-control" required />
+                    <div id="VueReportToDate"
+                         data-date="@Model.ToDate.ToPersianDateTime().Split(' ')[0]">
+                        <date-picker v-model="date"
+                                     type="date"
+                                     editable="true"
+                                     auto-submit="true"
+                                     input-class="form-control"
+                                     alt-format="YYYY-MM-DD HH:mm:ss"
+                                     alt-name="toDate">
+                        </date-picker>
+                    </div>
                 </div>
                 <div class="col-md-3 form-group">
                     <label>آشپزخانه</label>
@@ -88,7 +109,7 @@
                         {
                             var progress = Math.Min(row.CapacityUsage, 100);
                             <tr class="@(row.IsOverCapacity ? "danger-row" : "")">
-                                <td>@row.Date.ToString("yyyy/MM/dd")</td>
+                                <td>@row.Date.ToPersianDateTime().Split(' ')[0]</td>
                                 <td><strong>@row.KitchenTitle</strong><small>@row.OrgTitle</small></td>
                                 <td>@row.MealTitle</td>
                                 <td>@row.CookingCapacity.ToString("N0")</td>
@@ -110,6 +131,52 @@
         </div>
     </div>
 </div>
+
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        function createReportDatePicker(elementId) {
+            var element = $(elementId);
+            if (!element.length)
+                return null;
+
+            return new Vue({
+                el: elementId,
+                data: {
+                    date: element.data("date") || ""
+                },
+                components: {
+                    DatePicker: VuePersianDatetimePicker
+                }
+            });
+        }
+
+        var reportFromDate = createReportDatePicker("#VueReportFromDate");
+        var reportToDate = createReportDatePicker("#VueReportToDate");
+
+        $(".report-filter").on("submit", function (event) {
+            var fromDate = reportFromDate ? reportFromDate.date : "";
+            var toDate = reportToDate ? reportToDate.date : "";
+
+            if (!fromDate || !toDate) {
+                event.preventDefault();
+                showNotification("انتخاب تاریخ شروع و پایان الزامی است.", "danger");
+                return false;
+            }
+
+            var fromAlt = $(this).find("input[name='fromDate']").val();
+            var toAlt = $(this).find("input[name='toDate']").val();
+
+            if (fromAlt && toAlt && fromAlt > toAlt) {
+                event.preventDefault();
+                showNotification("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد.", "danger");
+                return false;
+            }
+        });
+    });
+</script>
+}
 
 @section styles {
 <style>
