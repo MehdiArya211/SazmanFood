@@ -35,7 +35,7 @@
                         <option value="">همه آشپزخانه‌ها</option>
                         @foreach (var item in Model.Kitchens)
                         {
-                            <option value="@item.Id" selected="@(Model.KitchenId == item.Id)">@item.Title</option>
+                            <option value="@item.Id" selected="@(Model.KitchenId == item.Id ? "selected" : null)">@item.Title</option>
                         }
                     </select>
                 </div>
@@ -45,7 +45,7 @@
                         <option value="">همه وعده‌ها</option>
                         @foreach (var item in Model.Meals)
                         {
-                            <option value="@item.Id" selected="@(Model.MealId == item.Id)">@item.Title</option>
+                            <option value="@item.Id" selected="@(Model.MealId == item.Id ? "selected" : null)">@item.Title</option>
                         }
                     </select>
                 </div>
