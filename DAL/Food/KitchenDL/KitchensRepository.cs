@@ -192,5 +192,6 @@ namespace DAL.Food.KitchenDL
                 Meals = meals,
                 Rows = rows
             };
-        }    }
+        }
+    }
 }
