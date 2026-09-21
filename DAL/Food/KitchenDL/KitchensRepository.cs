@@ -1,4 +1,5 @@
 ﻿using DAL.Interface;
+using Domain.Entities;
 using Domain.Entities.FoodManage;
 using DTO.DataTable;
 using DTO.Entities.FoodMang;
