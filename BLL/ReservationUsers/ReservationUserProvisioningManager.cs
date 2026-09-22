@@ -113,7 +113,11 @@ public class ReservationUserProvisioningManager
             .Select(x => x.MenuId)
             .ToList();
 
-        foreach (var menuId in allowedMenuIds.Except(currentMenuIds))
+        var missingMenuIds = allowedMenuIds
+            .Except(currentMenuIds)
+            .ToList();
+
+        foreach (var menuId in missingMenuIds)
         {
             UOW.RoleMenus.Add(new RoleMenu
             {
@@ -122,7 +126,7 @@ public class ReservationUserProvisioningManager
             });
         }
 
-        if (UOW.Commit() == false)
+        if (missingMenuIds.Count > 0 && UOW.Commit() == false)
             return new BaseResult(false, "ثبت دسترسی‌های نقش رزروکننده غذا با خطا همراه بوده است.");
 
         return new BaseResult(true, null, RoleConstant.MealBooker);
