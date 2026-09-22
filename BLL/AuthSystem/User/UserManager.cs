@@ -226,10 +226,12 @@ namespace BLL
         {
             var User = GetById(model.Id);
             if (User == null)
-                return new BaseResult { Status = true, Message = "کاربر یافت نشد" };
+                return new BaseResult { Status = false, Message = "کاربر یافت نشد" };
 
             User.Password = model.Password.GetHash();
             User.PasswordIsChanged = false;
+            User.RegisteredIpAddress = null;
+            User.RegisteredIpDate = null;
             var res = Update(User);
             if (res.Status)
                 res.Message = "کلمه عبور با موفقیت تغییر یافت.";
@@ -301,16 +303,34 @@ namespace BLL
 
             user.Password = model.Password.GetHash();
             user.PasswordIsChanged = true;
+            user.RegisteredIpAddress = GetClientIpAddress();
+            user.RegisteredIpDate = DateTime.Now;
             var res = base.Update(user);
             if (res.Status)
             {
                 var sessionUser = Session.GetUser();
                 res.Model = sessionUser.PasswordIsChanged == false;
                 sessionUser.PasswordIsChanged = true;
+                sessionUser.RegisteredIpAddress = user.RegisteredIpAddress;
+                sessionUser.RegisteredIpDate = user.RegisteredIpDate;
                 Session.RemoveUser();
                 Session.SetUser(sessionUser);
             }
             return res;
+        }
+
+
+        private string GetClientIpAddress()
+        {
+            var ipAddress = httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress;
+
+            if (ipAddress == null)
+                return null;
+
+            if (ipAddress.IsIPv4MappedToIPv6)
+                ipAddress = ipAddress.MapToIPv4();
+
+            return ipAddress.ToString();
         }
 
 
