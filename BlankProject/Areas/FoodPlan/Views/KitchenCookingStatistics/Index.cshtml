@@ -1,0 +1,198 @@
+@model DTO.Entities.Kitchen.KitchenCookingStatisticsDTO
+@using Utilities.Extentions
+@{
+    ViewData["Title"] = "آمار پخت آشپزخانه";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
+
+<div class="col-md-12 cooking-report">
+    <div class="card">
+        <div class="card-header card-header-icon" data-background-color="purple">
+            <i class="material-icons">restaurant</i>
+        </div>
+        <div class="card-content">
+            <div class="report-heading">
+                <div>
+                    <h4 class="card-title">آمار پخت آشپزخانه</h4>
+                    <p class="text-muted">خلاصه سهمیه، رزرو و تحویل غذا برای تمام آشپزخانه‌های یگان</p>
+                </div>
+                <button type="button" class="btn btn-default no-print" onclick="window.print()">
+                    <i class="material-icons">print</i> چاپ گزارش
+                </button>
+            </div>
+
+            <form method="get" class="row report-filter no-print">
+                <div class="col-md-2 form-group">
+                    <label>از تاریخ</label>
+                    <div id="VueReportFromDate"
+                         data-date="@Model.FromDate.ToPersianDateTime().ToString().Split(' ')[0]">
+                        <date-picker v-model="date"
+                                     type="date"
+                                     editable="true"
+                                     auto-submit="true"
+                                     input-class="form-control"
+                                     alt-format="YYYY-MM-DD HH:mm:ss"
+                                     alt-name="fromDate">
+                        </date-picker>
+                    </div>
+                </div>
+                <div class="col-md-2 form-group">
+                    <label>تا تاریخ</label>
+                    <div id="VueReportToDate"
+                         data-date="@Model.ToDate.ToPersianDateTime().ToString().Split(' ')[0]">
+                        <date-picker v-model="date"
+                                     type="date"
+                                     editable="true"
+                                     auto-submit="true"
+                                     input-class="form-control"
+                                     alt-format="YYYY-MM-DD HH:mm:ss"
+                                     alt-name="toDate">
+                        </date-picker>
+                    </div>
+                </div>
+                <div class="col-md-3 form-group">
+                    <label>آشپزخانه</label>
+                    <select name="kitchenId" class="form-control">
+                        <option value="">همه آشپزخانه‌ها</option>
+                        @foreach (var item in Model.Kitchens)
+                        {
+                            <option value="@item.Id" selected="@(Model.KitchenId == item.Id ? "selected" : null)">@item.Title</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 form-group">
+                    <label>وعده</label>
+                    <select name="mealId" class="form-control">
+                        <option value="">همه وعده‌ها</option>
+                        @foreach (var item in Model.Meals)
+                        {
+                            <option value="@item.Id" selected="@(Model.MealId == item.Id ? "selected" : null)">@item.Title</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 form-group filter-action">
+                    <button class="btn btn-info btn-block" type="submit">
+                        <i class="material-icons">search</i> نمایش
+                    </button>
+                </div>
+            </form>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-warning">@Html.ValidationSummary()</div>
+            }
+
+            <div class="row summary-cards">
+                <div class="col-md-3 col-sm-6"><div class="summary-card quota"><span>ظرفیت سهمیه</span><strong>@Model.TotalQuota.ToString("N0")</strong></div></div>
+                <div class="col-md-3 col-sm-6"><div class="summary-card reserved"><span>ثبت‌شده برای پخت</span><strong>@Model.TotalReserved.ToString("N0")</strong></div></div>
+                <div class="col-md-3 col-sm-6"><div class="summary-card delivered"><span>تحویل‌شده</span><strong>@Model.TotalDelivered.ToString("N0")</strong></div></div>
+                <div class="col-md-3 col-sm-6"><div class="summary-card remaining"><span>ظرفیت تخصیص‌نیافته</span><strong>@Model.TotalRemaining.ToString("N0")</strong></div></div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover report-table">
+                    <thead>
+                        <tr>
+                            <th>تاریخ</th><th>آشپزخانه / یگان</th><th>وعده</th>
+                            <th>ظرفیت پخت</th><th>سهمیه</th><th>ثبت‌شده</th>
+                            <th>تحویل</th><th>مانده</th><th>مصرف ظرفیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Rows.Count == 0)
+                    {
+                        <tr><td colspan="9" class="empty-state"><i class="material-icons">info_outline</i><br />در بازه انتخاب‌شده آماری ثبت نشده است.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var row in Model.Rows)
+                        {
+                            var progress = Math.Min(row.CapacityUsage, 100);
+                            <tr class="@(row.IsOverCapacity ? "danger-row" : "")">
+                                <td>@row.Date.ToPersianDateTime().ToString().Split(' ')[0]</td>
+                                <td><strong>@row.KitchenTitle</strong><small>@row.OrgTitle</small></td>
+                                <td>@row.MealTitle</td>
+                                <td>@row.CookingCapacity.ToString("N0")</td>
+                                <td>@row.QuotaCount.ToString("N0")</td>
+                                <td><strong>@row.ReservedCount.ToString("N0")</strong></td>
+                                <td>@row.DeliveredCount.ToString("N0")</td>
+                                <td>@row.RemainingCount.ToString("N0")</td>
+                                <td>
+                                    <div class="capacity-value">%@row.CapacityUsage</div>
+                                    <div class="progress"><div class="progress-bar @(row.IsOverCapacity ? "progress-bar-danger" : "progress-bar-success")" style="width:@progress%"></div></div>
+                                    @if (row.IsOverCapacity) { <small class="text-danger">بیشتر از ظرفیت پخت</small> }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+<script src="~/assets/VuePersianDateTimePicker/vue.min.js"></script>
+<script src="~/assets/VuePersianDateTimePicker/moment/moment.min.js"></script>
+<script src="~/assets/VuePersianDateTimePicker/moment/moment-jalaali.js"></script>
+<script src="~/assets/VuePersianDateTimePicker/dist/vue-persian-datetime-picker-browser.js"></script>
+
+<script>
+    $(document).ready(function () {
+        function createReportDatePicker(elementId) {
+            var element = $(elementId);
+            if (!element.length)
+                return null;
+
+            return new Vue({
+                el: elementId,
+                data: {
+                    date: element.data("date") || ""
+                },
+                components: {
+                    DatePicker: VuePersianDatetimePicker
+                }
+            });
+        }
+
+        var reportFromDate = createReportDatePicker("#VueReportFromDate");
+        var reportToDate = createReportDatePicker("#VueReportToDate");
+
+        $(".report-filter").on("submit", function (event) {
+            var fromDate = reportFromDate ? reportFromDate.date : "";
+            var toDate = reportToDate ? reportToDate.date : "";
+
+            if (!fromDate || !toDate) {
+                event.preventDefault();
+                showNotification("انتخاب تاریخ شروع و پایان الزامی است.", "danger");
+                return false;
+            }
+
+            var fromAlt = $(this).find("input[name='fromDate']").val();
+            var toAlt = $(this).find("input[name='toDate']").val();
+
+            if (fromAlt && toAlt && fromAlt > toAlt) {
+                event.preventDefault();
+                showNotification("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد.", "danger");
+                return false;
+            }
+        });
+    });
+</script>
+}
+
+@section styles {
+<style>
+.cooking-report .report-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.cooking-report .report-heading p{margin:6px 0 0}.report-filter{background:#f7f8fa;border-radius:8px;padding:14px 8px;margin:0 0 18px}
+.report-filter label{font-size:12px;color:#666}.filter-action{padding-top:18px}
+.summary-cards{margin-bottom:18px}.summary-card{background:#fff;border:1px solid #eee;border-right:4px solid #777;border-radius:8px;padding:14px;min-height:82px;margin-bottom:10px}
+.summary-card span{display:block;color:#777;font-size:12px}.summary-card strong{display:block;font-size:24px;margin-top:6px}
+.summary-card.quota{border-color:#9c27b0}.summary-card.reserved{border-color:#2196f3}.summary-card.delivered{border-color:#4caf50}.summary-card.remaining{border-color:#ff9800}
+.report-table th{white-space:nowrap}.report-table td{vertical-align:middle!important}.report-table td small{display:block;color:#888;margin-top:4px}
+.capacity-value{font-size:12px}.progress{height:6px;margin:5px 0}.danger-row{background:#fff4f4!important}.empty-state{text-align:center!important;padding:45px!important;color:#888}
+@@media print{.no-print,.sidebar,.navbar{display:none!important}.main-panel{width:100%!important}.card{box-shadow:none!important}.content{margin:0!important;padding:0!important}}
+</style>
+}

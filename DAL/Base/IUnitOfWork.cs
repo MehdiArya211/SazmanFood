@@ -47,7 +47,6 @@ namespace DAL.Interface
 
         #endregion
         #region Qouta
-        IQoutaAllocationRepository QoutaAllocation { get; }
 		IQoutaPersonRepository QoutaPerson { get; }
         #endregion
         #region Unit Qouta
@@ -81,8 +80,6 @@ namespace DAL.Interface
         { get; }
         #endregion
         #region Garrison
-        IOrganGarrisonRepository OrganGarrison { get; }
-		IOrganGarrisonTypeRepository OrganGarrisonType { get; }
 		IPersonRepository Person { get; }
 
 		#endregion

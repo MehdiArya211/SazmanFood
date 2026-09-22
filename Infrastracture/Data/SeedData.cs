@@ -170,6 +170,7 @@ namespace Infrastracture.Data
                 CreateDate = new DateTime(2022, 11, 17)
             });
             #endregion
+
             modelBuilder.Entity<Menu>()
                        .HasData(Menus);
         }

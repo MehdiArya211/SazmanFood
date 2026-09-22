@@ -29,19 +29,6 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     /// <returns></returns>
     BaseResult Create(QoutaPersonCreateDTO model);
 
-    /// <summary>
-    /// گرفتن سهمیه مجاز کادر و وظیفه
-    /// </summary>
-    /// <param name="qoutaAllocationId">شناسه سهمیه بندی</param>
-    /// <returns></returns>
-    OrganSahmiyeDTO GetSahmiye(long qoutaAllocationId);
-
-    /// <summary>
-    /// گرفتن سهمیه مجاز کادر و وظیفه براساس نوع یگان
-    /// </summary>
-    /// <param name="qoutaAllocationId">شناسه سهمیه بندی</param>
-    /// <returns></returns>
-    OrganSahmiyeDTO GetSahmiyeAi(long qoutaAllocationId);
 
     /// <summary>
     /// گرفتن لیست پرسنل براساس سهمیه یگان
@@ -50,33 +37,6 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     /// <returns></returns>
     List<QoutaPersonDataTableDTO> GetPersonListWithQouataAllocation(long qoutaAllocationId);
 
-    /// <summary>
-    /// ثبت تکی غذا برای پرسنل
-    /// </summary>
-    /// <param name="model">مدل ثبت تکی</param>
-    /// <returns></returns>
-    BaseResult CreateSingle(QoutaPersonCreateDTO model);
-
-    /// <summary>
-    /// ثبت گروهی غذا برای پرسنل
-    /// </summary>
-    /// <param name="model">مدل ثبت گروهی</param>
-    /// <returns></returns>
-    BaseResult CreateBulk(QoutaPersonBulkCreateDTO model);
-
-    /// <summary>
-    /// ثبت غذا برای پرسنل توسط کاربر اداری قسمت
-    /// </summary>
-    /// <param name="model">مدل ثبت غذا توسط اداری</param>
-    /// <returns></returns>
-    BaseResult CreateForOfficeUser(QoutaPersonOfficeCreateDTO model);
-
-    /// <summary>
-    /// ثبت غذا برای مهمان توسط کاربر اداری قسمت
-    /// </summary>
-    /// <param name="model">مدل ثبت غذای مهمان</param>
-    /// <returns></returns>
-    BaseResult CreateGuestFood(GuestFoodCreateDTO model);
 
     /// <summary>
     /// تغییر غذای ثبت شده توسط پرسنل
@@ -97,13 +57,6 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     /// </summary>
     BaseResult DeliverFoodByQr(string deliveryCode, string deliveryHash, long mealId);
 
-    /// <summary>
-    /// دریافت وضعیت ظرفیت، ثبت شده و باقی مانده سهمیه
-    /// </summary>
-    /// <param name="qoutaAllocationId">شناسه سهمیه بندی</param>
-    /// <returns></returns>
-    QoutaAllocationCapacityDTO GetCapacityStatus(long qoutaAllocationId);
-
 
     /// <summary>
     /// گرفتن لیست غذای ثبت شده برای پرسنل لاگین شده
@@ -112,13 +65,6 @@ public interface IQoutaPersonManager : IManager<QoutaPerson, ApplicationContext>
     /// <param name="personId">شناسه پرسنل</param>
     /// <returns></returns>
     DataTableResponseDTO<MyFoodDataTableDTO> GetMyFoodDataTableDTO(DataTableSearchDTO searchData, long personId);
-
-    /// <summary>
-    /// گرفتن پرسنل یگان برای ثبت غذا در سهمیه
-    /// </summary>
-    DataTableResponseDTO<QoutaPersonSelectableDTO> GetSelectablePersonsForQuota(
-        DataTableSearchDTO searchData,
-        long qoutaAllocationId);
 
     /// <summary>
     /// بررسی وجود سهمیه فعال برای کد پرسنلی.

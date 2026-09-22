@@ -7,26 +7,24 @@ using DTO.Entities.Kitchen;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BLL.FoodManag.KitchenBL
 {
     public class KitchensManager : Manager<Kitchens, ApplicationContext>, IKitchensManager
     {
-        private readonly IHttpContextAccessor httpContextAccessor;
-        private readonly ISession Session;
-        public KitchensManager(DbContexts contexts, IHttpContextAccessor httpContextAccessor) : base(contexts, httpContextAccessor)
+        public KitchensManager(
+            DbContexts contexts,
+            IHttpContextAccessor httpContextAccessor)
+            : base(contexts, httpContextAccessor)
         {
-            this.httpContextAccessor = httpContextAccessor;
-            Session = httpContextAccessor.HttpContext.Session;
         }
 
         public BaseResult CreateKitchens(KitchenCreateDTO creatkitchen)
         {
-            var opsystem = new Kitchens()
+            if (creatkitchen == null)
+                return new BaseResult(false, "اطلاعات آشپزخانه معتبر نیست.");
+
+            var opsystem = new Kitchens
             {
                 Title = creatkitchen.Title,
                 CookingCapacity = creatkitchen.CookingCapacity,
@@ -52,7 +50,12 @@ namespace BLL.FoodManag.KitchenBL
 
         public BaseResult UpdateKitchens(KitchenEditDTO kitchenedit)
         {
+            if (kitchenedit == null)
+                return new BaseResult(false, "اطلاعات آشپزخانه معتبر نیست.");
+
             var per = UOW.kitchen.FirstOrDefault(x => x.Id == kitchenedit.Id);
+            if (per == null)
+                return new BaseResult(false, "آشپزخانه مورد نظر یافت نشد.");
 
             per.Title = kitchenedit.Title;
             per.CookingCapacity = kitchenedit.CookingCapacity;
@@ -60,10 +63,21 @@ namespace BLL.FoodManag.KitchenBL
             per.OrgId = kitchenedit.OrgId;
             per.IsActive = kitchenedit.IsActive;
             per.Description = kitchenedit.Description;
-
-
-
             return base.Update(per);
         }
+
+        public KitchenCookingStatisticsDTO GetCookingStatistics(
+            DateTime fromDate,
+            DateTime toDate,
+            long? kitchenId,
+            long? mealId)
+        {
+            return UOW.kitchen.GetCookingStatistics(
+                fromDate,
+                toDate,
+                kitchenId,
+                mealId);
+        }
+
     }
 }

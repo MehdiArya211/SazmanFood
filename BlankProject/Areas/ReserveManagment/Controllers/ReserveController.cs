@@ -45,7 +45,10 @@ namespace Food.Areas.ReserveManagment.Controllers
         public IActionResult Index()
         {
             var user = HttpContext.Session.GetUser();
-            long currentUserId = user.Id; // فرض می‌کنیم شناسه کاربر به این شکل است
+            if (user == null)
+                return RedirectToAction("IndexZP", "Authentication", new { area = "" });
+
+            long currentUserId = user.Id;
 
             // --- محاسبه محدوده زمانی هفته جاری ---
             var now = DateTime.Now;
@@ -144,6 +147,9 @@ namespace Food.Areas.ReserveManagment.Controllers
         public IActionResult Index(IFormCollection form)
         {
             var user = HttpContext.Session.GetUser();
+            if (user == null)
+                return RedirectToAction("IndexZP", "Authentication", new { area = "" });
+
             long userId = user.Id;
 
             try
@@ -274,7 +280,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             catch (Exception ex)
             {
                 TempData["Error"] = "خطا در ثبت برنامه غذایی: " + ex.Message;
-                return RedirectToAction("Create");
+                return RedirectToAction("Index");
             }
         }
 
@@ -282,6 +288,15 @@ namespace Food.Areas.ReserveManagment.Controllers
         public IActionResult DeleteDay(long dayId)
         {
             var user = HttpContext.Session.GetUser();
+            if (user == null)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "نشست کاربری منقضی شده است؛ دوباره وارد سامانه شوید."
+                });
+            }
+
             long userId = user.Id;
 
             try
@@ -325,9 +340,13 @@ namespace Food.Areas.ReserveManagment.Controllers
 
                 return Json(new { success = true, message = "روز با موفقیت حذف شد." });
             }
-            catch (Exception ex)
+            catch
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new
+                {
+                    success = false,
+                    message = "حذف رزرو روز با خطا همراه بود."
+                });
             }
         }
 

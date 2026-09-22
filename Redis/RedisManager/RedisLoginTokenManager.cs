@@ -1,6 +1,4 @@
 ﻿using Domain.Entities;
-using DTO.Entities.MaxaRabbitMQ;
-using DTO.User;
 using StackExchange.Redis.Extensions.Core.Abstractions;
 
 namespace Services.RedisService
@@ -20,54 +18,6 @@ namespace Services.RedisService
         /// مدت زمان ماندگاری در ردیس
         /// </summary>
         public static readonly int ExpMin = 300;
-
-        public static async Task<AccessLogMonitoringEvent?> GetRedisUserDeviceData(
-            this IRedisDatabase db, long DeviceId)
-        {
-            try
-            {
-                return await db.GetAsync<AccessLogMonitoringEvent>(UserDeviceDataKey + 1);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public static async Task<AccessLogMonitoringEvent> SetRedisUserDeviceData(this IRedisDatabase db,
-            AccessLogMonitoringEvent monitoringEvent, int? expMin = null)
-        {
-            try
-            {
-               // monitoringEvent.UserId = 95003599; // TODO: DELETE it later
-                monitoringEvent.UserId =long.Parse(monitoringEvent.UniqueID) ; 
-
-                var user = await db.GetRedisUserDeviceData(1);
-                if (user != null)
-                {
-                    await db.RemoveAsync(UserDeviceDataKey + 1);
-                }
-
-                //var isSuccess = await db.AddAsync(UserDeviceDataKey + monitoringEvent.DeviceId,
-                //    monitoringEvent,
-                //    DateTimeOffset.Now.AddMinutes(expMin ?? ExpMin));
-
-                var isSuccess = await db.AddAsync(UserDeviceDataKey + 1,
-    monitoringEvent,
-    DateTimeOffset.Now.AddMinutes(expMin ?? 5)); // 🟢 بجای 300 دقیقه، بذار 3 دقیقه
-
-                if (isSuccess)
-                    return monitoringEvent;
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-
-
 
         /// <summary>
         /// گرفتن رکورد مربوط به یوزرنیم خاص

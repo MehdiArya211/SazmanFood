@@ -1,6 +1,5 @@
 ﻿using Domain.Entities;
 using DTO.Base;
-using DTO.Entities.MaxaRabbitMQ;
 using DTO.Menu;
 using DTO.User;
 using Infrastructure.Data;
@@ -26,7 +25,6 @@ namespace BLL.Interface
         /// </summary>
         /// <param name="userId"></param>
         /// <returns></returns>
-        UserSessionDTO LoginWithFace(AccessLogMonitoringEvent deviceEvent);
         public UserSessionDTO LoginWithFaceZP(long userId);
 
         BaseResult LoginAuth( string UserId );

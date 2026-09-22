@@ -6,10 +6,6 @@ using DTO.Entities.FoodMang;
 using DTO.Entities.Kitchen;
 using Infrastructure.Data;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BLL.FoodManag.KitchenBL
 {
@@ -19,6 +15,12 @@ namespace BLL.FoodManag.KitchenBL
         BaseResult CreateKitchens(KitchenCreateDTO creatkitchen);
 
         KitchenEditDTO GetKitchenForEditDTO(long? id);
+
+        KitchenCookingStatisticsDTO GetCookingStatistics(
+            DateTime fromDate,
+            DateTime toDate,
+            long? kitchenId,
+            long? mealId);
         BaseResult UpdateKitchens(KitchenEditDTO kitchenedit);
     }
 }

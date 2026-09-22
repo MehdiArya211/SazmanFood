@@ -29,63 +29,6 @@ public class AuthHub : Hub
         return base.OnConnectedAsync();
     }
 
-    public async Task NotifyAuthEvent(long deviceId)
-    {
-        var result = new FaceAuthEventResult();
-
-        var userDevice = await _redis.db.GetRedisUserDeviceData(deviceId);
-        if (userDevice == null)
-        {
-            result.IsSucces = false;
-            result.Message = "در انتظار دستگاه تشخیص چهره ...";
-        }
-        else
-        {
-            result.IsSucces = true;
-            result.Message = "ورود موفق! درحال انتقال به صفحه اصلی، لطفا شکیبا باشید";
-
-            var user = _authManager.LoginWithFace(userDevice);
-            if (user == null)
-            {
-                result.IsSucces = false;
-                result.Message = "چهره شناسایی شد اما کاربر متناظر در سامانه یافت نشد.";
-
-                _logger.LogWarning(
-                    "رویداد تشخیص چهره دریافت شد اما کاربر پیدا نشد. DeviceId: {DeviceId}، PersonnelCode: {PersonnelCode}",
-                    deviceId,
-                    userDevice.UserId);
-            }
-            else
-            {
-                result.UserId = user.Id;
-
-                var tk = await _redis.db.GetLoginToken(user.Id);
-                if (tk == null)
-                {
-                    var token = await _redis.db.SetLoginToken(user.Id);
-                    await _redis.db.RemoveLoginLog(user.Mobile);
-
-                    var httpContext = Context.GetHttpContext();
-                    httpContext.SetCookieUserToken(token);
-                    httpContext.Session.SetUser(user);
-                }
-
-                _logger.LogInformation(
-                    "ورود بیومتریک موفق شد. DeviceId: {DeviceId}، UserId: {UserId}",
-                    deviceId,
-                    user.Id);
-            }
-        }
-
-        // پاسخ فقط برای همان مرورگری ارسال می‌شود که وضعیت دستگاه را درخواست کرده است.
-        await Clients.Caller
-            .SendAsync("NotifyAuthEvent", new
-            {
-                isSucces = result.IsSucces,
-                message = result.Message,
-                userId = result.UserId // 👈 در حالت camelCase برای جاوااسکریپت
-            });
-    }
 }
 
 public class FaceAuthEventResult

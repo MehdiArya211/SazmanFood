@@ -83,7 +83,6 @@ namespace DAL
         #endregion
 
         #region Qouta
-        private QoutaAllocationRepository _QoutaAllocation;
 		private QoutaPersonRepository _QoutaPerson;
 
         #endregion
@@ -119,8 +118,6 @@ namespace DAL
         #endregion
 
         #region Garrison
-        private OrganGarrisonRepository _OrganGarrison;
-		private OrganGarrisonTypeRepository _OrganGarrisonType;
 		private PersonRepository _PersonRepository;
 
 
@@ -317,15 +314,6 @@ namespace DAL
         #endregion
 
         #region Qouta
-        public IQoutaAllocationRepository QoutaAllocation
-		{
-			get
-			{
-				if (_QoutaAllocation == null)
-					_QoutaAllocation = new QoutaAllocationRepository(applicationContext);
-				return _QoutaAllocation;
-			}
-		}
 		public IQoutaPersonRepository QoutaPerson
 		{
 			get
@@ -443,24 +431,6 @@ namespace DAL
 				if (_PersonRepository == null)
 					_PersonRepository = new PersonRepository(applicationContext);
 				return _PersonRepository;
-			}
-		}
-		public IOrganGarrisonRepository OrganGarrison
-		{
-			get
-			{
-				if (_OrganGarrison == null)
-					_OrganGarrison = new OrganGarrisonRepository(applicationContext);
-				return _OrganGarrison;
-			}
-		}
-		public IOrganGarrisonTypeRepository OrganGarrisonType
-		{
-			get
-			{
-				if (_OrganGarrisonType == null)
-					_OrganGarrisonType = new OrganGarrisonTypeRepository(applicationContext);
-				return _OrganGarrisonType;
 			}
 		}
         #endregion

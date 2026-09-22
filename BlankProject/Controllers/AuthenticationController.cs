@@ -1,7 +1,6 @@
 ﻿using BLL;
 using BLL.FajrLog;
 using BLL.Interface;
-using DTO.Entities.MaxaRabbitMQ;
 using DTO.User;
 using ITOWebApiClient;
 using FajrLog.Enum;
