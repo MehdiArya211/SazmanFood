@@ -196,6 +196,7 @@ internal class Program
         services.AddScoped<IRoleMenuManager, RoleMenuManager>();
         services.AddScoped<IUserManager, UserManager>();
         services.AddScoped<IUserPasswordHistoryManager, UserPasswordHistoryManager>();
+        services.AddScoped<IReservationUserProvisioningManager, ReservationUserProvisioningManager>();
         #endregion
 
 
