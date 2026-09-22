@@ -1,3 +1,4 @@
+using Domain.Constants;
 using Domain.Entities;
 using Domain.Enums;
 using DTO.Base;
@@ -14,8 +15,6 @@ public class ReservationUserProvisioningManager
     : Manager<User, ApplicationContext>,
       IReservationUserProvisioningManager
 {
-    private const string ReservationRoleTitle = "رزرو غذا";
-
     public ReservationUserProvisioningManager(
         DbContexts contexts,
         IHttpContextAccessor httpContextAccessor)
@@ -69,7 +68,7 @@ public class ReservationUserProvisioningManager
             Username = personCode,
             Password = personCode.GetHash(),
             Mobile = mobile,
-            RoleId = Convert.ToInt64(roleResult.Model),
+            RoleId = RoleConstant.MealBooker,
             Type = UserType.Other,
             CreatorId = creatorId,
             OmdOrgId = omdOrgId,
@@ -91,24 +90,12 @@ public class ReservationUserProvisioningManager
     private BaseResult EnsureReservationRole()
     {
         var role = UOW.Roles.FirstOrDefault(x =>
+            x.Id == RoleConstant.MealBooker &&
             x.IsDeleted == false &&
-            x.Title == ReservationRoleTitle);
+            x.IsEnabled);
 
         if (role == null)
-        {
-            role = new Role
-            {
-                Title = ReservationRoleTitle,
-                Description = "نقش خودکار پرسنل برای مشاهده و رزرو غذا",
-                IsEnabled = true,
-                IsDeleted = false,
-                CreateDate = DateTime.Now
-            };
-
-            UOW.Roles.Add(role);
-            if (!UOW.Commit())
-                return new BaseResult(false, "ایجاد نقش رزرو غذا با خطا همراه بوده است.");
-        }
+            return new BaseResult(false, "نقش رزروکننده غذا با شناسه 7 تعریف یا فعال نشده است.");
 
         var allowedMenuIds = UOW.Menus
             .Get(x =>
@@ -122,7 +109,7 @@ public class ReservationUserProvisioningManager
             .ToList();
 
         var currentMenuIds = UOW.RoleMenus
-            .Get(x => x.RoleId == role.Id)
+            .Get(x => x.RoleId == RoleConstant.MealBooker)
             .Select(x => x.MenuId)
             .ToList();
 
@@ -130,15 +117,15 @@ public class ReservationUserProvisioningManager
         {
             UOW.RoleMenus.Add(new RoleMenu
             {
-                RoleId = role.Id,
+                RoleId = RoleConstant.MealBooker,
                 MenuId = menuId
             });
         }
 
         if (UOW.Commit() == false)
-            return new BaseResult(false, "ثبت دسترسی‌های نقش رزرو غذا با خطا همراه بوده است.");
+            return new BaseResult(false, "ثبت دسترسی‌های نقش رزروکننده غذا با خطا همراه بوده است.");
 
-        return new BaseResult(true, null, role.Id);
+        return new BaseResult(true, null, RoleConstant.MealBooker);
     }
 
     private static string Normalize(string value)
