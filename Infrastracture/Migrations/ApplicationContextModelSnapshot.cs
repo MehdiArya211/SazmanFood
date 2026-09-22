@@ -2246,6 +2246,13 @@ namespace Infrastracture.Migrations
                     b.Property<int?>("GharargahId")
                         .HasColumnType("int");
 
+                    b.Property<string>("RegisteredIpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<DateTime?>("RegisteredIpDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool?>("IsDeleted")
                         .HasColumnType("bit");
 
