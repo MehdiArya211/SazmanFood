@@ -270,8 +270,41 @@ namespace Filters
             }
             #endregion
 
+            #region اجبار تغییر کلمه عبور در اولین ورود
+            var currentArea = controllerObj?.RouteData.Values["area"]?.ToString();
+            var currentController = controllerObj?.RouteData.Values["controller"]?.ToString();
+            var currentAction = controllerObj?.RouteData.Values["action"]?.ToString();
 
+            var isChangePasswordPage =
+                string.Equals(currentArea, "Admin", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(currentController, "Profile", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(currentAction, "ChangePassword", StringComparison.OrdinalIgnoreCase);
 
+            if (checkPasswordChange &&
+                User.PasswordIsChanged == false &&
+                isChangePasswordPage == false)
+            {
+                if (IsAjaxRequest(context))
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status428PreconditionRequired;
+                    context.Result = new JsonResult(new
+                    {
+                        Status = false,
+                        Message = "برای ادامه، ابتدا کلمه عبور خود را تغییر دهید.",
+                        RedirectUrl = "/Admin/Profile/ChangePassword"
+                    });
+                }
+                else
+                {
+                    context.Result = new RedirectToActionResult(
+                        "ChangePassword",
+                        "Profile",
+                        new { area = "Admin" });
+                }
+
+                return;
+            }
+            #endregion
 
 
             return;
