@@ -18,10 +18,12 @@ public class UnitQuotaManager
 {
     private readonly IHttpContextAccessor httpContextAccessor;
     private readonly ISession Session;
+    private readonly IReservationUserProvisioningManager reservationUserProvisioningManager;
 
     public UnitQuotaManager(
         DbContexts context,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IReservationUserProvisioningManager reservationUserProvisioningManager)
         : base(context, httpContextAccessor)
     {
         this.httpContextAccessor =
@@ -31,6 +33,11 @@ public class UnitQuotaManager
 
         Session =
             httpContextAccessor.HttpContext?.Session;
+
+        this.reservationUserProvisioningManager =
+            reservationUserProvisioningManager ??
+            throw new ArgumentNullException(
+                nameof(reservationUserProvisioningManager));
     }
 
     #region دریافت فرم ثبت کادر
@@ -447,6 +454,26 @@ public class UnitQuotaManager
 
         var isSuccess = UOW.Commit();
 
+        if (isSuccess)
+        {
+            var userResult =
+                reservationUserProvisioningManager.EnsureReservationUser(
+                    entity.PersonId,
+                    entity.PersonCode,
+                    entity.FullName,
+                    entity.NationalCode,
+                    null,
+                    user.Id,
+                    entity.OrgId);
+
+            if (!userResult.Status)
+            {
+                return new BaseResult(
+                    false,
+                    $"سهمیه غذا ثبت شد، اما ساخت حساب کاربری انجام نشد: {userResult.Message}");
+            }
+        }
+
         return new BaseResult
         {
             Status = isSuccess,
@@ -709,6 +736,26 @@ public class UnitQuotaManager
         UOW.UnitQuotaPerson.Add(entity);
 
         var isSuccess = UOW.Commit();
+
+        if (isSuccess)
+        {
+            var userResult =
+                reservationUserProvisioningManager.EnsureReservationUser(
+                    entity.PersonId,
+                    entity.PersonCode,
+                    entity.FullName,
+                    entity.NationalCode,
+                    null,
+                    user.Id,
+                    entity.OrgId);
+
+            if (!userResult.Status)
+            {
+                return new BaseResult(
+                    false,
+                    $"سهمیه غذا ثبت شد، اما ساخت حساب کاربری انجام نشد: {userResult.Message}");
+            }
+        }
 
         return new BaseResult
         {

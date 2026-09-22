@@ -93,6 +93,13 @@ namespace Domain.Entities
         [Display(Name = "قرارگاه کاربر")]
         public int? GharargahId { get; set; }
 
+        [Display(Name = "آی پی رایانه ثبت شده")]
+        [MaxLength(45)]
+        public string? RegisteredIpAddress { get; set; }
+
+        [Display(Name = "تاریخ ثبت آی پی")]
+        public DateTime? RegisteredIpDate { get; set; }
+
 
         #region Food Relation
 
