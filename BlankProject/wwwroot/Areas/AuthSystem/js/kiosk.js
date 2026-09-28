@@ -143,6 +143,82 @@
             .withAutomaticReconnect([0, 2000, 5000, 10000])
             .build();
 
+
+        connection.on("KioskDiagnostic", (diagnostic) => {
+            if (!diagnostic) {
+                console.warn(
+                    "[ورود بیومتریک] پیام تشخیصی خالی دریافت شد."
+                );
+
+                return;
+            }
+
+            const level = String(
+                diagnostic.level ??
+                diagnostic.Level ??
+                "info"
+            ).toLowerCase();
+
+            const step =
+                diagnostic.step ??
+                diagnostic.Step ??
+                "Unknown";
+
+            const message =
+                diagnostic.message ??
+                diagnostic.Message ??
+                "بدون توضیح";
+
+            const details = {
+                kioskId:
+                    diagnostic.kioskId ??
+                    diagnostic.KioskId ??
+                    null,
+
+                enrollId:
+                    diagnostic.enrollId ??
+                    diagnostic.EnrollId ??
+                    null,
+
+                serialNumber:
+                    diagnostic.serialNumber ??
+                    diagnostic.SerialNumber ??
+                    null,
+
+                timestamp:
+                    diagnostic.timestamp ??
+                    diagnostic.Timestamp ??
+                    new Date().toISOString()
+            };
+
+            const output =
+                `[ورود بیومتریک][${step}] ${message}`;
+
+            switch (level) {
+                case "error":
+                    console.error(output, details);
+                    break;
+
+                case "warning":
+                case "warn":
+                    console.warn(output, details);
+                    break;
+
+                case "success":
+                    console.info(
+                        "%c" + output,
+                        "color:#198754;font-weight:bold",
+                        details
+                    );
+                    break;
+
+                default:
+                    console.info(output, details);
+                    break;
+            }
+        });
+
+
         connection.on("ReceiveAutoLogin", (...args) => {
             const enrollId = extractEnrollId(args);
             if (enrollId <= 0) {
@@ -164,21 +240,60 @@
         return connection;
     }
 
-    async function connect(connection, hubUrl, kioskId) {
+    async function connect(
+        connection,
+        hubUrl,
+        kioskId
+    ) {
+        console.info(
+            "[ورود بیومتریک][Connect] تلاش برای اتصال.",
+            {
+                kioskId,
+                hubUrl
+            }
+        );
+
         try {
             await connection.start();
-            await connection.invoke("Register", kioskId);
+
+            console.info(
+                "[ورود بیومتریک][Connect] SignalR متصل شد.",
+                {
+                    kioskId,
+                    connectionId: connection.connectionId
+                }
+            );
+
+            await connection.invoke(
+                "Register",
+                kioskId
+            );
 
             connections.push(connection);
-            logInfo("کیوسک " + kioskId + " به " + hubUrl + " متصل شد.");
+
+            console.info(
+                "[ورود بیومتریک][Register] کیوسک ثبت شد.",
+                {
+                    kioskId,
+                    connectionId: connection.connectionId
+                }
+            );
+
             return true;
         } catch (error) {
-            logWarning("اتصال به " + hubUrl + " برقرار نشد.", error);
+            console.error(
+                "[ورود بیومتریک][Connect] اتصال یا ثبت کیوسک ناموفق بود.",
+                {
+                    kioskId,
+                    hubUrl,
+                    error: error?.message ?? error
+                }
+            );
 
             try {
                 await connection.stop();
             } catch {
-                // اتصال آغاز نشده است.
+                // اتصال شروع نشده است.
             }
 
             return false;
