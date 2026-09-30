@@ -597,7 +597,7 @@ namespace DAL
                             var user = _session?.GetUser();
                             var state = item.State;
                             var newData = item.Entity.ToJson();
-                            var entityType = item.OriginalValues.EntityType;
+                            var entityType = item.Metadata;
                             var entityId = item.Properties.FirstOrDefault(wh => wh.Metadata.Name == "Id")?.OriginalValue ?? 0;
 
                             changeLog.Add(new TrackDatabaseLog
@@ -612,7 +612,7 @@ namespace DAL
                                 LogDateTime = DateTime.Now,
                                 TrackEventType = (TrackEventType)state,
                                 TrackEventTypeDescription = state.ToString(),
-                                TableName = entityType.ConstructorBinding?.RuntimeType.Name,
+                                TableName = entityType.ClrType.Name,
                                 IpAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString(),
                             });
                         }
@@ -635,11 +635,11 @@ namespace DAL
                             foreach (var item in applicationContext.ChangeTracker.Entries())
                             {
                                 var newData = item.Entity.ToJson();
-                                var entityType = item.OriginalValues.EntityType;
+                                var entityType = item.Metadata;
                                 var entityId = item.Properties.FirstOrDefault(wh => wh.Metadata.Name == "Id")?.OriginalValue ?? 0;
 
                                 var oldEvent = changeLog.FirstOrDefault(wh => wh.TrackEventType == TrackEventType.Added &&
-                                                                              wh.TableName == entityType.ConstructorBinding?.RuntimeType.Name);
+                                                                              wh.TableName == entityType.ClrType.Name);
                                 if (oldEvent == null) continue;
                                 oldEvent.TableId = (long)entityId;
                                 oldEvent.NewData = newData;
@@ -704,7 +704,7 @@ namespace DAL
                             var user = _session?.GetUser();
                             var state = item.State;
                             var newData = item.Entity.ToJson();
-                            var entityType = item.OriginalValues.EntityType;
+                            var entityType = item.Metadata;
                             var entityId = item.Properties.FirstOrDefault(wh => wh.Metadata.Name == "Id")?.OriginalValue ?? 0;
 
                             changeLog.Add(new TrackDatabaseLog
@@ -719,7 +719,7 @@ namespace DAL
                                 LogDateTime = DateTime.Now,
                                 TrackEventType = (TrackEventType)state,
                                 TrackEventTypeDescription = state.ToString(),
-                                TableName = entityType.ConstructorBinding.RuntimeType.Name,
+                                TableName = entityType.ClrType.Name,
                                 IpAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString(),
                             });
                         }
@@ -742,12 +742,12 @@ namespace DAL
                             foreach (var item in applicationContext.ChangeTracker.Entries())
                             {
                                 var newData = item.Entity.ToJson();
-                                var entityType = item.OriginalValues.EntityType;
+                                var entityType = item.Metadata;
                                 var entityId = item.Properties.FirstOrDefault(wh => wh.Metadata.Name == "Id")?.OriginalValue ?? 0;
 
                                 var oldEvent = changeLog.Where(wh =>
                                     wh.TrackEventType == TrackEventType.Added &&
-                                    wh.TableName == entityType.ConstructorBinding.RuntimeType.Name).FirstOrDefault();
+                                    wh.TableName == entityType.ClrType.Name).FirstOrDefault();
                                 if (oldEvent != null)
                                 {
                                     oldEvent.TableId = (long)entityId;
