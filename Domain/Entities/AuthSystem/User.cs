@@ -37,11 +37,10 @@ namespace Domain.Entities
 
 
         [Display(Name = "تلفن همراه")]
-        [Required(ErrorMessage = "{0} الزامی است.")]
         [StringLength(11, MinimumLength = 11, ErrorMessage = "{0} باید {1} کاراکتر باشد.")]
         [RegularExpression(@"^0\d{10}", ErrorMessage = "تلفن با صفر شروع شود و حاوی عدد به طول 11 کاراکتر باشد.")]
         [Remote("MobileIsUnique", "CheckUnique", "Admin", AdditionalFields = "Id", HttpMethod = "post", ErrorMessage = "تلفن همراه قبلا استفاده شده است!")]
-        public string Mobile { get; set; }
+        public string? Mobile { get; set; }
 
 
         [Display(Name = "فعال است")]
