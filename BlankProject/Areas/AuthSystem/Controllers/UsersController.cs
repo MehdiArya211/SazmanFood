@@ -204,10 +204,10 @@ namespace Food.Areas.AuthSystem.Controllers
             );
 
             ViewData["Gharargah"] = new SelectList(
-                webApiManager.GetGharargah(access_token),
+                webApiManager.GetOrganInfo(access_token),
                 "Id",
-                "Title",
-                user.GharargahId
+                "UnitTitle",
+                user.OmdOrgId
             );
 
 
