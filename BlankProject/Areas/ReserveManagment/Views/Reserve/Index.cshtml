@@ -24,142 +24,252 @@
 
 @section styles {
     <style>
-        /* ========== Food Reserve UI (Bootstrap3 + Material Dashboard) ========== */
+        .reserve-page {
+            direction: rtl;
+            padding: 10px 0 30px;
+            font-family: Vazirmatn, IRANSans, Tahoma, Arial, sans-serif;
+        }
+
         .reserve-container {
-            max-width: 1200px;
-            margin: 18px auto;
-            font-family: Vazirmatn, IRANSans, Arial, sans-serif;
+            width: 100%;
+            max-width: 1380px;
+            margin: 0 auto;
         }
 
         .reserve-card {
             background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.06);
-            border: 1px solid rgba(0,0,0,.06);
-            padding: 15px;
+            border: 1px solid #e9edf3;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(34, 52, 73, .08);
+            overflow: hidden;
         }
 
         .reserve-head {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f1f1f1;
-            margin-bottom: 12px;
+            gap: 20px;
+            padding: 22px 24px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+            border-bottom: 1px solid #edf1f5;
+        }
+
+        .reserve-head-main {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .reserve-head-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 52px;
+            background: linear-gradient(135deg, #ec407a, #ab47bc);
+            color: #fff;
+            box-shadow: 0 8px 18px rgba(171, 71, 188, .22);
+        }
+
+        .reserve-head-icon .material-icons {
+            font-size: 28px;
         }
 
         .reserve-title {
-            margin: 0;
+            margin: 0 0 5px;
+            color: #243447;
+            font-size: 22px;
+            line-height: 1.5;
             font-weight: 900;
-            color: #2d2d2d;
         }
 
         .reserve-hint {
-            margin-top: 6px;
+            color: #708090;
             font-size: 13px;
-            color: #d35400;
+            line-height: 1.9;
         }
 
         .reserve-week {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex: 0 0 auto;
+            padding: 9px 14px;
+            border: 1px solid #dce6f4;
+            border-radius: 12px;
+            background: #fff;
+            color: #40546a;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 3px 12px rgba(45, 67, 91, .05);
+        }
+
+        .reserve-week .material-icons {
+            font-size: 19px;
+            color: #7e57c2;
+        }
+
+        .reserve-guide {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            padding: 14px 24px;
+            background: #fbfcfe;
+            border-bottom: 1px solid #edf1f5;
+        }
+
+        .reserve-guide-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: #637385;
             font-size: 12px;
-            padding: 6px 10px;
-            border-radius: 20px;
-            background: #f6f8ff;
-            border: 1px solid #e6eaff;
-            color: #34495e;
-            white-space: nowrap;
+            line-height: 1.7;
+        }
+
+        .reserve-guide-number {
+            width: 27px;
+            height: 27px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 27px;
+            background: #eef2ff;
+            color: #5e35b1;
+            font-weight: 900;
+        }
+
+        .reserve-content {
+            padding: 18px;
+        }
+
+        .reserve-alert {
+            border: 0;
+            border-radius: 12px;
+            box-shadow: 0 5px 16px rgba(0, 0, 0, .05);
+            font-weight: 700;
         }
 
         .reserve-table-wrap {
-            background: #fff;
-            border: 1px solid rgba(0,0,0,.06);
-            border-radius: 10px;
+            border: 1px solid #e7ebf0;
+            border-radius: 14px;
             overflow: hidden;
+            background: #fff;
         }
 
         .reserve-table {
             margin: 0;
+            border: 0 !important;
         }
 
-            .reserve-table thead th {
-                background: #fafafa;
-                font-weight: 900;
-                font-size: 13px;
-                color: #444;
-                border-bottom: 2px solid #eee !important;
-            }
+        .reserve-table > thead > tr > th {
+            padding: 13px 12px !important;
+            border: 0 !important;
+            border-bottom: 1px solid #e9edf2 !important;
+            background: #f6f8fb;
+            color: #4b5c6f;
+            font-size: 13px;
+            font-weight: 900;
+            text-align: right;
+        }
 
-            .reserve-table td, .reserve-table th {
-                vertical-align: middle !important;
-            }
+        .reserve-table > tbody > tr.meal-row > td {
+            padding: 14px 12px !important;
+            border-color: #edf0f4 !important;
+            vertical-align: middle !important;
+            background: #fff;
+        }
 
-            .reserve-table td {
-                font-size: 13px;
-            }
+        .reserve-table > tbody > tr.meal-row:hover > td {
+            background: #fcfdff;
+        }
 
-        /* day header row */
         .day-header-row td {
-            padding: 0 !important;
-            border: none !important;
+            padding: 12px 0 7px !important;
+            border: 0 !important;
+            background: #fff !important;
         }
 
         .day-header {
-            background: linear-gradient(90deg,#ec407a,#ab47bc);
-            color: #fff;
-            padding: 10px 12px !important;
-            border-radius: 8px;
+            padding: 0 !important;
         }
 
         .day-header-inner {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 12px;
+            min-height: 54px;
+            padding: 11px 14px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #7e57c2, #ec407a);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(126, 87, 194, .17);
         }
 
         .day-title {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             gap: 10px;
             flex-wrap: wrap;
         }
 
         .day-name {
+            font-size: 15px;
             font-weight: 900;
-            font-size: 14px;
         }
 
         .day-date {
-            display: inline-block;
-            font-size: 12px;
-            padding: 2px 8px;
+            padding: 4px 9px;
+            border: 1px solid rgba(255, 255, 255, .28);
             border-radius: 20px;
-            background: rgba(255,255,255,.16);
-            border: 1px solid rgba(255,255,255,.25);
+            background: rgba(255, 255, 255, .14);
+            font-size: 12px;
+            font-weight: 700;
         }
 
-        /* meal badge */
+        .delete-day-btn {
+            margin: 0 !important;
+            padding: 7px 10px !important;
+            border: 1px solid rgba(255, 255, 255, .38) !important;
+            border-radius: 9px !important;
+            background: rgba(255, 255, 255, .14) !important;
+            box-shadow: none !important;
+            color: #fff !important;
+            font-size: 11px !important;
+        }
+
+        .delete-day-btn:hover {
+            background: rgba(255, 255, 255, .24) !important;
+        }
+
         .meal-badge {
-            display: inline-block;
-            background: #f5f5f5;
-            border: 1px solid #eee;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-weight: 900;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 86px;
+            padding: 7px 11px;
+            border: 1px solid #dfe7f1;
+            border-radius: 9px;
+            background: #f7f9fc;
+            color: #34495e;
             font-size: 13px;
-            color: #333;
+            font-weight: 900;
         }
 
-        /* chips (radio) */
         .chips {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 7px;
         }
 
         .chip-item {
             display: inline-flex;
+            position: relative;
         }
 
         .chip-input {
@@ -169,78 +279,271 @@
         }
 
         .chip {
-            display: inline-block;
+            min-height: 35px;
+            margin: 0;
+            padding: 7px 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e0e6ed;
+            border-radius: 10px;
+            background: #fff;
+            color: #4c5d70;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.6;
             cursor: pointer;
             user-select: none;
-            padding: 6px 10px;
-            border-radius: 20px;
-            border: 1px solid #e6e6e6;
-            background: #fafafa;
-            font-size: 13px;
-            color: #444;
-            transition: .15s;
+            transition: all .18s ease;
         }
 
-            .chip:hover {
-                background: #f2f2f2;
-            }
+        .chip:hover {
+            border-color: #b9c8da;
+            background: #f8faff;
+            transform: translateY(-1px);
+        }
+
+        .chip-input:focus + .chip {
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, .12);
+        }
 
         .chip-input:checked + .chip {
-            background: #e8f0ff;
-            border-color: #bcd3ff;
-            color: #1565c0;
+            border-color: #7e57c2;
+            background: #f1ecfb;
+            color: #5e35b1;
+            box-shadow: 0 3px 10px rgba(126, 87, 194, .12);
+        }
+
+        .chip-input:checked + .chip:before {
+            content: "✓";
+            margin-left: 6px;
             font-weight: 900;
         }
 
         .chip-muted {
-            background: #fff7ed;
-            border-color: #ffd7aa;
-            color: #9a3412;
+            border-color: #f1dfcf;
+            background: #fffaf5;
+            color: #9a6333;
         }
 
-        /* sticky submit */
+        .chip-input:checked + .chip-muted {
+            border-color: #d9a36f;
+            background: #fff3e7;
+            color: #8a4b18;
+        }
+
         .reserve-sticky {
             position: sticky;
-            bottom: 0;
+            bottom: 10px;
             z-index: 30;
-            margin-top: 12px;
-            padding-top: 10px;
+            margin-top: 16px;
         }
 
         .reserve-sticky-inner {
-            background: rgba(255,255,255,.95);
-            border: 1px solid rgba(0,0,0,.06);
-            box-shadow: 0 2px 10px rgba(0,0,0,.05);
-            border-radius: 10px;
-            padding: 10px 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 15px;
+            padding: 12px 14px;
+            border: 1px solid #e2e8ef;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, .96);
+            box-shadow: 0 8px 24px rgba(31, 45, 61, .11);
+            backdrop-filter: blur(8px);
         }
 
         .reserve-sticky-text {
-            font-size: 13px;
-            color: #777;
+            color: #697a8c;
+            font-size: 12px;
+            line-height: 1.8;
         }
 
-        /* responsive */
-        @@media (max-width: 992px) {
-            .reserve-head
-
-        {
-            flex-direction: column;
-            align-items: flex-start;
+        .reserve-selection-count {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 8px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            background: #eef2ff;
+            color: #5e35b1;
+            font-weight: 900;
+            white-space: nowrap;
         }
 
-        .reserve-week {
-            white-space: normal;
+        .reserve-submit {
+            min-width: 210px;
+            margin: 0 !important;
+            border-radius: 10px !important;
+            font-weight: 900 !important;
         }
 
+        @@media (max-width: 991px) {
+            .reserve-head {
+                align-items: stretch;
+                flex-direction: column;
+                padding: 18px;
+            }
+
+            .reserve-week {
+                width: fit-content;
+            }
+
+            .reserve-guide {
+                grid-template-columns: 1fr;
+                padding: 12px 18px;
+            }
+
+            .reserve-content {
+                padding: 12px;
+            }
+
+            .reserve-table-wrap {
+                overflow: visible;
+                border: 0;
+                background: transparent;
+            }
+
+            .reserve-table,
+            .reserve-table tbody {
+                display: block;
+                width: 100%;
+            }
+
+            .reserve-table thead {
+                display: none;
+            }
+
+            .reserve-table tr.day-header-row {
+                display: block;
+                margin-top: 15px;
+            }
+
+            .reserve-table tr.day-header-row:first-child {
+                margin-top: 0;
+            }
+
+            .reserve-table tr.day-header-row td {
+                display: block;
+                width: 100%;
+            }
+
+            .reserve-table tr.meal-row {
+                display: block;
+                margin: 9px 0 14px;
+                overflow: hidden;
+                border: 1px solid #e7ebf0;
+                border-radius: 13px;
+                background: #fff;
+                box-shadow: 0 4px 14px rgba(31, 45, 61, .05);
+            }
+
+            .reserve-table > tbody > tr.meal-row > td {
+                display: grid;
+                grid-template-columns: 88px minmax(0, 1fr);
+                gap: 10px;
+                width: 100%;
+                padding: 11px 12px !important;
+                border: 0 !important;
+                border-bottom: 1px solid #eef1f4 !important;
+                text-align: right;
+            }
+
+            .reserve-table > tbody > tr.meal-row > td:last-child {
+                border-bottom: 0 !important;
+            }
+
+            .reserve-table tr.meal-row td:before {
+                content: attr(data-label);
+                padding-top: 7px;
+                color: #8291a2;
+                font-size: 11px;
+                font-weight: 900;
+            }
+
+            .meal-badge {
+                width: fit-content;
+                min-width: 0;
+            }
+
+            .chips {
+                gap: 6px;
+            }
+
+            .chip {
+                min-height: 34px;
+                padding: 6px 9px;
+                font-size: 11px;
+            }
+
+            .reserve-sticky {
+                bottom: 5px;
+            }
+
+            .reserve-sticky-inner {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .reserve-submit {
+                width: 100%;
+                min-width: 0;
+            }
+        }
+
+        @@media (max-width: 575px) {
+            .reserve-page {
+                padding-top: 2px;
+            }
+
+            .reserve-container {
+                padding: 0 5px;
+            }
+
+            .reserve-card {
+                border-radius: 13px;
+            }
+
+            .reserve-head {
+                padding: 14px;
+            }
+
+            .reserve-head-icon {
+                width: 44px;
+                height: 44px;
+                flex-basis: 44px;
+                border-radius: 12px;
+            }
+
+            .reserve-title {
+                font-size: 18px;
+            }
+
+            .reserve-hint {
+                font-size: 11px;
+            }
+
+            .reserve-week {
+                width: 100%;
+                justify-content: center;
+                font-size: 11px;
+            }
+
+            .day-header-inner {
+                min-height: 50px;
+                padding: 9px 10px;
+            }
+
+            .day-name {
+                font-size: 13px;
+            }
+
+            .reserve-table > tbody > tr.meal-row > td {
+                grid-template-columns: 70px minmax(0, 1fr);
+                padding: 9px 10px !important;
+            }
         }
     </style>
 }
-
 @if (!string.IsNullOrWhiteSpace(ViewBag.QuotaError as string))
 {
     <div class="alert alert-warning text-center" role="alert" style="font-size:16px;font-weight:bold;">
@@ -259,20 +562,45 @@
 }
 
 <form method="post" class="reserve-form">
-
+    <div class="reserve-page">
     <div class="container reserve-container">
         <div class="reserve-card">
 
             <div class="reserve-head">
-                <div>
-                    <h2 class="reserve-title">ثبت برنامه غذایی</h2>
-                    <div class="reserve-hint">لطفاً تمامی روزهای مورد نظر را انتخاب کنید و در انتهای صفحه ثبت نهایی را بزنید.</div>
+                <div class="reserve-head-main">
+                    <div class="reserve-head-icon">
+                        <i class="material-icons">restaurant_menu</i>
+                    </div>
+                    <div>
+                        <h2 class="reserve-title">رزرو غذای هفتگی</h2>
+                        <div class="reserve-hint">
+                            برای هر وعده غذای موردنظر را انتخاب کنید. انتخاب دسر و دورچین اختیاری است.
+                        </div>
+                    </div>
                 </div>
+
                 <div class="reserve-week">
-                    هفته: @Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))
+                    <i class="material-icons">date_range</i>
+                    <span>@Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))</span>
                 </div>
             </div>
 
+            <div class="reserve-guide">
+                <div class="reserve-guide-item">
+                    <span class="reserve-guide-number">۱</span>
+                    <span>روز و وعده‌ای که برای شما سهمیه دارد نمایش داده می‌شود.</span>
+                </div>
+                <div class="reserve-guide-item">
+                    <span class="reserve-guide-number">۲</span>
+                    <span>غذای اصلی را انتخاب کنید و در صورت تمایل دسر و دورچین را مشخص کنید.</span>
+                </div>
+                <div class="reserve-guide-item">
+                    <span class="reserve-guide-number">۳</span>
+                    <span>در پایان، انتخاب‌ها را بررسی و روی ثبت نهایی بزنید.</span>
+                </div>
+            </div>
+
+            <div class="reserve-content">
             <div class="table-responsive reserve-table-wrap">
                 <table class="table table-bordered reserve-table">
                     <thead>
@@ -321,13 +649,13 @@
                             @foreach (var meal in Model.Meals.Where(
                                 meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")))
                             {
-                                <tr>
-                                    <td>
+                                <tr class="meal-row">
+                                    <td data-label="وعده">
                                         <span class="meal-badge">@meal.Title</span>
                                     </td>
 
                                     <!-- غذا -->
-                                    <td>
+                                    <td data-label="غذا">
                                         <div class="chips">
                                             @foreach (var food in GetFoodListForMeal(day.Id, meal.Id, Model))
                                             {
@@ -344,7 +672,7 @@
                                     </td>
 
                                     <!-- دسر -->
-                                    <td>
+                                    <td data-label="دسر">
                                         <div class="chips">
                                             @foreach (var dessert in GetDessertListForMeal(day.Id, meal.Id, Model))
                                             {
@@ -374,7 +702,7 @@
                                     </td>
 
                                     <!-- دورچین -->
-                                    <td>
+                                    <td data-label="دورچین">
                                         <div class="chips">
                                             @foreach (var side in GetSideDishListForMeal(day.Id, meal.Id, Model))
                                             {
@@ -411,10 +739,18 @@
 
             <div class="reserve-sticky">
                 <div class="reserve-sticky-inner">
-                    <div class="reserve-sticky-text">انتخاب‌ها را بررسی کنید و سپس ثبت نهایی را انجام دهید.</div>
+                    <div class="reserve-sticky-text">
+                        انتخاب‌ها را بررسی کنید و سپس ثبت نهایی را انجام دهید.
+                        <span class="reserve-selection-count">
+                            <span id="selectionCount">۰</span>&nbsp;وعده انتخاب‌شده
+                        </span>
+                    </div>
                     @if (hasReservationQuota)
                     {
-                        <button type="submit" class="btn btn-rose btn-lg">ثبت نهایی برنامه غذایی</button>
+                        <button type="submit" class="btn btn-rose btn-lg reserve-submit">
+                            <i class="material-icons" style="vertical-align:middle;font-size:19px;">check_circle</i>
+                            ثبت نهایی برنامه غذایی
+                        </button>
                     }
                     else
                     {
@@ -424,10 +760,11 @@
                     }
                 </div>
             </div>
+            </div>
 
         </div>
     </div>
-
+    </div>
 </form>
 
 @functions {
@@ -474,6 +811,23 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            function toPersianNumber(value) {
+                return String(value).replace(/\d/g, function (digit) {
+                    return '۰۱۲۳۴۵۶۷۸۹'[digit];
+                });
+            }
+
+            function updateSelectionCount() {
+                var count = $('input[name^="MainFood_"]:checked').filter(function () {
+                    return $(this).val();
+                }).length;
+
+                $('#selectionCount').text(toPersianNumber(count));
+            }
+
+            $('input[type="radio"]').on('change', updateSelectionCount);
+            updateSelectionCount();
+
             $('.delete-day-btn').on('click', function () {
                 var dayId = $(this).data('day-id');
                 var dayTitle = $(this).data('day-title');
