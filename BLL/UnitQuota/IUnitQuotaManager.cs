@@ -78,5 +78,16 @@ namespace BLL.Interface
         List<UnitQuotaDTO> GetList(
             UnitQuotaFilterDTO filters,
             bool canViewAllOrganizations);
+
+        /// <summary>
+        /// تاریخ و وعده‌های قابل رزرو کاربر را بر اساس سهمیه جدید یگان برمی‌گرداند.
+        /// </summary>
+        IReadOnlyCollection<(DateTime Date, long MealId)> GetReservableSlots(
+            long? personId,
+            string personCode,
+            string nationalCode,
+            int orgId,
+            DateTime fromDate,
+            DateTime toDate);
     }
 }
