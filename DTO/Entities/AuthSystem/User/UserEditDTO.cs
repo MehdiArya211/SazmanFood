@@ -71,7 +71,6 @@ namespace DTO.User
 
 
         [Display(Name = "قرارگاه")]
-        [Required(ErrorMessage = "{0} الزامی است.")]
         public int? GharargahId { get; set; }
 
 
