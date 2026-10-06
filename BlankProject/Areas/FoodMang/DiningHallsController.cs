@@ -314,6 +314,16 @@ namespace Food.Areas.FoodMang.Controllers
                 return NotFound();
             }
 
+            var currentUser =
+                Session.GetUser();
+
+            if (currentUser == null ||
+                (currentUser.RoleId != RoleConstant.Admin &&
+                 model.OrgId != currentUser.OmdOrgId))
+            {
+                return Forbid();
+            }
+
             model.HallCapacitySep =
                 model.HallCapacity.HasValue
                     ? model.HallCapacity.Value.ToString("N0")
@@ -497,6 +507,24 @@ namespace Food.Areas.FoodMang.Controllers
                         Status = false,
                         Message =
                             "سالن غذاخوری یافت نشد!"
+                    });
+                }
+
+                var currentUser =
+                    Session.GetUser();
+
+                var diningHall =
+                    DiningHallManager.GetDiningHallForEditDTO(id);
+
+                if (currentUser == null ||
+                    diningHall == null ||
+                    (currentUser.RoleId != RoleConstant.Admin &&
+                     diningHall.OrgId != currentUser.OmdOrgId))
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "شما مجاز به حذف سالن یگان دیگر نیستید!"
                     });
                 }
 
