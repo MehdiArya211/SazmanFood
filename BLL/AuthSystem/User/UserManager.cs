@@ -115,7 +115,9 @@ namespace BLL
                 Username = model.Username?.Trim().ToLower().ToEnglishNumber(),
                 RoleId = model.RoleId,
                 Password = model.Password.GetHash(),
-                Mobile = model.Mobile?.Trim().ToLower().ToEnglishNumber(),
+                Mobile = string.IsNullOrWhiteSpace(model.Mobile)
+                    ? string.Empty
+                    : model.Mobile.Trim().ToLower().ToEnglishNumber(),
                 Type = model.Type,
                 CreatorId = User?.Id,
                 OmdOrgId = model.OmdOrgId,
@@ -163,7 +165,9 @@ namespace BLL
             if (User == null)
                 return new BaseResult(false, "کاربر مورد نظر یافت نشد");
 
-            User.Mobile = model.Mobile?.Trim().ToLower().ToEnglishNumber();
+            User.Mobile = string.IsNullOrWhiteSpace(model.Mobile)
+                ? string.Empty
+                : model.Mobile.Trim().ToLower().ToEnglishNumber();
             User.Name = model.Name?.Trim().ToLower().ToPersianCharacter();
             User.Username = model.Username?.Trim().ToLower().ToEnglishNumber();
             User.IsEnabled = model.IsEnabled;
