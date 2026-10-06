@@ -1,6 +1,7 @@
 ﻿using BLL;
 using BLL.FoodManag.DiningHallBL;
 using BLL.Interface;
+using Domain.Constants;
 using Domain.Enums.Food;
 using DTO.Entities;
 using DTO.Entities.DiningHalDTo;
@@ -8,6 +9,7 @@ using Filters;
 using ITOWebApiClient;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Services.SessionServices;
 using Utilities.Extentions;
 
 namespace Food.Areas.FoodMang.Controllers
@@ -88,10 +90,18 @@ namespace Food.Areas.FoodMang.Controllers
                     "Id",
                     "Title");
 
+            var user = Session.GetUser();
+            var organizations =
+                webApiManager.GetOrganInfo(access_token)
+                    .Where(x =>
+                        user == null ||
+                        user.RoleId == RoleConstant.Admin ||
+                        x.Id == user.OmdOrgId)
+                    .ToList();
+
             ViewData["Org"] =
                 new SelectList(
-                    webApiManager.GetOrganInfo(
-                        access_token),
+                    organizations,
                     "Id",
                     "UnitTitle");
 
@@ -107,6 +117,19 @@ namespace Food.Areas.FoodMang.Controllers
         {
             var SearchModel =
                 dataTableManager.GetSearchModel();
+
+            filters ??=
+                new DiningHallFilterDTO();
+
+            var user =
+                Session.GetUser();
+
+            if (user != null &&
+                user.RoleId != RoleConstant.Admin)
+            {
+                filters.OrgId =
+                    user.OmdOrgId;
+            }
 
             var model =
                 DiningHallManager.GetDataTableDTO(
@@ -132,10 +155,18 @@ namespace Food.Areas.FoodMang.Controllers
                     "Title");
 
 
+            var user = Session.GetUser();
+            var organizations =
+                webApiManager.GetOrganInfo(access_token)
+                    .Where(x =>
+                        user == null ||
+                        user.RoleId == RoleConstant.Admin ||
+                        x.Id == user.OmdOrgId)
+                    .ToList();
+
             ViewData["Org"] =
                 new SelectList(
-                    webApiManager.GetOrganInfo(
-                        access_token),
+                    organizations,
                     "Id",
                     "UnitTitle");
 
@@ -173,6 +204,28 @@ namespace Food.Areas.FoodMang.Controllers
                         Status = false,
                         Message =
                             "یگان را مشخص کنید!"
+                    });
+                }
+
+                var currentUser =
+                    Session.GetUser();
+
+                if (currentUser == null)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "اطلاعات کاربر جاری یافت نشد!"
+                    });
+                }
+
+                if (currentUser.RoleId != RoleConstant.Admin &&
+                    model.OrgId != currentUser.OmdOrgId)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "شما مجاز به ثبت سالن برای یگان دیگر نیستید!"
                     });
                 }
 
@@ -281,10 +334,18 @@ namespace Food.Areas.FoodMang.Controllers
                     "Title",
                     (int)model.UsageType);
 
+            var user = Session.GetUser();
+            var organizations =
+                webApiManager.GetOrganInfo(access_token)
+                    .Where(x =>
+                        user == null ||
+                        user.RoleId == RoleConstant.Admin ||
+                        x.Id == user.OmdOrgId)
+                    .ToList();
+
             ViewData["Org"] =
                 new SelectList(
-                    webApiManager.GetOrganInfo(
-                        access_token),
+                    organizations,
                     "Id",
                     "UnitTitle",
                     model.OrgId);
@@ -327,6 +388,28 @@ namespace Food.Areas.FoodMang.Controllers
                         Status = false,
                         Message =
                             "یگان را مشخص کنید!"
+                    });
+                }
+
+                var currentUser =
+                    Session.GetUser();
+
+                if (currentUser == null)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "اطلاعات کاربر جاری یافت نشد!"
+                    });
+                }
+
+                if (currentUser.RoleId != RoleConstant.Admin &&
+                    model.OrgId != currentUser.OmdOrgId)
+                {
+                    return Json(new
+                    {
+                        Status = false,
+                        Message = "شما مجاز به ویرایش سالن یگان دیگر نیستید!"
                     });
                 }
 
