@@ -32,7 +32,7 @@ namespace DTO.User
         [StringLength(11, MinimumLength = 11, ErrorMessage = "{0} باید {1} کاراکتر باشد.")]
         [RegularExpression(@"^0\d{10}", ErrorMessage = "تلفن با صفر شروع شود و حاوی عدد به طول 11 کاراکتر باشد.")]
         [Remote("MobileIsUnique", "CheckUnique", "Global", AdditionalFields = "Id", HttpMethod = "post", ErrorMessage = "تلفن قبلا استفاده شده است!")]
-        public string Mobile { get; set; }
+        public string? Mobile { get; set; }
 
 
 
