@@ -1332,4 +1332,170 @@ public class UnitQuotaManager
     }
 
     #endregion
+
+    #region سهمیه قابل رزرو کاربر
+
+    /// <summary>
+    /// تاریخ و وعده‌های قابل رزرو کاربر را از سیستم جدید
+    /// UnitQuota / UnitQuotaPerson استخراج می‌کند.
+    /// </summary>
+    public IReadOnlyCollection<(DateTime Date, long MealId)> GetReservableSlots(
+        long? personId,
+        string personCode,
+        string nationalCode,
+        int orgId,
+        DateTime fromDate,
+        DateTime toDate)
+    {
+        personCode =
+            NormalizeReservationIdentity(personCode);
+
+        nationalCode =
+            NormalizeReservationIdentity(nationalCode);
+
+        fromDate =
+            fromDate.Date;
+
+        toDate =
+            toDate.Date;
+
+        if (fromDate > toDate)
+        {
+            return Array.Empty<(DateTime Date, long MealId)>();
+        }
+
+        if ((!personId.HasValue || personId.Value <= 0) &&
+            string.IsNullOrWhiteSpace(personCode) &&
+            string.IsNullOrWhiteSpace(nationalCode))
+        {
+            return Array.Empty<(DateTime Date, long MealId)>();
+        }
+
+        var activeStatisticIds =
+            UOW.UnitStatistic.GetAll()
+                .Where(x =>
+                    x.Status == UnitStatisticStatus.Approved &&
+                    x.IsActive &&
+                    (orgId <= 0 || x.OrgId == orgId))
+                .Select(x => x.Id)
+                .ToList();
+
+        if (!activeStatisticIds.Any())
+        {
+            return Array.Empty<(DateTime Date, long MealId)>();
+        }
+
+        var registrations =
+            UOW.UnitQuotaPerson.GetAll()
+                .Where(x =>
+                    activeStatisticIds.Contains(x.UnitStatisticId) &&
+                    (orgId <= 0 || x.OrgId == orgId) &&
+                    (
+                        (personId.HasValue &&
+                         personId.Value > 0 &&
+                         x.PersonId.HasValue &&
+                         x.PersonId.Value == personId.Value) ||
+
+                        (!string.IsNullOrWhiteSpace(personCode) &&
+                         x.PersonCode == personCode) ||
+
+                        (!string.IsNullOrWhiteSpace(nationalCode) &&
+                         x.NationalCode == nationalCode)
+                    ))
+                .ToList();
+
+        if (!registrations.Any())
+        {
+            return Array.Empty<(DateTime Date, long MealId)>();
+        }
+
+        var quotaIds =
+            registrations
+                .Select(x => x.UnitQuotaId)
+                .Distinct()
+                .ToList();
+
+        var quotas =
+            UOW.UnitQuota.GetAll()
+                .Where(x =>
+                    quotaIds.Contains(x.Id) &&
+                    activeStatisticIds.Contains(x.UnitStatisticId))
+                .ToDictionary(x => x.Id);
+
+        if (!quotas.Any())
+        {
+            return Array.Empty<(DateTime Date, long MealId)>();
+        }
+
+        var yeganTypeIds =
+            quotas.Values
+                .Select(x => x.YeganTypeId)
+                .Distinct()
+                .ToList();
+
+        var operationalYeganTypeIds =
+            UOW.YeganType.GetAll()
+                .Where(x =>
+                    yeganTypeIds.Contains(x.Id) &&
+                    x.Title != null &&
+                    x.Title.Trim() == "عملیاتی")
+                .Select(x => x.Id)
+                .ToHashSet();
+
+        var result =
+            new HashSet<(DateTime Date, long MealId)>();
+
+        for (var date = fromDate;
+             date <= toDate;
+             date = date.AddDays(1))
+        {
+            foreach (var registration in registrations)
+            {
+                if (!quotas.TryGetValue(
+                        registration.UnitQuotaId,
+                        out var quota))
+                {
+                    continue;
+                }
+
+                var effectiveDayType =
+                    operationalYeganTypeIds.Contains(
+                        quota.YeganTypeId)
+                        ? DayType.Normal
+                        : UOW.UnitCalendar.GetDayType(
+                            registration.OrgId,
+                            date);
+
+                if (registration.DayType != effectiveDayType ||
+                    quota.DayType != effectiveDayType)
+                {
+                    continue;
+                }
+
+                result.Add((
+                    date.Date,
+                    registration.MealId));
+            }
+        }
+
+        return result
+            .OrderBy(x => x.Date)
+            .ThenBy(x => x.MealId)
+            .ToList();
+    }
+
+    private static string NormalizeReservationIdentity(
+        string value)
+    {
+        value =
+            value?
+                .Trim()
+                .ToEnglishNumber();
+
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value;
+    }
+
+    #endregion
 }
