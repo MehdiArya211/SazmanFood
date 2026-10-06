@@ -26,12 +26,12 @@ namespace Food.Areas.ReserveManagment.Controllers
         private readonly IFoodReserveManager _foodReserveManager;
         private readonly IFoodReserveDetailManager _foodReserveDetailManager;
         private readonly IRedisManager _redis;
-        private readonly IQoutaPersonManager _qoutaPersonManager;
+        private readonly IUnitQuotaManager _unitQuotaManager;
 
         public ReserveController(IFoodPlanDayManager foodPlanDayManager, IMealManager mealManager, IFoodManager foodManager
             , IFoodReserveManager foodReserveManager, IRedisManager redis,
             IFoodReserveDetailManager foodReserveDetailManager,
-            IQoutaPersonManager qoutaPersonManager)
+            IUnitQuotaManager unitQuotaManager)
         {
             _foodPlanDayManager = foodPlanDayManager;
             _foodManager = foodManager;
@@ -39,7 +39,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             _foodReserveManager = foodReserveManager;
             _redis = redis;
             _foodReserveDetailManager = foodReserveDetailManager;
-            _qoutaPersonManager = qoutaPersonManager;
+            _unitQuotaManager = unitQuotaManager;
         }
 
         public IActionResult Index()
@@ -57,9 +57,21 @@ namespace Food.Areas.ReserveManagment.Controllers
             DateTime weekStartDate = now.AddDays(-1 * diff).Date;
             DateTime weekEndDate = weekStartDate.AddDays(6).Date;
 
-            var personalCode = user.PersonCode?.ToString() ?? user.Username;
-            var reservableSlots = _qoutaPersonManager
-                .GetReservableSlots(personalCode, weekStartDate, weekEndDate)
+            var personalCode =
+                user.PersonCode?.ToString() ??
+                user.Username;
+
+            var nationalCode =
+                user.NationalCode?.ToString();
+
+            var reservableSlots = _unitQuotaManager
+                .GetReservableSlots(
+                    user.PersonId,
+                    personalCode,
+                    nationalCode,
+                    user.OmdOrgId,
+                    weekStartDate,
+                    weekEndDate)
                 .ToHashSet();
 
             ViewBag.WeekStartDate = weekStartDate;
@@ -159,9 +171,21 @@ namespace Food.Areas.ReserveManagment.Controllers
                 DateTime weekStartDate = now.AddDays(-1 * diff).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
 
-                var personalCode = user.PersonCode?.ToString() ?? user.Username;
-                var reservableSlots = _qoutaPersonManager
-                    .GetReservableSlots(personalCode, weekStartDate, weekEndDate)
+                var personalCode =
+                    user.PersonCode?.ToString() ??
+                    user.Username;
+
+                var nationalCode =
+                    user.NationalCode?.ToString();
+
+                var reservableSlots = _unitQuotaManager
+                    .GetReservableSlots(
+                        user.PersonId,
+                        personalCode,
+                        nationalCode,
+                        user.OmdOrgId,
+                        weekStartDate,
+                        weekEndDate)
                     .ToHashSet();
 
                 if (reservableSlots.Count == 0)
