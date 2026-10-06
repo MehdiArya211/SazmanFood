@@ -71,7 +71,12 @@ namespace BLL
         /// <returns></returns>
         public bool MobileIsUnique(string Mobile, long? Id = null)
         {
-            return UOW.Users.MobileIsUnique(Mobile, Id);
+            if (string.IsNullOrWhiteSpace(Mobile))
+                return true;
+
+            return UOW.Users.MobileIsUnique(
+                Mobile.Trim().ToEnglishNumber(),
+                Id);
         }
 
 
