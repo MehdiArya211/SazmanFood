@@ -43,7 +43,7 @@ namespace DTO.User
             AdditionalFields = "Id",
             HttpMethod = "post",
             ErrorMessage = "تلفن قبلا استفاده شده است!")]
-        public string Mobile { get; set; }
+        public string? Mobile { get; set; }
 
 
 
