@@ -1,7 +1,6 @@
 ﻿using BLL;
 using BLL.Interface;
 using DTO.Diagrams;
-using Domain.Constants;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -19,36 +18,25 @@ namespace Food.Areas.Admin.Controllers
         private readonly IMemoryCache cache;
         private readonly IUserManager userManager;
         private readonly IUserLogManager UserLogManager;
-        private readonly IQoutaPersonManager qoutaPersonManager;
         private readonly ISession session;
 
 
-        public DashboardController(IUserManager _userManager, IUserLogManager userLogManager,
-            IHttpContextAccessor _httpContextAccessor, IMemoryCache _cache,
-            IQoutaPersonManager _qoutaPersonManager
-           )
+        public DashboardController(
+            IUserManager _userManager,
+            IUserLogManager userLogManager,
+            IHttpContextAccessor _httpContextAccessor,
+            IMemoryCache _cache)
         {
             userManager = _userManager;
             cache = _cache;
             session = _httpContextAccessor.HttpContext.Session;
             UserLogManager = userLogManager;
-            qoutaPersonManager = _qoutaPersonManager;
-
         }
 
         public IActionResult Index()
         {
-            var User = HttpContext.Session.GetUser();
-
-            if (User?.RoleId == RoleConstant.MealBooker)
-            {
-                var personalCode = User.PersonCode?.ToString() ?? User.Username;
-
-                if (!qoutaPersonManager.HasActiveQuota(personalCode))
-                {
-                    ViewBag.QuotaMessage = "سهمیه‌ای برای شما ثبت نشده است.";
-                }
-            }
+            var User =
+                HttpContext.Session.GetUser();
 
             return View(User);
         }
