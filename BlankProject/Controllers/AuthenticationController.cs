@@ -104,14 +104,14 @@ public class AuthenticationController : Controller
         //لاگ دفعات تلاش برای لاگین
         var loginLog = await Redis.db.SetLoginLog(Mobile);
         var FailedLoginCount = ConstantManager.GetFailedLoginCount();
-        if (loginLog != null && loginLog.Count > FailedLoginCount)
-        {
-            fajrActionType = FajrActionType.BlockUser;
-            var diff = (int)(loginLog.CreateDate.AddMinutes(20) - DateTime.Now).TotalMinutes;
-            await Redis.db.SetLoginLog(Redis.ContextAccessor, fajrActionType, Mobile, null, null, false, $"مسدود شدن حساب کاربری تا {diff} دقیقه دیگر به دلیل {loginLog.Count} بار ورود اشتباه کلمه عبور. ");
-            ViewBag.Error = $"حساب کاربری شما بدلیل ورود اشتباه کلمه عبور تا {diff} دقیقه آینده مسدود می باشد.";
-            return View();
-        }
+        //if (loginLog != null && loginLog.Count > FailedLoginCount)
+        //{
+        //    fajrActionType = FajrActionType.BlockUser;
+        //    var diff = (int)(loginLog.CreateDate.AddMinutes(20) - DateTime.Now).TotalMinutes;
+        //    await Redis.db.SetLoginLog(Redis.ContextAccessor, fajrActionType, Mobile, null, null, false, $"مسدود شدن حساب کاربری تا {diff} دقیقه دیگر به دلیل {loginLog.Count} بار ورود اشتباه کلمه عبور. ");
+        //    ViewBag.Error = $"حساب کاربری شما بدلیل ورود اشتباه کلمه عبور تا {diff} دقیقه آینده مسدود می باشد.";
+        //    return View();
+        //}
         #endregion
 
         #region بررسی کپچا در صورت وجود
