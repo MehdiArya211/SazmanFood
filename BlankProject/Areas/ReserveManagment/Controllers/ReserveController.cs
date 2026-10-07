@@ -2,6 +2,7 @@
 using BLL.FoodManag.FoodBL;
 using BLL.Interface;
 using BLL.ReserveManagment;
+using Domain.Constants;
 using Domain.Entities.FoodManage;
 using Domain.Entities.FoodReservation;
 using DTO.Entities;
@@ -47,6 +48,12 @@ namespace Food.Areas.ReserveManagment.Controllers
             var user = HttpContext.Session.GetUser();
             if (user == null)
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
+
+            if (user.RoleId != RoleConstant.MealBooker)
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+
+            if (user.RoleId != RoleConstant.MealBooker)
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
 
             long currentUserId = user.Id;
 
@@ -318,6 +325,15 @@ namespace Food.Areas.ReserveManagment.Controllers
                 {
                     success = false,
                     message = "نشست کاربری منقضی شده است؛ دوباره وارد سامانه شوید."
+                });
+            }
+
+            if (user.RoleId != RoleConstant.MealBooker)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "دسترسی به رزرو غذا فقط برای نقش رزروکننده مجاز است."
                 });
             }
 
