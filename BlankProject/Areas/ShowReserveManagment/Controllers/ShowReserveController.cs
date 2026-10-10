@@ -1,5 +1,6 @@
 ﻿using BLL;
 using BLL.ReserveManagment;
+using Domain.Constants;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Services.RedisService;
@@ -44,8 +45,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             if (user == null)
                 return RedirectToAction("Login", "FaceAuth");
 
-            if (user.RoleId != RoleConstant.MealBooker)
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+            //if (user.RoleId != RoleConstant.MealBooker)
+            //    return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
 
             var weeklyMeals = await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
 
