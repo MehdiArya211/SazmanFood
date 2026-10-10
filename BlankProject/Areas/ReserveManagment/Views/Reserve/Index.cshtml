@@ -14,9 +14,6 @@
     var hasReservationQuota =
         ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
 
-    var canReserve =
-        ViewBag.CanReserve is bool allowed && allowed;
-
     DateTime weekStartDate = ViewBag.WeekStartDate != null
         ? (DateTime)ViewBag.WeekStartDate
         : DateTime.Now.Date;
@@ -564,14 +561,6 @@
     <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
-@if (!canReserve)
-{
-    <div class="alert alert-info text-center reserve-alert" role="alert">
-        <i class="material-icons" aria-hidden="true">info</i>
-        صفحه رزرو برای شما قابل مشاهده است، اما انتخاب و ثبت برنامه غذایی فقط برای نقش «رزروکننده غذا» فعال است.
-    </div>
-}
-
 <form method="post" class="reserve-form">
     <div class="reserve-page">
     <div class="container reserve-container">
@@ -612,7 +601,6 @@
             </div>
 
             <div class="reserve-content">
-            <fieldset @(canReserve ? null : "disabled")>
             <div class="table-responsive reserve-table-wrap">
                 <table class="table table-bordered reserve-table">
                     <thead>
@@ -772,7 +760,6 @@
                     }
                 </div>
             </div>
-            </fieldset>
             </div>
 
         </div>
