@@ -1,6 +1,5 @@
 ﻿using BLL;
 using BLL.ReserveManagment;
-using Domain.Constants;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Services.RedisService;
@@ -12,7 +11,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
     /// مدیریت رزرو غذا - غذا
     /// </summary>
     [Area("ShowReserveManagment")]
-    [UserAuthorize(Area: "ShowReserveManagment", Controller: "ShowReserve", Action: "index")]
+    [UserAuthorize(IsPublic: true)]
     public class ShowReserveController : Controller
     {
         private readonly IFoodReserveManager _foodReserveManager;
@@ -34,9 +33,6 @@ namespace Food.Areas.ShowReserveManagment.Controllers
 
             if (user == null)
                 return RedirectToAction("Login", "FaceAuth");
-
-            if (user.RoleId != RoleConstant.MealBooker)
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
 
             var weeklyMeals = await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
             return View(weeklyMeals);
@@ -77,9 +73,6 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             var user = HttpContext.Session.GetUser();
             if (user == null)
                 return Unauthorized();
-
-            if (user.RoleId != RoleConstant.MealBooker)
-                return Forbid();
 
             if (user.RoleId != RoleConstant.MealBooker)
                 return Forbid();
