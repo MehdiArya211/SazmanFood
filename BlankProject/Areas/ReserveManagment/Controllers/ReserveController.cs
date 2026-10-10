@@ -2,7 +2,6 @@
 using BLL.FoodManag.FoodBL;
 using BLL.Interface;
 using BLL.ReserveManagment;
-using Domain.Constants;
 using Domain.Entities.FoodManage;
 using Domain.Entities.FoodReservation;
 using DTO.Entities;
@@ -49,11 +48,6 @@ namespace Food.Areas.ReserveManagment.Controllers
             if (user == null)
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
 
-            var canReserve =
-                user.RoleId == RoleConstant.MealBooker;
-
-            ViewBag.CanReserve = canReserve;
-
             long currentUserId = user.Id;
 
             // --- محاسبه محدوده زمانی هفته جاری ---
@@ -70,18 +64,15 @@ namespace Food.Areas.ReserveManagment.Controllers
             var nationalCode =
                 user.NationalCode?.ToString();
 
-            var reservableSlots =
-                canReserve
-                    ? _unitQuotaManager
-                        .GetReservableSlots(
-                            user.PersonId,
-                            personalCode,
-                            nationalCode,
-                            user.OmdOrgId,
-                            weekStartDate,
-                            weekEndDate)
-                        .ToHashSet()
-                    : new HashSet<(DateTime Date, long MealId)>();
+            var reservableSlots = _unitQuotaManager
+                .GetReservableSlots(
+                    user.PersonId,
+                    personalCode,
+                    nationalCode,
+                    user.OmdOrgId,
+                    weekStartDate,
+                    weekEndDate)
+                .ToHashSet();
 
             ViewBag.WeekStartDate = weekStartDate;
             ViewBag.AllowedReservationSlots = reservableSlots
@@ -89,8 +80,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 .ToHashSet();
             ViewBag.HasReservationQuota = reservableSlots.Count > 0;
 
-            if (canReserve &&
-                reservableSlots.Count == 0)
+            if (reservableSlots.Count == 0)
             {
                 ViewBag.QuotaError =
                     "سهمیه‌ای برای شما ثبت نشده است.";
@@ -172,9 +162,6 @@ namespace Food.Areas.ReserveManagment.Controllers
             var user = HttpContext.Session.GetUser();
             if (user == null)
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
-
-            if (user.RoleId != RoleConstant.MealBooker)
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
 
             long userId = user.Id;
 
@@ -332,15 +319,6 @@ namespace Food.Areas.ReserveManagment.Controllers
                 {
                     success = false,
                     message = "نشست کاربری منقضی شده است؛ دوباره وارد سامانه شوید."
-                });
-            }
-
-            if (user.RoleId != RoleConstant.MealBooker)
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "دسترسی به رزرو غذا فقط برای نقش رزروکننده مجاز است."
                 });
             }
 
