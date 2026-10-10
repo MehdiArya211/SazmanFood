@@ -52,9 +52,6 @@ namespace Food.Areas.ReserveManagment.Controllers
             if (user.RoleId != RoleConstant.MealBooker)
                 return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
 
-            if (user.RoleId != RoleConstant.MealBooker)
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-
             long currentUserId = user.Id;
 
             // --- محاسبه محدوده زمانی هفته جاری ---
@@ -168,6 +165,9 @@ namespace Food.Areas.ReserveManagment.Controllers
             var user = HttpContext.Session.GetUser();
             if (user == null)
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
+
+            if (user.RoleId != RoleConstant.MealBooker)
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
 
             long userId = user.Id;
 
