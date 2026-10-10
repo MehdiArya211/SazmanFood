@@ -89,9 +89,11 @@ namespace Food.Areas.ReserveManagment.Controllers
                 .ToHashSet();
             ViewBag.HasReservationQuota = reservableSlots.Count > 0;
 
-            if (reservableSlots.Count == 0)
+            if (canReserve &&
+                reservableSlots.Count == 0)
             {
-                ViewBag.QuotaError = "سهمیه‌ای برای شما ثبت نشده است.";
+                ViewBag.QuotaError =
+                    "سهمیه‌ای برای شما ثبت نشده است.";
             }
 
             // --- جستجوی رزرو قبلی کاربر در این هفته ---
