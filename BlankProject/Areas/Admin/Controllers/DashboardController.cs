@@ -38,6 +38,14 @@ namespace Food.Areas.Admin.Controllers
             var User =
                 HttpContext.Session.GetUser();
 
+            TempData.Remove("QuotaMessage");
+
+            if (TempData["Error"] is string error &&
+                error.Contains("سهمیه‌ای برای شما ثبت نشده"))
+            {
+                TempData.Remove("Error");
+            }
+
             return View(User);
         }
 
