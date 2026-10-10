@@ -104,6 +104,29 @@
 
 
                 <ul class="nav main-nav">
+                    <li class="nav-item @(CController == "reserve" ? "active" : "")">
+                        <a class="nav-link"
+                           asp-area="ReserveManagment"
+                           asp-controller="Reserve"
+                           asp-action="Index">
+                            <span class="sidebar-mini">
+                                <span class="material-icons">restaurant_menu</span>
+                            </span>
+                            <span class="sidebar-normal">رزرو غذا</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item @(CController == "showreserve" ? "active" : "")">
+                        <a class="nav-link"
+                           asp-area="ShowReserveManagment"
+                           asp-controller="ShowReserve"
+                           asp-action="Index">
+                            <span class="sidebar-mini">
+                                <span class="material-icons">print</span>
+                            </span>
+                            <span class="sidebar-normal">پرینت فاکتور</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
