@@ -18,7 +18,7 @@ namespace Food.Areas.ReserveManagment.Controllers
     /// مدیریت رزرو غذا - غذا
     /// </summary>
     [Area("ReserveManagment")]
-    [UserAuthorize(Area: "ReserveManagment", Controller: "reserve", Action: "index")]
+    [UserAuthorize(IsPublic: true)]
     public class ReserveController : Controller
     {
         private readonly IFoodManager _foodManager;
@@ -49,8 +49,10 @@ namespace Food.Areas.ReserveManagment.Controllers
             if (user == null)
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
 
-            if (user.RoleId != RoleConstant.MealBooker)
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+            var canReserve =
+                user.RoleId == RoleConstant.MealBooker;
+
+            ViewBag.CanReserve = canReserve;
 
             long currentUserId = user.Id;
 
@@ -68,15 +70,18 @@ namespace Food.Areas.ReserveManagment.Controllers
             var nationalCode =
                 user.NationalCode?.ToString();
 
-            var reservableSlots = _unitQuotaManager
-                .GetReservableSlots(
-                    user.PersonId,
-                    personalCode,
-                    nationalCode,
-                    user.OmdOrgId,
-                    weekStartDate,
-                    weekEndDate)
-                .ToHashSet();
+            var reservableSlots =
+                canReserve
+                    ? _unitQuotaManager
+                        .GetReservableSlots(
+                            user.PersonId,
+                            personalCode,
+                            nationalCode,
+                            user.OmdOrgId,
+                            weekStartDate,
+                            weekEndDate)
+                        .ToHashSet()
+                    : new HashSet<(DateTime Date, long MealId)>();
 
             ViewBag.WeekStartDate = weekStartDate;
             ViewBag.AllowedReservationSlots = reservableSlots
