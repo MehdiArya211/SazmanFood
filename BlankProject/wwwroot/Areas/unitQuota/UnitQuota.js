@@ -9,7 +9,8 @@ var unitQuota = {
         loadDutyForm: "/Qouta/UnitQuotas/LoadDutyForm",
         createDuty: "/Qouta/UnitQuotas/CreateDuty",
         getPersons: "/Qouta/UnitQuotas/GetPersons",
-        deletePerson: "/Qouta/UnitQuotas/DeletePerson"
+        deletePerson: "/Qouta/UnitQuotas/DeletePerson",
+        importExcel: "/Qouta/UnitQuotas/ImportExcel"
     },
 
     list: {
@@ -644,6 +645,333 @@ var unitQuota = {
         }
     },
 
+    excel: {
+        toggle: function (type) {
+            var panel =
+                $("#" + type + "-excel-panel");
+
+            panel.stop(true, true).slideToggle(200);
+        },
+
+        fileChanged: function (type, input) {
+            var file =
+                input && input.files
+                    ? input.files[0]
+                    : null;
+
+            $("#" + type + "-excel-file-name")
+                .text(
+                    file
+                        ? file.name
+                        : "فایلی انتخاب نشده است."
+                );
+
+            $("#" + type + "-excel-result")
+                .hide()
+                .html("");
+        },
+
+        upload: function (type) {
+            if (unitQuotaSubmission)
+                return;
+
+            var modalData =
+                $("#quota-person-modal-data");
+
+            var unitQuotaId =
+                modalData.attr("data-unit-quota-id");
+
+            var mealId =
+                modalData.attr("data-meal-id");
+
+            var hallSelector =
+                type === "official"
+                    ? "#OfficialDiningHallId"
+                    : "#DutyDiningHallId";
+
+            var diningHallId =
+                $(hallSelector).val();
+
+            var input =
+                document.getElementById(
+                    type + "-excel-file"
+                );
+
+            var file =
+                input && input.files
+                    ? input.files[0]
+                    : null;
+
+            if (!diningHallId) {
+                unitQuota.helpers.showModalError(
+                    "ابتدا سالن غذاخوری را انتخاب کنید."
+                );
+                return;
+            }
+
+            if (!file) {
+                unitQuota.helpers.showModalError(
+                    "فایل Excel را انتخاب کنید."
+                );
+                return;
+            }
+
+            if (!/\.xlsx$/i.test(file.name)) {
+                unitQuota.helpers.showModalError(
+                    "فقط فایل Excel با پسوند xlsx قابل قبول است."
+                );
+                return;
+            }
+
+            var formData =
+                new FormData();
+
+            formData.append(
+                "file",
+                file
+            );
+
+            formData.append(
+                "unitQuotaId",
+                unitQuotaId
+            );
+
+            formData.append(
+                "mealId",
+                mealId
+            );
+
+            formData.append(
+                "diningHallId",
+                diningHallId
+            );
+
+            formData.append(
+                "personnelType",
+                type
+            );
+
+            formData.append(
+                "__RequestVerificationToken",
+                unitQuota.helpers.getToken()
+            );
+
+            unitQuotaSubmission = true;
+
+            $("#" + type + "-excel-submit")
+                .prop("disabled", true);
+
+            $("#" + type + "-excel-loading")
+                .show();
+
+            $("#" + type + "-excel-result")
+                .hide()
+                .html("");
+
+            $.ajax({
+                url: unitQuota.urls.importExcel,
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (result) {
+                    unitQuotaSubmission = false;
+
+                    $("#" + type + "-excel-submit")
+                        .prop("disabled", false);
+
+                    $("#" + type + "-excel-loading")
+                        .hide();
+
+                    unitQuota.excel.renderResult(
+                        type,
+                        result
+                    );
+
+                    var model =
+                        result
+                            ? (result.model || result.Model)
+                            : null;
+
+                    if (model) {
+                        unitQuota.personTable.reloadCurrent();
+                        unitQuota.list.reload();
+                    }
+                },
+                error: function (xhr) {
+                    unitQuotaSubmission = false;
+
+                    $("#" + type + "-excel-submit")
+                        .prop("disabled", false);
+
+                    $("#" + type + "-excel-loading")
+                        .hide();
+
+                    unitQuota.helpers.showModalError(
+                        unitQuota.helpers.getErrorMessage(
+                            xhr,
+                            "ثبت گروهی با Excel با خطا همراه بود."
+                        )
+                    );
+                }
+            });
+        },
+
+        renderResult: function (type, result) {
+            var container =
+                $("#" + type + "-excel-result");
+
+            var model =
+                result
+                    ? (result.model || result.Model)
+                    : null;
+
+            if (!model) {
+                container
+                    .removeClass("quota-excel-result-success")
+                    .addClass("quota-excel-result-error")
+                    .html(
+                        '<div class="alert alert-danger">' +
+                        '<i class="material-icons">error</i> ' +
+                        unitQuota.helpers.getMessage(
+                            result,
+                            "پردازش فایل انجام نشد."
+                        ) +
+                        "</div>"
+                    )
+                    .show();
+
+                return;
+            }
+
+            var total =
+                model.total ?? model.Total ?? 0;
+
+            var inserted =
+                model.inserted ?? model.Inserted ?? 0;
+
+            var duplicate =
+                model.duplicate ?? model.Duplicate ?? 0;
+
+            var failed =
+                model.failed ?? model.Failed ?? 0;
+
+            var rows =
+                model.rows ||
+                model.Rows ||
+                [];
+
+            var html =
+                '<div class="quota-excel-summary">' +
+                    '<div class="quota-excel-stat">' +
+                        '<strong>' + total + '</strong>' +
+                        '<span>کل ردیف‌ها</span>' +
+                    '</div>' +
+                    '<div class="quota-excel-stat quota-excel-stat-success">' +
+                        '<strong>' + inserted + '</strong>' +
+                        '<span>ثبت‌شده</span>' +
+                    '</div>' +
+                    '<div class="quota-excel-stat quota-excel-stat-warning">' +
+                        '<strong>' + duplicate + '</strong>' +
+                        '<span>تکراری</span>' +
+                    '</div>' +
+                    '<div class="quota-excel-stat quota-excel-stat-danger">' +
+                        '<strong>' + failed + '</strong>' +
+                        '<span>خطادار</span>' +
+                    '</div>' +
+                '</div>';
+
+            if (rows.length) {
+                html +=
+                    '<div class="table-responsive quota-excel-result-table">' +
+                    '<table class="table table-striped table-hover">' +
+                    '<thead><tr>' +
+                    '<th>ردیف Excel</th>' +
+                    '<th>کد پرسنلی</th>' +
+                    '<th>نام و نشان</th>' +
+                    '<th>وضعیت</th>' +
+                    '<th>توضیحات</th>' +
+                    '</tr></thead><tbody>';
+
+                $.each(rows, function (_, row) {
+                    var status =
+                        row.status ||
+                        row.Status ||
+                        "error";
+
+                    var badgeClass =
+                        status === "success"
+                            ? "label-success"
+                            : status === "duplicate"
+                                ? "label-warning"
+                                : "label-danger";
+
+                    var statusText =
+                        status === "success"
+                            ? "ثبت شد"
+                            : status === "duplicate"
+                                ? "تکراری"
+                                : "خطا";
+
+                    html +=
+                        "<tr>" +
+                        "<td>" +
+                            unitQuota.helpers.escapeHtml(
+                                row.row ?? row.Row ?? ""
+                            ) +
+                        "</td>" +
+                        "<td>" +
+                            unitQuota.helpers.escapeHtml(
+                                row.personCode ??
+                                row.PersonCode ??
+                                "-"
+                            ) +
+                        "</td>" +
+                        "<td>" +
+                            unitQuota.helpers.escapeHtml(
+                                row.fullName ??
+                                row.FullName ??
+                                "-"
+                            ) +
+                        "</td>" +
+                        '<td><span class="label ' +
+                            badgeClass +
+                            '">' +
+                            statusText +
+                        "</span></td>" +
+                        "<td>" +
+                            unitQuota.helpers.escapeHtml(
+                                row.message ??
+                                row.Message ??
+                                "-"
+                            ) +
+                        "</td>" +
+                        "</tr>";
+                });
+
+                html +=
+                    "</tbody></table></div>";
+            }
+
+            container
+                .removeClass(
+                    "quota-excel-result-error"
+                )
+                .addClass(
+                    "quota-excel-result-success"
+                )
+                .html(html)
+                .show();
+
+            if (inserted > 0) {
+                unitQuota.helpers.showModalSuccess(
+                    inserted +
+                    " نفر با موفقیت ثبت شد."
+                );
+            }
+        }
+    },
+
     personTable: {
         officialTable: null,
         dutyTable: null,
@@ -1105,6 +1433,17 @@ var unitQuota = {
                     return "٠١٢٣٤٥٦٧٨٩"
                         .indexOf(digit);
                 });
+        },
+
+        escapeHtml: function (value) {
+            if (value === null ||
+                value === undefined) {
+                return "";
+            }
+
+            return $("<div>")
+                .text(value.toString())
+                .html();
         },
 
         formatNumber: function (value) {
