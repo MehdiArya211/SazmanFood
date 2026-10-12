@@ -1,5 +1,6 @@
 ﻿using BLL;
 using BLL.Interface;
+using ClosedXML.Excel;
 using Domain.Constants;
 using DTO.Entities;
 using DTO.User;
@@ -548,6 +549,589 @@ private readonly IUnitQuotaManager unitQuotaManager;
                 Status = false,
                 Message =
                     "ثبت کارکنان وظیفه با خطا همراه بوده است."
+            });
+        }
+    }
+
+    #endregion
+
+    #region ثبت گروهی با Excel
+
+    /// <summary>
+    /// دانلود فایل نمونه ثبت گروهی کارکنان.
+    /// </summary>
+    [HttpGet]
+    public IActionResult DownloadExcelTemplate(string personnelType)
+    {
+        personnelType =
+            personnelType?
+                .Trim()
+                .ToLowerInvariant();
+
+        if (personnelType != "official" &&
+            personnelType != "duty")
+        {
+            return BadRequest(
+                "نوع پرسنل معتبر نیست.");
+        }
+
+        using var workbook =
+            new XLWorkbook();
+
+        var worksheet =
+            workbook.Worksheets.Add(
+                personnelType == "official"
+                    ? "کارکنان کادر"
+                    : "کارکنان وظیفه");
+
+        worksheet.RightToLeft = true;
+
+        if (personnelType == "official")
+        {
+            worksheet.Cell(1, 1).Value =
+                "کد پرسنلی";
+
+            worksheet.Cell(2, 1).Value =
+                "12345678";
+
+            worksheet.Column(1).Width = 25;
+        }
+        else
+        {
+            worksheet.Cell(1, 1).Value =
+                "کد ملی";
+
+            worksheet.Cell(1, 2).Value =
+                "کد پرسنلی";
+
+            worksheet.Cell(1, 3).Value =
+                "نام و نشان";
+
+            worksheet.Cell(2, 1).Value =
+                "0012345678";
+
+            worksheet.Cell(2, 2).Value =
+                "12345678";
+
+            worksheet.Cell(2, 3).Value =
+                "نام نمونه";
+
+            worksheet.Column(1).Width = 18;
+            worksheet.Column(2).Width = 22;
+            worksheet.Column(3).Width = 35;
+        }
+
+        var lastColumn =
+            personnelType == "official"
+                ? 1
+                : 3;
+
+        var header =
+            worksheet.Range(
+                1,
+                1,
+                1,
+                lastColumn);
+
+        header.Style.Font.Bold = true;
+        header.Style.Alignment.Horizontal =
+            XLAlignmentHorizontalValues.Center;
+        header.Style.Fill.BackgroundColor =
+            XLColor.LightBlue;
+
+        worksheet.SheetView.FreezeRows(1);
+
+        using var stream =
+            new MemoryStream();
+
+        workbook.SaveAs(stream);
+
+        var fileName =
+            personnelType == "official"
+                ? "UnitQuota-Official-Template.xlsx"
+                : "UnitQuota-Duty-Template.xlsx";
+
+        return File(
+            stream.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
+    }
+
+    /// <summary>
+    /// ثبت گروهی کارکنان از فایل Excel با استفاده از همان قواعد ثبت تکی.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ImportExcel(
+        IFormFile file,
+        long unitQuotaId,
+        long mealId,
+        long diningHallId,
+        string personnelType)
+    {
+        try
+        {
+            if (!CanView())
+                return AccessDenied();
+
+            personnelType =
+                personnelType?
+                    .Trim()
+                    .ToLowerInvariant();
+
+            if (personnelType != "official" &&
+                personnelType != "duty")
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "نوع پرسنل معتبر نیست."
+                });
+            }
+
+            if (file == null ||
+                file.Length <= 0)
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "فایل Excel را انتخاب کنید."
+                });
+            }
+
+            if (!string.Equals(
+                    Path.GetExtension(file.FileName),
+                    ".xlsx",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "فقط فایل Excel با پسوند xlsx قابل قبول است."
+                });
+            }
+
+            if (file.Length >
+                10 * 1024 * 1024)
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "حجم فایل نباید بیشتر از 10 مگابایت باشد."
+                });
+            }
+
+            if (unitQuotaId <= 0 ||
+                mealId <= 0 ||
+                diningHallId <= 0)
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "سهمیه، وعده یا سالن غذاخوری معتبر نیست."
+                });
+            }
+
+            var quotaForm =
+                personnelType == "official"
+                    ? unitQuotaManager.GetOfficialForm(
+                        unitQuotaId,
+                        mealId)
+                    : unitQuotaManager.GetDutyForm(
+                        unitQuotaId,
+                        mealId);
+
+            if (quotaForm == null)
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "سهمیه فعال و قابل ثبت یافت نشد."
+                });
+            }
+
+            if (!CanManageOrganization(
+                    quotaForm.OrgId))
+            {
+                return AccessDenied(
+                    "شما اجازه ثبت پرسنل برای این یگان را ندارید.");
+            }
+
+            using var workbook =
+                new XLWorkbook(
+                    file.OpenReadStream());
+
+            var worksheet =
+                workbook.Worksheets
+                    .FirstOrDefault();
+
+            if (worksheet == null)
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "فایل Excel فاقد شیت قابل پردازش است."
+                });
+            }
+
+            var rows =
+                worksheet.RowsUsed()
+                    .Skip(1)
+                    .Where(x =>
+                        x.CellsUsed().Any(c =>
+                            !string.IsNullOrWhiteSpace(
+                                c.GetFormattedString())))
+                    .ToList();
+
+            if (!rows.Any())
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "فایل Excel فاقد اطلاعات پرسنل است."
+                });
+            }
+
+            if (rows.Count > 2000)
+            {
+                return Json(new
+                {
+                    Status = false,
+                    Message =
+                        "حداکثر 2000 نفر در هر فایل قابل ثبت است."
+                });
+            }
+
+            var results =
+                new List<object>();
+
+            var inserted = 0;
+            var duplicate = 0;
+            var failed = 0;
+
+            var seen =
+                new HashSet<string>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var row in rows)
+            {
+                var rowNumber =
+                    row.RowNumber();
+
+                if (personnelType == "official")
+                {
+                    var personCode =
+                        row.Cell(1)
+                            .GetFormattedString()?
+                            .Trim()
+                            .ToEnglishNumber();
+
+                    if (string.IsNullOrWhiteSpace(
+                            personCode))
+                    {
+                        failed++;
+
+                        results.Add(new
+                        {
+                            Row = rowNumber,
+                            PersonCode = "",
+                            FullName = "",
+                            Status = "error",
+                            Message =
+                                "کد پرسنلی وارد نشده است."
+                        });
+
+                        continue;
+                    }
+
+                    if (!seen.Add(personCode))
+                    {
+                        duplicate++;
+
+                        results.Add(new
+                        {
+                            Row = rowNumber,
+                            PersonCode = personCode,
+                            FullName = "",
+                            Status = "duplicate",
+                            Message =
+                                "این کد پرسنلی در فایل تکرار شده است."
+                        });
+
+                        continue;
+                    }
+
+                    var person =
+                        webApiManager
+                            .GetPersonalByPersonCode(
+                                personCode,
+                                access_token);
+
+                    if (person == null)
+                    {
+                        failed++;
+
+                        results.Add(new
+                        {
+                            Row = rowNumber,
+                            PersonCode = personCode,
+                            FullName = "",
+                            Status = "error",
+                            Message =
+                                "پرسنل در سرویس پرسنلی یافت نشد."
+                        });
+
+                        continue;
+                    }
+
+                    var model =
+                        new UnitQuotaOfficialCreateDTO
+                        {
+                            UnitQuotaId =
+                                unitQuotaId,
+
+                            MealId =
+                                mealId,
+
+                            PersonCode =
+                                personCode,
+
+                            DiningHallId =
+                                diningHallId
+                        };
+
+                    var saveResult =
+                        unitQuotaManager
+                            .CreateOfficial(
+                                model,
+                                person);
+
+                    var fullName =
+                        !string.IsNullOrWhiteSpace(
+                            person.FullName)
+                            ? person.FullName.Trim()
+                            : $"{person.FirstName} {person.LastName}"
+                                .Trim();
+
+                    var message =
+                        saveResult?.Message ??
+                        "ثبت انجام نشد.";
+
+                    var isSuccess =
+                        saveResult?.Status == true;
+
+                    var isDuplicate =
+                        !isSuccess &&
+                        (message.Contains("قبلاً") ||
+                         message.Contains("تکرار") ||
+                         message.Contains("وجود دارد"));
+
+                    if (isSuccess)
+                        inserted++;
+                    else if (isDuplicate)
+                        duplicate++;
+                    else
+                        failed++;
+
+                    results.Add(new
+                    {
+                        Row = rowNumber,
+                        PersonCode = personCode,
+                        FullName = fullName,
+                        Status =
+                            isSuccess
+                                ? "success"
+                                : isDuplicate
+                                    ? "duplicate"
+                                    : "error",
+                        Message = message
+                    });
+                }
+                else
+                {
+                    var nationalCode =
+                        row.Cell(1)
+                            .GetFormattedString()?
+                            .Trim()
+                            .ToEnglishNumber();
+
+                    var personCode =
+                        row.Cell(2)
+                            .GetFormattedString()?
+                            .Trim()
+                            .ToEnglishNumber();
+
+                    var fullName =
+                        row.Cell(3)
+                            .GetFormattedString()?
+                            .Trim();
+
+                    if (string.IsNullOrWhiteSpace(
+                            nationalCode) ||
+                        nationalCode.Length != 10 ||
+                        !nationalCode.All(char.IsDigit))
+                    {
+                        failed++;
+
+                        results.Add(new
+                        {
+                            Row = rowNumber,
+                            PersonCode = personCode ?? "",
+                            FullName = fullName ?? "",
+                            Status = "error",
+                            Message =
+                                "کد ملی باید 10 رقم باشد."
+                        });
+
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(
+                            personCode) ||
+                        string.IsNullOrWhiteSpace(
+                            fullName))
+                    {
+                        failed++;
+
+                        results.Add(new
+                        {
+                            Row = rowNumber,
+                            PersonCode = personCode ?? "",
+                            FullName = fullName ?? "",
+                            Status = "error",
+                            Message =
+                                "کد پرسنلی و نام و نشان الزامی است."
+                        });
+
+                        continue;
+                    }
+
+                    var key =
+                        nationalCode +
+                        "|" +
+                        personCode;
+
+                    if (!seen.Add(key))
+                    {
+                        duplicate++;
+
+                        results.Add(new
+                        {
+                            Row = rowNumber,
+                            PersonCode = personCode,
+                            FullName = fullName,
+                            Status = "duplicate",
+                            Message =
+                                "این فرد در فایل تکرار شده است."
+                        });
+
+                        continue;
+                    }
+
+                    var model =
+                        new UnitQuotaDutyCreateDTO
+                        {
+                            UnitQuotaId =
+                                unitQuotaId,
+
+                            MealId =
+                                mealId,
+
+                            NationalCode =
+                                nationalCode,
+
+                            PersonCode =
+                                personCode,
+
+                            FullName =
+                                fullName,
+
+                            DiningHallId =
+                                diningHallId
+                        };
+
+                    var saveResult =
+                        unitQuotaManager
+                            .CreateDuty(model);
+
+                    var message =
+                        saveResult?.Message ??
+                        "ثبت انجام نشد.";
+
+                    var isSuccess =
+                        saveResult?.Status == true;
+
+                    var isDuplicate =
+                        !isSuccess &&
+                        (message.Contains("قبلاً") ||
+                         message.Contains("تکرار") ||
+                         message.Contains("وجود دارد"));
+
+                    if (isSuccess)
+                        inserted++;
+                    else if (isDuplicate)
+                        duplicate++;
+                    else
+                        failed++;
+
+                    results.Add(new
+                    {
+                        Row = rowNumber,
+                        PersonCode = personCode,
+                        FullName = fullName,
+                        Status =
+                            isSuccess
+                                ? "success"
+                                : isDuplicate
+                                    ? "duplicate"
+                                    : "error",
+                        Message = message
+                    });
+                }
+            }
+
+            return Json(new
+            {
+                Status = inserted > 0,
+                Message =
+                    inserted > 0
+                        ? $"{inserted} نفر با موفقیت ثبت شد."
+                        : "رکورد جدیدی ثبت نشد.",
+                Model = new
+                {
+                    Total =
+                        results.Count,
+
+                    Inserted =
+                        inserted,
+
+                    Duplicate =
+                        duplicate,
+
+                    Failed =
+                        failed,
+
+                    Rows =
+                        results
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new
+            {
+                Status = false,
+                Message =
+                    "پردازش فایل Excel با خطا همراه بود. " +
+                    ex.Message
             });
         }
     }
