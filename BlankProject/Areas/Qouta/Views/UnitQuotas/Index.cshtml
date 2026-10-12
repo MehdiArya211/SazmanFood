@@ -167,5 +167,178 @@
         .operation-button {
             cursor:pointer;
         }
+
+        .quota-excel-import {
+            margin-top: 20px;
+        }
+
+        .quota-excel-card {
+            border: 1px solid #dfe7ef;
+            border-radius: 10px;
+            background: #fbfcfe;
+            padding: 15px;
+        }
+
+        .quota-excel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .quota-excel-head strong {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 15px;
+            color: #34495e;
+        }
+
+        .quota-excel-help {
+            margin-top: 5px;
+            color: #7b8794;
+            font-size: 12px;
+        }
+
+        .quota-excel-panel {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccd6e0;
+        }
+
+        .quota-excel-step {
+            min-height: 150px;
+            display: flex;
+            gap: 10px;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid #e7edf3;
+            border-radius: 9px;
+        }
+
+        .quota-excel-step-number {
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #00bcd4;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .quota-excel-step p {
+            margin: 6px 0;
+            color: #8a96a3;
+            font-size: 11px;
+            line-height: 1.8;
+        }
+
+        .quota-excel-file-label {
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .quota-excel-file-name {
+            margin-top: 7px;
+            color: #607d8b;
+            font-size: 11px;
+            word-break: break-all;
+        }
+
+        .quota-excel-loading {
+            margin-top: 15px;
+            padding: 12px;
+            text-align: center;
+            border-radius: 7px;
+            background: #eef7fb;
+            color: #31708f;
+        }
+
+        .quota-excel-spin {
+            vertical-align: middle;
+            animation: quotaExcelSpin 1s linear infinite;
+        }
+
+        @@keyframes quotaExcelSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .quota-excel-result {
+            margin-top: 15px;
+        }
+
+        .quota-excel-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(110px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .quota-excel-stat {
+            padding: 12px;
+            text-align: center;
+            background: #fff;
+            border: 1px solid #e5e9ed;
+            border-radius: 8px;
+        }
+
+        .quota-excel-stat strong {
+            display: block;
+            font-size: 22px;
+            color: #455a64;
+        }
+
+        .quota-excel-stat span {
+            color: #7b8794;
+            font-size: 11px;
+        }
+
+        .quota-excel-stat-success strong {
+            color: #4caf50;
+        }
+
+        .quota-excel-stat-warning strong {
+            color: #ff9800;
+        }
+
+        .quota-excel-stat-danger strong {
+            color: #f44336;
+        }
+
+        .quota-excel-result-table {
+            max-height: 330px;
+            overflow: auto;
+            background: #fff;
+            border: 1px solid #e5e9ed;
+            border-radius: 8px;
+        }
+
+        .quota-excel-result-table table {
+            margin-bottom: 0;
+        }
+
+        @@media (max-width: 767px) {
+            .quota-excel-head {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .quota-excel-head .btn {
+                width: 100%;
+            }
+
+            .quota-excel-step {
+                min-height: auto;
+                margin-bottom: 10px;
+            }
+
+            .quota-excel-summary {
+                grid-template-columns: repeat(2, minmax(100px, 1fr));
+            }
+        }
     </style>
 }
