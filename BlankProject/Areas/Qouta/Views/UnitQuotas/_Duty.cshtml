@@ -164,6 +164,106 @@
             </div>
         </form>
 
+
+        <div class="col-md-12 quota-excel-import">
+            <div class="quota-excel-card">
+                <div class="quota-excel-head">
+                    <div>
+                        <strong>
+                            <i class="material-icons">description</i>
+                            ثبت گروهی کارکنان وظیفه با Excel
+                        </strong>
+                        <div class="quota-excel-help">
+                            برای تعداد زیاد نفرات، فایل نمونه را دریافت کنید،
+                            اطلاعات را تکمیل کرده و سپس فایل را بارگذاری نمایید.
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-success"
+                            onclick="unitQuota.excel.toggle('duty')">
+                        <i class="material-icons">playlist_add</i>
+                        ثبت گروهی با اکسل
+                    </button>
+                </div>
+
+                <div id="duty-excel-panel"
+                     class="quota-excel-panel"
+                     style="display:none">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="quota-excel-step">
+                                <span class="quota-excel-step-number">1</span>
+                                <div>
+                                    <strong>فایل نمونه را دانلود کنید</strong>
+                                    <p>ساختار فایل را تغییر ندهید.</p>
+                                    <a class="btn btn-simple btn-info"
+                                       href="/Qouta/UnitQuotas/DownloadExcelTemplate?personnelType=duty">
+                                        <i class="material-icons">file_download</i>
+                                        دانلود فایل نمونه
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="quota-excel-step">
+                                <span class="quota-excel-step-number">2</span>
+                                <div style="width:100%">
+                                    <strong>سالن و فایل را انتخاب کنید</strong>
+                                    <p>
+                                        سالن از فیلد «سالن غذاخوری» بالای فرم استفاده می‌شود.
+                                    </p>
+                                    <label class="btn btn-default btn-block quota-excel-file-label">
+                                        <i class="material-icons">attach_file</i>
+                                        انتخاب فایل Excel
+                                        <input type="file"
+                                               id="duty-excel-file"
+                                               accept=".xlsx"
+                                               style="display:none"
+                                               onchange="unitQuota.excel.fileChanged('duty', this)" />
+                                    </label>
+                                    <div id="duty-excel-file-name"
+                                         class="quota-excel-file-name">
+                                        فایلی انتخاب نشده است.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="quota-excel-step">
+                                <span class="quota-excel-step-number">3</span>
+                                <div style="width:100%">
+                                    <strong>ثبت گروهی</strong>
+                                    <p>رکوردهای معتبر ثبت و خطاها همان‌جا نمایش داده می‌شوند.</p>
+                                    <button type="button"
+                                            id="duty-excel-submit"
+                                            class="btn btn-success btn-block"
+                                            onclick="unitQuota.excel.upload('duty')">
+                                        <i class="material-icons">cloud_upload</i>
+                                        بررسی و ثبت فایل
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="duty-excel-loading"
+                         class="quota-excel-loading"
+                         style="display:none">
+                        <i class="material-icons quota-excel-spin">sync</i>
+                        در حال بررسی و ثبت اطلاعات...
+                    </div>
+
+                    <div id="duty-excel-result"
+                         class="quota-excel-result"
+                         style="display:none">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="col-md-12 quota-person-table">
             <h4>کارکنان وظیفه ثبت‌شده</h4>
             <div class="material-datatables">
