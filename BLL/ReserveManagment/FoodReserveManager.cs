@@ -140,217 +140,553 @@ namespace BLL.ReserveManagment
 
         private static readonly ConcurrentDictionary<long, byte> _printedFoodReserveDetailIds = new();
 
-        public async Task PrintFoodReserveAsync(
+        public async Task<BaseResult> PrintFoodReserveAsync(
             List<long> foodReserveDetaileIds,
             long userId,
             string fullName
         )
         {
-            foreach (var foodReserveDetaileId in foodReserveDetaileIds)
+            if (foodReserveDetaileIds == null ||
+                !foodReserveDetaileIds.Any())
             {
-                // جلوگیری از چاپ تکراری/همزمان
-                if (!_printedFoodReserveDetailIds.TryAdd(foodReserveDetaileId, 0))
+                return new BaseResult(
+                    false,
+                    "هیچ ژتونی برای چاپ انتخاب نشده است.");
+            }
+
+            const string printerName =
+                "RONGTA 58mm Series Printer(2)";
+
+            try
+            {
+                EnsurePrinterIsValid(printerName);
+            }
+            catch (Exception ex)
+            {
+                return new BaseResult(
+                    false,
+                    ex.Message);
+            }
+
+            var printedCount = 0;
+            var failedCount = 0;
+            var errors =
+                new List<string>();
+
+            foreach (var foodReserveDetaileId in
+                     foodReserveDetaileIds.Distinct())
+            {
+                if (!_printedFoodReserveDetailIds.TryAdd(
+                        foodReserveDetaileId,
+                        0))
+                {
+                    failedCount++;
+                    errors.Add(
+                        $"ژتون {foodReserveDetaileId} در حال چاپ است.");
                     continue;
+                }
 
                 try
                 {
-                    var detail = UOW.FoodReserveDetail.Get(
-                        filter: x => x.Id == foodReserveDetaileId,
-                        includeExpressions: q => q
-                            .Include(x => x.Day)
-                            .Include(x => x.Meal)
-                            .Include(x => x.MainFood)
-                            .Include(x => x.Dessert)
-                            .Include(x => x.SideDish)
-                    ).FirstOrDefault();
+                    var detail =
+                        UOW.FoodReserveDetail.Get(
+                            filter: x =>
+                                x.Id ==
+                                foodReserveDetaileId,
+                            includeExpressions: q => q
+                                .Include(x => x.Day)
+                                .Include(x => x.Meal)
+                                .Include(x => x.MainFood)
+                                .Include(x => x.Dessert)
+                                .Include(x => x.SideDish))
+                        .FirstOrDefault();
 
                     if (detail == null)
                     {
-                        _printedFoodReserveDetailIds.TryRemove(foodReserveDetaileId, out _);
+                        failedCount++;
+                        errors.Add(
+                            $"جزئیات ژتون {foodReserveDetaileId} یافت نشد.");
                         continue;
                     }
 
-                    var reserve = UOW.FoodReserve.FirstOrDefault(x =>
-                        x.Id == detail.FoodReserveId &&
-                        x.UserId == userId);
+                    var reserve =
+                        UOW.FoodReserve.FirstOrDefault(
+                            x =>
+                                x.Id ==
+                                detail.FoodReserveId &&
+                                x.UserId == userId);
 
-                    var user = UOW.Users.FirstOrDefault(x =>
-                        x.Id == userId &&
-                        x.IsDeleted == false &&
-                        x.IsEnabled);
+                    var user =
+                        UOW.Users.FirstOrDefault(
+                            x =>
+                                x.Id == userId &&
+                                x.IsDeleted == false &&
+                                x.IsEnabled);
 
-                    if (reserve == null || user == null || detail.Day == null)
+                    if (reserve == null ||
+                        user == null ||
+                        detail.Day == null)
                     {
-                        _printedFoodReserveDetailIds.TryRemove(foodReserveDetaileId, out _);
+                        failedCount++;
+                        errors.Add(
+                            $"اطلاعات رزرو ژتون {foodReserveDetaileId} کامل نیست.");
                         continue;
                     }
 
-                    var personalCode =
-                        user.PersonCode?.ToString() ??
-                        user.Username;
+                    /*
+                     * سیستم رزرو جدید از UnitQuotaPerson استفاده می‌کند.
+                     * برای سازگاری با ژتون‌های قدیمی، اگر QoutaPerson وجود
+                     * داشته باشد QR قدیمی نیز چاپ می‌شود؛ اما نبود آن دیگر
+                     * مانع چاپ فیزیکی ژتون نیست.
+                     */
+                    Bitmap qrBitmap = null;
 
-                    var reserveDate = reserve.WeekStartDate
-                        .AddDays(detail.Day.Code - 1)
-                        .Date;
-
-                    var nextDate = reserveDate.AddDays(1);
-
-                    var quotaToken = UOW.QoutaPerson
-                        .Get(
-                            x => x.PersonalCode == personalCode &&
-                                 x.IsDeleted == false &&
-                                 x.QoutaAllocation != null &&
-                                 x.QoutaAllocation.IsDeleted == false &&
-                                 x.QoutaAllocation.QoutaAllocationDate >= reserveDate &&
-                                 x.QoutaAllocation.QoutaAllocationDate < nextDate &&
-                                 x.QoutaAllocation.MealId == detail.MealId,
-                            null,
-                            null,
-                            null,
-                            x => x.Include(i => i.QoutaAllocation))
-                        .SingleOrDefault();
-
-                    if (quotaToken == null)
+                    try
                     {
-                        _printedFoodReserveDetailIds.TryRemove(foodReserveDetaileId, out _);
-                        continue;
-                    }
+                        var personalCode =
+                            user.PersonCode?
+                                .ToString() ??
+                            user.Username;
 
-                    if (string.IsNullOrWhiteSpace(quotaToken.DeliveryCode))
-                    {
-                        string deliveryCode;
-                        do
+                        var reserveDate =
+                            reserve.WeekStartDate
+                                .AddDays(
+                                    detail.Day.Code - 1)
+                                .Date;
+
+                        var nextDate =
+                            reserveDate.AddDays(1);
+
+                        var quotaToken =
+                            UOW.QoutaPerson
+                                .Get(
+                                    x =>
+                                        x.PersonalCode ==
+                                            personalCode &&
+                                        x.IsDeleted == false &&
+                                        x.QoutaAllocation != null &&
+                                        x.QoutaAllocation
+                                            .IsDeleted == false &&
+                                        x.QoutaAllocation
+                                            .QoutaAllocationDate >=
+                                            reserveDate &&
+                                        x.QoutaAllocation
+                                            .QoutaAllocationDate <
+                                            nextDate &&
+                                        x.QoutaAllocation
+                                            .MealId ==
+                                            detail.MealId,
+                                    null,
+                                    null,
+                                    null,
+                                    x => x.Include(
+                                        i =>
+                                            i.QoutaAllocation))
+                                .SingleOrDefault();
+
+                        if (quotaToken != null)
                         {
-                            deliveryCode = Random.Shared.Next(100000, 1000000).ToString();
+                            if (string.IsNullOrWhiteSpace(
+                                    quotaToken.DeliveryCode))
+                            {
+                                string deliveryCode;
+
+                                do
+                                {
+                                    deliveryCode =
+                                        Random.Shared
+                                            .Next(
+                                                100000,
+                                                1000000)
+                                            .ToString();
+                                }
+                                while (
+                                    UOW.QoutaPerson.Any(
+                                        x =>
+                                            x.DeliveryCode ==
+                                                deliveryCode &&
+                                            x.IsDeleted ==
+                                                false));
+
+                                quotaToken.DeliveryCode =
+                                    deliveryCode;
+                            }
+
+                            if (string.IsNullOrWhiteSpace(
+                                    quotaToken.DeliveryHash))
+                            {
+                                quotaToken.DeliveryHash =
+                                    Guid.NewGuid()
+                                        .ToString("N");
+                            }
+
+                            UOW.QoutaPerson.Update(
+                                quotaToken);
+
+                            if (!UOW.Commit())
+                            {
+                                throw new
+                                    InvalidOperationException(
+                                        "ثبت اطلاعات امنیتی QR ژتون انجام نشد.");
+                            }
+
+                            var request =
+                                httpContextAccessor
+                                    .HttpContext?
+                                    .Request;
+
+                            if (request != null &&
+                                request.Host.HasValue)
+                            {
+                                var scanUrl =
+                                    $"{request.Scheme}://{request.Host}{request.PathBase}" +
+                                    "/ReserveManagment/TokenScan/Use" +
+                                    $"?code={Uri.EscapeDataString(quotaToken.DeliveryCode)}" +
+                                    $"&key={Uri.EscapeDataString(quotaToken.DeliveryHash)}" +
+                                    $"&mealId={detail.MealId}";
+
+                                using var qrGenerator =
+                                    new QRCodeGenerator();
+
+                                using var qrData =
+                                    qrGenerator.CreateQrCode(
+                                        scanUrl,
+                                        QRCodeGenerator
+                                            .ECCLevel.Q);
+
+                                using var qrCode =
+                                    new PngByteQRCode(
+                                        qrData);
+
+                                var qrBytes =
+                                    qrCode.GetGraphic(5);
+
+                                using var qrStream =
+                                    new MemoryStream(
+                                        qrBytes);
+
+                                using var image =
+                                    Image.FromStream(
+                                        qrStream);
+
+                                qrBitmap =
+                                    new Bitmap(image);
+                            }
                         }
-                        while (UOW.QoutaPerson.Any(x =>
-                            x.DeliveryCode == deliveryCode &&
-                            x.IsDeleted == false));
-
-                        quotaToken.DeliveryCode = deliveryCode;
+                    }
+                    catch
+                    {
+                        /*
+                         * خطای QR نباید چاپ فیزیکی ژتون را متوقف کند.
+                         */
+                        qrBitmap?.Dispose();
+                        qrBitmap = null;
                     }
 
-                    if (string.IsNullOrWhiteSpace(quotaToken.DeliveryHash))
-                    {
-                        quotaToken.DeliveryHash = Guid.NewGuid().ToString("N");
-                    }
+                    var title =
+                        "ژتون غذا";
 
-                    UOW.QoutaPerson.Update(quotaToken);
-                    if (!UOW.Commit())
-                        throw new InvalidOperationException("ثبت اطلاعات امنیتی QR ژتون انجام نشد.");
+                    var printDate =
+                        "تاریخ چاپ: " +
+                        DateTime.Now
+                            .ToPersianDateTime();
 
-                    var request = httpContextAccessor.HttpContext?.Request;
-                    if (request == null || !request.Host.HasValue)
-                        throw new InvalidOperationException("آدرس سامانه برای تولید QR در دسترس نیست.");
+                    var userInfo =
+                        "کاربر: " +
+                        (fullName ?? "-");
 
-                    var scanUrl =
-                        $"{request.Scheme}://{request.Host}{request.PathBase}" +
-                        "/ReserveManagment/TokenScan/Use" +
-                        $"?code={Uri.EscapeDataString(quotaToken.DeliveryCode)}" +
-                        $"&key={Uri.EscapeDataString(quotaToken.DeliveryHash)}" +
-                        $"&mealId={detail.MealId}";
+                    var mealType =
+                        "وعده: " +
+                        (detail.Meal?.Title ??
+                         "-");
 
-                    using var qrGenerator = new QRCodeGenerator();
-                    using var qrData = qrGenerator.CreateQrCode(
-                        scanUrl,
-                        QRCodeGenerator.ECCLevel.Q);
-                    using var qrCode = new PngByteQRCode(qrData);
+                    var mealDetails =
+                        $"جزئیات: {detail.Day?.Title ?? "-"} | " +
+                        $"{detail.MainFood?.Title ?? "-"} | " +
+                        $"{detail.Dessert?.Title ?? "-"} | " +
+                        $"{detail.SideDish?.Title ?? "-"}";
 
-                    var qrBytes = qrCode.GetGraphic(5);
-                    using var qrStream = new MemoryStream(qrBytes);
-                    using var qrBitmap = Image.FromStream(qrStream);
+                    var tokenNo =
+                        "شماره: " +
+                        detail.Id;
 
-                    // متن‌های چاپ
-                    string title = "ژتون غذا";
-                    string printDate = "تاریخ چاپ: " + DateTime.Now.ToPersianDateTime();
-                    string userInfo = "کاربر: " + (fullName ?? "-");
-                    string mealType = "وعده: " + (detail.Meal?.Title ?? "-");
-                    string mealDetails = $"جزئیات: {detail.Day?.Title ?? "-"} | {detail.MainFood?.Title ?? "-"} | {detail.Dessert?.Title ?? "-"} | {detail.SideDish?.Title ?? "-"}";
-                    string tokenNo = "شماره: " + detail.Id;
+                    Action<object, PrintPageEventArgs>
+                        printerPage =
+                            (sender, e) =>
+                            {
+                                var g =
+                                    e.Graphics;
 
-                    Action<object, PrintPageEventArgs> printerPage = (sender, e) =>
-                    {
-                        Graphics g = e.Graphics;
+                                using var font =
+                                    new System.Drawing.Font(
+                                        "Tahoma",
+                                        10);
 
-                        System.Drawing.Font font = new System.Drawing.Font("Tahoma", 10);
-                        System.Drawing.Font boldFont = new System.Drawing.Font("Tahoma", 11, FontStyle.Bold);
+                                using var boldFont =
+                                    new System.Drawing.Font(
+                                        "Tahoma",
+                                        11,
+                                        FontStyle.Bold);
 
-                        int pageWidth = e.PageBounds.Width;
-                        int margin = 1;
-                        int contentWidth = pageWidth - 2 * margin;
+                                using var titleFont =
+                                    new System.Drawing.Font(
+                                        "Tahoma",
+                                        14,
+                                        FontStyle.Bold);
 
-                        // راست‌چین فارسی
-                        StringFormat rightAlign = new StringFormat(StringFormatFlags.DirectionRightToLeft);
+                                var pageWidth =
+                                    e.PageBounds.Width;
 
-                        var centerAlign = new StringFormat();
-                        centerAlign.Alignment = StringAlignment.Center;
-                        centerAlign.LineAlignment = StringAlignment.Center;
+                                const int margin = 1;
 
-                        int startY = margin;
-                        int offset = 0;
+                                var contentWidth =
+                                    pageWidth -
+                                    2 * margin;
 
-                        // عنوان
-                        g.DrawString(title, new System.Drawing.Font("Tahoma", 14, FontStyle.Bold), Brushes.Black,
-                            new RectangleF(margin, startY + offset, contentWidth, 35), centerAlign);
-                        offset += 35;
+                                using var rightAlign =
+                                    new StringFormat(
+                                        StringFormatFlags
+                                            .DirectionRightToLeft);
 
-                        // خط جداکننده
-                        g.DrawLine(Pens.Black, margin, startY + offset, pageWidth - margin, startY + offset);
-                        offset += 10;
+                                using var centerAlign =
+                                    new StringFormat
+                                    {
+                                        Alignment =
+                                            StringAlignment
+                                                .Center,
+                                        LineAlignment =
+                                            StringAlignment
+                                                .Center
+                                    };
 
-                        // محتوا
-                        g.DrawString(tokenNo, boldFont, Brushes.Black, new RectangleF(margin, startY + offset, contentWidth, 20), rightAlign);
-                        offset += 20;
+                                var startY =
+                                    margin;
 
-                        g.DrawString(printDate, font, Brushes.Black, new RectangleF(margin, startY + offset, contentWidth, 20), rightAlign);
-                        offset += 20;
+                                var offset =
+                                    0;
 
-                        g.DrawString(userInfo, font, Brushes.Black, new RectangleF(margin, startY + offset, contentWidth, 20), rightAlign);
-                        offset += 20;
+                                g.DrawString(
+                                    title,
+                                    titleFont,
+                                    Brushes.Black,
+                                    new RectangleF(
+                                        margin,
+                                        startY + offset,
+                                        contentWidth,
+                                        35),
+                                    centerAlign);
 
-                        g.DrawString(mealType, font, Brushes.Black, new RectangleF(margin, startY + offset, contentWidth, 20), rightAlign);
-                        offset += 20;
+                                offset += 35;
 
-                        // اگر طولانی شد، دو خطش کن
-                        g.DrawString(mealDetails, font, Brushes.Black,
-                            new RectangleF(margin, startY + offset, contentWidth, 60), rightAlign);
-                        offset += 55;
+                                g.DrawLine(
+                                    Pens.Black,
+                                    margin,
+                                    startY + offset,
+                                    pageWidth - margin,
+                                    startY + offset);
 
-                        // QR یک‌بارمصرف ژتون
-                        const int qrSize = 120;
-                        var qrX = margin + Math.Max(0, (contentWidth - qrSize) / 2);
-                        g.DrawImage(qrBitmap, new Rectangle(qrX, startY + offset, qrSize, qrSize));
-                        offset += qrSize + 4;
+                                offset += 10;
 
-                        g.DrawString("برای تحویل غذا اسکن شود", font, Brushes.Black,
-                            new RectangleF(margin, startY + offset, contentWidth, 22), centerAlign);
-                        offset += 25;
+                                g.DrawString(
+                                    tokenNo,
+                                    boldFont,
+                                    Brushes.Black,
+                                    new RectangleF(
+                                        margin,
+                                        startY + offset,
+                                        contentWidth,
+                                        20),
+                                    rightAlign);
 
-                        // انتها
-                        g.DrawLine(Pens.Black, margin, startY + offset, pageWidth - margin, startY + offset);
-                        offset += 10;
+                                offset += 20;
 
-                        g.DrawString("نوش جان!", boldFont, Brushes.Black,
-                            new RectangleF(margin, startY + offset, contentWidth, 25), centerAlign);
-                        offset += 25;
+                                g.DrawString(
+                                    printDate,
+                                    font,
+                                    Brushes.Black,
+                                    new RectangleF(
+                                        margin,
+                                        startY + offset,
+                                        contentWidth,
+                                        20),
+                                    rightAlign);
 
-                        // کادر
-                        g.DrawRectangle(Pens.Black, margin, margin, pageWidth - 2 * margin, offset);
-                    };
-                    PrintDocument pd = new PrintDocument();
-                    pd.PrinterSettings.PrinterName = "RONGTA 58mm Series Printer(2)";
-                    pd.PrintPage += (s, e) => printerPage(s, e);
+                                offset += 20;
+
+                                g.DrawString(
+                                    userInfo,
+                                    font,
+                                    Brushes.Black,
+                                    new RectangleF(
+                                        margin,
+                                        startY + offset,
+                                        contentWidth,
+                                        20),
+                                    rightAlign);
+
+                                offset += 20;
+
+                                g.DrawString(
+                                    mealType,
+                                    font,
+                                    Brushes.Black,
+                                    new RectangleF(
+                                        margin,
+                                        startY + offset,
+                                        contentWidth,
+                                        20),
+                                    rightAlign);
+
+                                offset += 20;
+
+                                g.DrawString(
+                                    mealDetails,
+                                    font,
+                                    Brushes.Black,
+                                    new RectangleF(
+                                        margin,
+                                        startY + offset,
+                                        contentWidth,
+                                        60),
+                                    rightAlign);
+
+                                offset += 55;
+
+                                if (qrBitmap != null)
+                                {
+                                    const int qrSize =
+                                        120;
+
+                                    var qrX =
+                                        margin +
+                                        Math.Max(
+                                            0,
+                                            (contentWidth -
+                                             qrSize) / 2);
+
+                                    g.DrawImage(
+                                        qrBitmap,
+                                        new Rectangle(
+                                            qrX,
+                                            startY + offset,
+                                            qrSize,
+                                            qrSize));
+
+                                    offset +=
+                                        qrSize + 4;
+
+                                    g.DrawString(
+                                        "برای تحویل غذا اسکن شود",
+                                        font,
+                                        Brushes.Black,
+                                        new RectangleF(
+                                            margin,
+                                            startY + offset,
+                                            contentWidth,
+                                            22),
+                                        centerAlign);
+
+                                    offset += 25;
+                                }
+
+                                g.DrawLine(
+                                    Pens.Black,
+                                    margin,
+                                    startY + offset,
+                                    pageWidth - margin,
+                                    startY + offset);
+
+                                offset += 10;
+
+                                g.DrawString(
+                                    "نوش جان!",
+                                    boldFont,
+                                    Brushes.Black,
+                                    new RectangleF(
+                                        margin,
+                                        startY + offset,
+                                        contentWidth,
+                                        25),
+                                    centerAlign);
+
+                                offset += 25;
+
+                                g.DrawRectangle(
+                                    Pens.Black,
+                                    margin,
+                                    margin,
+                                    pageWidth -
+                                    2 * margin,
+                                    offset);
+                            };
+
+                    using var pd =
+                        new PrintDocument();
+
+                    pd.PrinterSettings.PrinterName =
+                        printerName;
+
+                    pd.PrintPage +=
+                        (s, e) =>
+                            printerPage(
+                                s,
+                                e);
+
                     pd.Print();
-                    // چاپ روی همه پرینترهای انتخاب‌شده
 
+                    qrBitmap?.Dispose();
+
+                    printedCount++;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    // اگر خطا خورد، اجازه بده دوباره قابل چاپ بشه
-                    _printedFoodReserveDetailIds.TryRemove(foodReserveDetaileId, out _);
-                    Console.WriteLine(ex.Message.ToString());
+                    failedCount++;
+
+                    errors.Add(
+                        $"ژتون {foodReserveDetaileId}: {ex.Message}");
+                }
+                finally
+                {
+                    /*
+                     * این قفل فقط برای جلوگیری از چاپ هم‌زمان است؛
+                     * پس بعد از پایان عملیات باید آزاد شود تا چاپ مجدد ممکن باشد.
+                     */
+                    _printedFoodReserveDetailIds
+                        .TryRemove(
+                            foodReserveDetaileId,
+                            out _);
                 }
             }
+
+            if (printedCount <= 0)
+            {
+                return new BaseResult(
+                    false,
+                    errors.Any()
+                        ? string.Join(
+                            " | ",
+                            errors)
+                        : "هیچ ژتونی چاپ نشد.");
+            }
+
+            return new BaseResult(
+                true,
+                failedCount > 0
+                    ? $"{printedCount} ژتون چاپ شد و {failedCount} مورد ناموفق بود."
+                    : $"{printedCount} ژتون با موفقیت چاپ شد.")
+            {
+                Model = new
+                {
+                    PrintedCount =
+                        printedCount,
+
+                    FailedCount =
+                        failedCount,
+
+                    Errors =
+                        errors
+                }
+            };
         }
 
         private static void EnsurePrinterIsValid(string printerName)

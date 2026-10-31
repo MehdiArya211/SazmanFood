@@ -18,7 +18,7 @@ namespace BLL.ReserveManagment
 
         Task<List<WeeklyFoodReserveDTO>> GetWeeklyFoodReserve(long userId);
         //Task PrintFoodReserveAsync(long userId);
-        Task PrintFoodReserveAsync(List<long> foodReserveDetaileIds, long UserId, string FullName);
+        Task<BaseResult> PrintFoodReserveAsync(List<long> foodReserveDetaileIds, long UserId, string FullName);
 
         List<FoodReserveDetail> GetFoodReserveDetail(long userId);
 

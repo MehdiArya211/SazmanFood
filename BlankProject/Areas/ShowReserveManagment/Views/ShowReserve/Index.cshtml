@@ -228,6 +228,29 @@
             cursor: not-allowed;
         }
 
+        .print-message {
+            display: none;
+            margin-bottom: 16px;
+            padding: 12px 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        .print-message.success {
+            display: block;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            color: #2e7d32;
+        }
+
+        .print-message.error {
+            display: block;
+            background: #ffebee;
+            border: 1px solid #ef9a9a;
+            color: #c62828;
+        }
+
         .empty-state {
             padding: 70px 20px;
             text-align: center;
@@ -267,6 +290,7 @@
             <p>مشاهده و چاپ ژتون غذا</p>
         </div>
 
+        <div id="printMessage" class="print-message"></div>
         <div id="weeklyFoodContainer"></div>
     </div>
 </div>
@@ -335,6 +359,103 @@
                 row.appendChild(labelEl);
                 row.appendChild(valueEl);
                 return row;
+            }
+
+            function showPrintMessage(message, isSuccess) {
+                const box = document.getElementById('printMessage');
+
+                if (!box) return;
+
+                box.className =
+                    'print-message ' +
+                    (isSuccess ? 'success' : 'error');
+
+                box.textContent =
+                    message ||
+                    (isSuccess
+                        ? 'چاپ با موفقیت انجام شد.'
+                        : 'چاپ ژتون انجام نشد.');
+            }
+
+            async function printTickets(ids, button) {
+                if (!ids || !ids.length) {
+                    showPrintMessage(
+                        'شناسه ژتون برای چاپ معتبر نیست.',
+                        false
+                    );
+                    return;
+                }
+
+                const originalText =
+                    button.textContent;
+
+                button.disabled = true;
+                button.textContent =
+                    '⏳ در حال چاپ...';
+
+                try {
+                    const url =
+                        '/ShowReserveManagment/ShowReserve/PrintMeal' +
+                        '?foodReserveDetaileIds=' +
+                        encodeURIComponent(ids.join(','));
+
+                    const response =
+                        await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With':
+                                    'XMLHttpRequest'
+                            },
+                            cache: 'no-store'
+                        });
+
+                    let result = null;
+
+                    try {
+                        result =
+                            await response.json();
+                    } catch {
+                        result = null;
+                    }
+
+                    const isSuccess =
+                        response.ok &&
+                        result &&
+                        (
+                            result.status === true ||
+                            result.Status === true
+                        );
+
+                    const message =
+                        result
+                            ? (
+                                result.message ||
+                                result.Message
+                              )
+                            : null;
+
+                    showPrintMessage(
+                        message ||
+                        (response.ok
+                            ? 'پاسخ چاپ از سرور معتبر نبود.'
+                            : 'ارتباط با سرویس چاپ با خطا همراه بود.'),
+                        isSuccess
+                    );
+                } catch (error) {
+                    console.error(
+                        'Food ticket print error:',
+                        error
+                    );
+
+                    showPrintMessage(
+                        'ارسال درخواست چاپ با خطا همراه بود.',
+                        false
+                    );
+                } finally {
+                    button.disabled = false;
+                    button.textContent =
+                        originalText;
+                }
             }
 
             function renderWeeklyFood(data) {
@@ -482,10 +603,10 @@
                         if (canPrint && foodReserveIds.length > 0) {
                             printButton.textContent = '🖨️ چاپ کل روز';
                             printButton.addEventListener('click', function () {
-                                const ids = foodReserveIds.join(',');
-                                window.location.href =
-                                    '/ShowReserveManagment/ShowReserve/PrintMeal?foodReserveDetaileIds=' +
-                                    encodeURIComponent(ids);
+                                printTickets(
+                                    foodReserveIds,
+                                    printButton
+                                );
                             });
                         } else {
                             printButton.textContent = '❌ غیرفعال';
