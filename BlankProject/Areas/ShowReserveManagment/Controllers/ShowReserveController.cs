@@ -16,13 +16,17 @@ namespace Food.Areas.ShowReserveManagment.Controllers
     {
         private readonly IFoodReserveManager _foodReserveManager;
         private readonly IRedisManager _redis;
+        private readonly ILogger<ShowReserveController> _logger;
 
 
-        public ShowReserveController( IFoodReserveManager foodReserveManager,
-            IRedisManager redis)
+        public ShowReserveController(
+            IFoodReserveManager foodReserveManager,
+            IRedisManager redis,
+            ILogger<ShowReserveController> logger)
         {
             _foodReserveManager = foodReserveManager;
             _redis = redis;
+            _logger = logger;
         }
 
 
@@ -44,9 +48,6 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             if (user == null)
                 return RedirectToAction("Login", "FaceAuth");
 
-            if (user.RoleId != RoleConstant.MealBooker)
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-
             var weeklyMeals = await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
 
             // 🟢 تمدید سشن کاربر
@@ -57,56 +58,121 @@ namespace Food.Areas.ShowReserveManagment.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> PrintMealMaxa(string foodReserveDetaileIds)
+        public async Task<IActionResult> PrintMealMaxa(
+            string foodReserveDetaileIds)
         {
-            var ids = foodReserveDetaileIds
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(idStr =>
-                {
-                    bool parsed = long.TryParse(idStr, out long id);
-                    return new { parsed, id };
-                })
-                .Where(x => x.parsed)
-                .Select(x => x.id)
-                .ToList();
-
-            var user = HttpContext.Session.GetUser();
-            if (user == null)
-                return Unauthorized();
-
-            if (user.RoleId != RoleConstant.MealBooker)
-                return Forbid();
-
-            await _foodReserveManager.PrintFoodReserveAsync(ids, user.Id, user.FullName);
-
-            // 🟢 تمدید سشن بعد از چاپ ژتون
-            await _redis.db.RefreshUserSession(user.Id, /*DeviceId*/ 1, 3);
-
-            TempData["Message"] = "✅ سفارش چاپ فاکتور ارسال شد!";
-            return RedirectToAction("Index");
+            return await PrintMeal(
+                foodReserveDetaileIds);
         }
 
-
         [HttpGet]
-        public async Task<IActionResult> PrintMeal(string foodReserveDetaileIds)
+        public async Task<IActionResult> PrintMeal(
+            string foodReserveDetaileIds)
         {
-            var ids = foodReserveDetaileIds
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(idStr => long.TryParse(idStr, out var id) ? id : 0)
-                .Where(id => id > 0)
-                .ToList();
+            var user =
+                HttpContext.Session.GetUser();
 
-            var user = HttpContext.Session.GetUser();
             if (user == null)
-                return Unauthorized();
+            {
+                return Unauthorized(new
+                {
+                    Status = false,
+                    Message =
+                        "نشست کاربری منقضی شده است."
+                });
+            }
 
+            var ids =
+                (foodReserveDetaileIds ??
+                 string.Empty)
+                    .Split(
+                        ',',
+                        StringSplitOptions
+                            .RemoveEmptyEntries)
+                    .Select(x =>
+                        long.TryParse(
+                            x,
+                            out var id)
+                            ? id
+                            : 0)
+                    .Where(x => x > 0)
+                    .Distinct()
+                    .ToList();
 
-            await _foodReserveManager.PrintFoodReserveAsync(ids, user.Id, user.FullName);
+            if (!ids.Any())
+            {
+                _logger.LogWarning(
+                    "درخواست چاپ ژتون بدون شناسه معتبر ارسال شد. UserId: {UserId}",
+                    user.Id);
 
-            await _redis.db.RefreshUserSession(user.Id, 1, 3);
+                return BadRequest(new
+                {
+                    Status = false,
+                    Message =
+                        "شناسه ژتون برای چاپ معتبر نیست."
+                });
+            }
 
-            TempData["Message"] = "✅ سفارش چاپ فاکتور ارسال شد!";
-            return RedirectToAction("Index");
+            try
+            {
+                var result =
+                    await _foodReserveManager
+                        .PrintFoodReserveAsync(
+                            ids,
+                            user.Id,
+                            user.FullName);
+
+                if (result.Status)
+                {
+                    _logger.LogInformation(
+                        "چاپ ژتون غذا موفق بود. UserId: {UserId}, DetailIds: {DetailIds}, Message: {Message}",
+                        user.Id,
+                        string.Join(",", ids),
+                        result.Message);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "چاپ ژتون غذا ناموفق بود. UserId: {UserId}, DetailIds: {DetailIds}, Message: {Message}",
+                        user.Id,
+                        string.Join(",", ids),
+                        result.Message);
+                }
+
+                if (result.Status)
+                {
+                    await _redis.db
+                        .RefreshUserSession(
+                            user.Id,
+                            1,
+                            3);
+                }
+
+                return Json(new
+                {
+                    Status = result.Status,
+                    Message = result.Message,
+                    Model = result.Model
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "خطای پیش‌بینی‌نشده هنگام چاپ ژتون غذا. UserId: {UserId}, DetailIds: {DetailIds}",
+                    user.Id,
+                    string.Join(",", ids));
+
+                return StatusCode(
+                    StatusCodes
+                        .Status500InternalServerError,
+                    new
+                    {
+                        Status = false,
+                        Message =
+                            "چاپ ژتون با خطای پیش‌بینی‌نشده همراه بود."
+                    });
+            }
         }
 
 
