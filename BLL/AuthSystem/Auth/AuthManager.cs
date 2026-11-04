@@ -175,8 +175,15 @@ namespace BLL
 
         public UserSessionDTO LoginWithFaceZP(long enrollId)
         {
-            // enrollId در رویداد ZP معادل کد پرسنلی است، نه User.Id.
-            var personnelCode = enrollId.ToString();
+            return LoginWithFaceZP(enrollId.ToString());
+        }
+
+        public UserSessionDTO LoginWithFaceZP(string personnelCode)
+        {
+            personnelCode = personnelCode?.Trim().ToEnglishNumber();
+            if (string.IsNullOrWhiteSpace(personnelCode))
+                return null;
+
             var user = UOW.Users.GetOneDTO<UserSessionDTO>(
                 UserSessionDTO.Selector,
                 x => x.Username == personnelCode &&
@@ -185,10 +192,11 @@ namespace BLL
             if (user == null)
                 return null;
 
-            // اگر روی حساب، کد پرسنلی دیگری ثبت شده است
-            // ورود با enrollId ظاهراً مشابه نباید پذیرفته شود.
+            // کد عددی 001234 و 1234 به یک شخص اشاره می‌کنند،
+            // ولی حسابی با PersonCode متناقض نباید پذیرفته شود.
             if (user.PersonCode.HasValue &&
-                user.PersonCode.Value.ToString() != personnelCode)
+                int.TryParse(personnelCode, out var numericCode) &&
+                user.PersonCode.Value != numericCode)
                 return null;
 
             SetAuthenticatedUser(user);
