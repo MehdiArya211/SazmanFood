@@ -590,6 +590,7 @@
 }
 
 <form method="post" class="reserve-form">
+    @Html.AntiForgeryToken()
     <div class="reserve-page">
     <div class="container reserve-container">
         <div class="reserve-card">
@@ -878,7 +879,11 @@
                     $.ajax({
                         url: '@Url.Action("DeleteDay", "Reserve")',
                         type: 'POST',
-                        data: { dayId: dayId },
+                        data: {
+                            dayId: dayId,
+                            __RequestVerificationToken:
+                                $('input[name="__RequestVerificationToken"]').first().val()
+                        },
                         success: function (response) {
                             if (response.success) {
                                 swal({
