@@ -170,7 +170,7 @@ namespace BLL
         public FoodTimingPolicyDTO GetFoodTimingPolicy()
         {
             var setting = UOW.Constants.FirstOrDefault(
-                x => x.Type == ConstantType.FoodTimingPolicy && !x.IsDeleted);
+                x => x.Type == ConstantType.FoodTimingPolicy && x.IsDeleted == false);
 
             // حفظ رفتار فعلی برنامه هنگام نبود تنظیمات.
             if (string.IsNullOrWhiteSpace(setting?.Value))
@@ -263,7 +263,7 @@ namespace BLL
                 return new BaseResult(false, "مقادیر تنظیمات زمان‌بندی بیش از حد مجاز است.");
 
             var setting = UOW.Constants.FirstOrDefault(
-                x => x.Type == ConstantType.FoodTimingPolicy && !x.IsDeleted);
+                x => x.Type == ConstantType.FoodTimingPolicy && x.IsDeleted == false);
 
             if (setting == null)
             {
