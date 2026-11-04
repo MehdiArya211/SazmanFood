@@ -34,6 +34,11 @@ public class AuthenticationController : Controller
     private readonly ApiTokenCacheClient ApiTokenClient;
     private readonly IMemoryCache _faceEventCache;
     private readonly IReservationUserProvisioningManager _reservationUserProvisioning;
+    private static readonly object FaceProofSync = new();
+    private const string FaceChallengeSessionKey = "FaceLoginChallenge";
+
+    private sealed record VerifiedFaceProof(int KioskId, long EnrollId);
+
 
 
     public AuthenticationController(IAuthManager _AuthManager, IUserLogManager _UserLogManager,
@@ -237,31 +242,45 @@ public class AuthenticationController : Controller
         var hubBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
         var configuredKioskId = _configuration.GetValue<int?>("ApiAddress:KioskId");
 
-        ViewBag.ApiBaseUrl = hubBaseUrl;
-        ViewBag.KioskId = configuredKioskId;
-
-        _logger.LogInformation(
-            "ورود بیومتریک: صفحه برای کیوسک {KioskId} آماده شد.",
-            configuredKioskId);
-
         if (mid == null)
         {
-            var user = Session.GetUser();
-            if (user != null)
+            var currentUser = HttpContext.Session.GetUser();
+            if (currentUser != null)
                 return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
         }
+
+        // برای هر نمایش صفحه یک چالش تصادفیِ مستقل از کد پرسنلی ساخته
+        // می‌شود. سرویس معتبر ZP باید همان چالش را در رویداد امضاشده
+        // برگرداند؛ رویداد کاربر دیگر یا مرورگر دیگر پذیرفته نمی‌شود.
+        var challenge = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        HttpContext.Session.SetString(FaceChallengeSessionKey, challenge);
+        if (configuredKioskId.HasValue && configuredKioskId.Value > 0)
+        {
+            _faceEventCache.Set(
+                $"FacePending:{challenge}",
+                configuredKioskId.Value,
+                TimeSpan.FromMinutes(3));
+        }
+
+        ViewBag.ApiBaseUrl = hubBaseUrl;
+        ViewBag.KioskId = configuredKioskId;
+        ViewBag.FaceChallenge = challenge;
+
+        _logger.LogInformation(
+            "صفحه انتظار چهره ایجاد شد. KioskId: {KioskId}",
+            configuredKioskId);
 
         var showCaptcha = HttpContext.GetCookieShowCaptcha();
         if (showCaptcha)
             ViewBag.captcha = true;
 
-        return View("IndexZP"); // نام فایل ویو
+        return View("IndexZP");
     }
 
     /// <summary>
     /// دریافت اعلان امضاشده از سرویس معتبر ZP.
     /// فقط سرویس دستگاه (نه JavaScript مرورگر) باید این endpoint را فراخوانی کند.
-    /// Message-to-sign: KioskId:EnrollId:TimestampUtc:Nonce
+    /// Message-to-sign: KioskId:EnrollId:TimestampUtc:Nonce:SessionChallenge
     /// Signature: HMAC-SHA256 hex با FaceLogin:WebhookSecret
     /// </summary>
     [HttpPost]
@@ -270,15 +289,23 @@ public class AuthenticationController : Controller
     {
         var secret = _configuration["FaceLogin:WebhookSecret"];
         if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
+        {
+            _logger.LogError(
+                "امضای رویداد چهره فعال نیست: Secret معتبر تنظیم نشده است.");
             return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
 
         var expectedKiosk = _configuration.GetValue<int?>("ApiAddress:KioskId");
-        if (payload == null || payload.KioskId <= 0 || payload.EnrollId <= 0 ||
-            payload.TimestampUtc <= 0 || string.IsNullOrWhiteSpace(payload.Nonce) ||
+        if (!expectedKiosk.HasValue || expectedKiosk.Value <= 0 ||
+            payload == null || payload.KioskId != expectedKiosk.Value ||
+            payload.EnrollId <= 0 || payload.TimestampUtc <= 0 ||
+            string.IsNullOrWhiteSpace(payload.Nonce) ||
             payload.Nonce.Length > 100 ||
-            string.IsNullOrWhiteSpace(payload.Signature) ||
-            (expectedKiosk.HasValue && expectedKiosk.Value > 0 &&
-             payload.KioskId != expectedKiosk.Value))
+            string.IsNullOrWhiteSpace(payload.SessionChallenge) ||
+            payload.SessionChallenge.Length != 64 ||
+            !payload.SessionChallenge.All(x =>
+                (x >= '0' && x <= '9') || (x >= 'A' && x <= 'F')) ||
+            string.IsNullOrWhiteSpace(payload.Signature))
         {
             return BadRequest();
         }
@@ -296,16 +323,15 @@ public class AuthenticationController : Controller
         if (Math.Abs((DateTimeOffset.UtcNow - timestamp).TotalSeconds) > 30)
             return Unauthorized();
 
-        var message =
-            $"{payload.KioskId}:{payload.EnrollId}:{payload.TimestampUtc}:{payload.Nonce}";
-        var providedSignature = payload.Signature.Trim();
+        var signedMessage =
+            $"{payload.KioskId}:{payload.EnrollId}:{payload.TimestampUtc}:{payload.Nonce}:{payload.SessionChallenge}";
 
         try
         {
-            var provided = Convert.FromHexString(providedSignature);
+            var provided = Convert.FromHexString(payload.Signature.Trim());
             var expected = HMACSHA256.HashData(
                 Encoding.UTF8.GetBytes(secret),
-                Encoding.UTF8.GetBytes(message));
+                Encoding.UTF8.GetBytes(signedMessage));
 
             if (!CryptographicOperations.FixedTimeEquals(provided, expected))
                 return Unauthorized();
@@ -315,18 +341,31 @@ public class AuthenticationController : Controller
             return Unauthorized();
         }
 
+        var challengeKey = $"FacePending:{payload.SessionChallenge}";
         var replayKey = $"VerifiedFaceNonce:{payload.KioskId}:{payload.Nonce}";
-        if (_faceEventCache.TryGetValue(replayKey, out _))
-            return Conflict();
+        var proofKey = $"FaceVerified:{payload.SessionChallenge}";
 
-        _faceEventCache.Set(replayKey, true, TimeSpan.FromMinutes(2));
-        _faceEventCache.Set(
-            $"VerifiedFace:{payload.KioskId}:{payload.EnrollId}",
-            true,
-            TimeSpan.FromSeconds(45));
+        lock (FaceProofSync)
+        {
+            // امضا کافی نیست: چالش باید از صفحه انتظار واقعی
+            // صادر شده باشد، در همان کیوسک و هنوز معتبر باشد.
+            if (!_faceEventCache.TryGetValue(challengeKey, out int pendingKiosk) ||
+                pendingKiosk != payload.KioskId)
+                return Conflict();
+
+            if (_faceEventCache.TryGetValue(replayKey, out _) ||
+                _faceEventCache.TryGetValue(proofKey, out _))
+                return Conflict();
+
+            _faceEventCache.Set(replayKey, true, TimeSpan.FromMinutes(3));
+            _faceEventCache.Set(
+                proofKey,
+                new VerifiedFaceProof(payload.KioskId, payload.EnrollId),
+                TimeSpan.FromSeconds(45));
+        }
 
         _logger.LogInformation(
-            "رویداد امضاشده ZP تأیید شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
+            "رویداد امضاشده و وابسته به نشست چهره تأیید شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
             payload.KioskId, payload.EnrollId);
 
         return Ok(new { Status = true });
@@ -334,15 +373,27 @@ public class AuthenticationController : Controller
 
     private bool ConsumeVerifiedFaceEvent(int kioskId, long enrollId)
     {
-        var key = $"VerifiedFace:{kioskId}:{enrollId}";
-        if (!_faceEventCache.TryGetValue(key, out bool verified) || !verified)
+        var challenge = HttpContext.Session.GetString(FaceChallengeSessionKey);
+        if (string.IsNullOrWhiteSpace(challenge))
             return false;
 
-        _faceEventCache.Remove(key);
-        return true;
+        var proofKey = $"FaceVerified:{challenge}";
+        lock (FaceProofSync)
+        {
+            if (!_faceEventCache.TryGetValue(
+                    proofKey, out VerifiedFaceProof proof) ||
+                proof.KioskId != kioskId || proof.EnrollId != enrollId)
+                return false;
+
+            _faceEventCache.Remove(proofKey);
+            _faceEventCache.Remove($"FacePending:{challenge}");
+            HttpContext.Session.Remove(FaceChallengeSessionKey);
+            return true;
+        }
     }
 
-    [HttpGet]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> FinalizeFaceLogin(int kioskId, long enrollId)
     {
         _logger.LogInformation(
@@ -370,19 +421,16 @@ public class AuthenticationController : Controller
             return RedirectToAction("IndexZP");
         }
 
+        // به هیچ عنوان امکان ورود بدون امضای معتبر و نشست انتظار وجود ندارد.
+        // مقدار RequireSignedEvents=false نیز نباید این الزام را دور بزند.
         var verifiedFace = ConsumeVerifiedFaceEvent(kioskId, enrollId);
-        // اگر Secret تنظیم شده باشد، پیش‌فرض امن این است که ورود نیز
-        // اعلان معتبر و امضاشده نیاز داشته باشد.
-        var signedEventsOption = _configuration.GetValue<bool?>("FaceLogin:RequireSignedEvents");
-        var requireSignedEvents = signedEventsOption ??
-            !string.IsNullOrWhiteSpace(_configuration["FaceLogin:WebhookSecret"]);
-        if (requireSignedEvents && !verifiedFace)
+        if (!verifiedFace)
         {
             _logger.LogWarning(
-                "درخواست ورود چهره بدون اعلان معتبر سرویس ZP رد شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
+                "ورود چهره بدون اثبات معتبر و وابسته به نشست رد شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
                 kioskId, enrollId);
             TempData["FaceLoginMessage"] =
-                "رویداد تشخیص چهره از سرویس دستگاه تأیید نشده است.";
+                "تأیید تشخیص چهره برای این نشست دریافت نشده یا منقضی شده است. دوباره روبه‌روی دستگاه قرار بگیرید.";
             return RedirectToAction("IndexZP");
         }
 
@@ -529,5 +577,6 @@ public sealed class VerifiedFaceEvent
     public long EnrollId { get; set; }
     public long TimestampUtc { get; set; }
     public string Nonce { get; set; }
+    public string SessionChallenge { get; set; }
     public string Signature { get; set; }
 }
