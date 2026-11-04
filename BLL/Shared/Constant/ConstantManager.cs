@@ -167,6 +167,118 @@ namespace BLL
             }
         }
 
+        public FoodTimingPolicyDTO GetFoodTimingPolicy()
+        {
+            var setting = UOW.Constants.FirstOrDefault(
+                x => x.Type == ConstantType.FoodTimingPolicy && !x.IsDeleted);
+
+            // حفظ رفتار فعلی برنامه هنگام نبود تنظیمات.
+            if (string.IsNullOrWhiteSpace(setting?.Value))
+                return new FoodTimingPolicyDTO();
+
+            var sections = setting.Value.Split('|');
+            if (sections.Length != 3 ||
+                !sections[0].StartsWith("p", StringComparison.Ordinal) ||
+                !sections[1].StartsWith("r", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "تنظیمات زمان‌بندی غذا در پایگاه داده معتبر نیست.");
+            }
+
+            var printParts = sections[0].Substring(1).Split(',');
+            if (printParts.Length != 2 ||
+                (printParts[0] != "0" && printParts[0] != "1") ||
+                (sections[1] != "r0" && sections[1] != "r1") ||
+                !FoodTimingRules.TryReadTime(printParts[1], out _))
+            {
+                throw new InvalidOperationException(
+                    "تنظیمات ساعت چاپ ژتون معتبر نیست.");
+            }
+
+            var days = new List<FoodReservationDeadlineDayDTO>();
+            foreach (var token in sections[2].Split(';'))
+            {
+                var fields = token.Split(',');
+                if (fields.Length != 3 ||
+                    !int.TryParse(fields[0], out var dayOfWeek) ||
+                    !int.TryParse(fields[1], out var daysBefore) ||
+                    dayOfWeek < 0 || dayOfWeek > 6 ||
+                    daysBefore < 0 || daysBefore > 7 ||
+                    !FoodTimingRules.TryReadTime(fields[2], out _))
+                {
+                    throw new InvalidOperationException(
+                        "مقادیر مهلت رزرو هفتگی معتبر نیست.");
+                }
+
+                days.Add(new FoodReservationDeadlineDayDTO
+                {
+                    DayOfWeek = dayOfWeek,
+                    DaysBefore = daysBefore,
+                    CutoffTime = fields[2]
+                });
+            }
+
+            if (days.Count != 7 || days.Select(x => x.DayOfWeek).Distinct().Count() != 7)
+                throw new InvalidOperationException(
+                    "تنظیمات مهلت رزرو باید شامل دقیقاً هفت روز متفاوت باشد.");
+
+            return new FoodTimingPolicyDTO
+            {
+                PrintTimeEnabled = printParts[0] == "1",
+                PrintStartTime = printParts[1],
+                ReservationDeadlineEnabled = sections[1] == "r1",
+                Days = days
+            };
+        }
+
+        public BaseResult SaveFoodTimingPolicy(FoodTimingPolicyDTO policy)
+        {
+            if (policy == null || !FoodTimingRules.TryReadTime(policy.PrintStartTime, out _))
+                return new BaseResult(false, "ساعت شروع چاپ ژتون باید در قالب HH:mm باشد.");
+
+            if (policy.Days == null || policy.Days.Count != 7 ||
+                policy.Days.Select(x => x.DayOfWeek).Distinct().Count() != 7)
+                return new BaseResult(false, "برای هر هفت روز هفته، مهلت رزرو مشخص کنید.");
+
+            foreach (var day in policy.Days)
+            {
+                if (day.DayOfWeek < 0 || day.DayOfWeek > 6 ||
+                    day.DaysBefore < 0 || day.DaysBefore > 7 ||
+                    !FoodTimingRules.TryReadTime(day.CutoffTime, out _))
+                {
+                    return new BaseResult(false,
+                        "روز، تعداد روز قبل (۰ تا ۷) یا ساعت پایان رزرو معتبر نیست.");
+                }
+            }
+
+            // یک رکورد و یک Commit، برای جلوگیری از ثبت ناقص چند تنظیم مستقل.
+            var serialized =
+                "p" + (policy.PrintTimeEnabled ? "1" : "0") + "," + policy.PrintStartTime +
+                "|r" + (policy.ReservationDeadlineEnabled ? "1" : "0") +
+                "|" + string.Join(";", policy.Days
+                    .OrderBy(x => x.DayOfWeek)
+                    .Select(x => $"{x.DayOfWeek},{x.DaysBefore},{x.CutoffTime}"));
+
+            if (serialized.Length > 300)
+                return new BaseResult(false, "مقادیر تنظیمات زمان‌بندی بیش از حد مجاز است.");
+
+            var setting = UOW.Constants.FirstOrDefault(
+                x => x.Type == ConstantType.FoodTimingPolicy && !x.IsDeleted);
+
+            if (setting == null)
+            {
+                return base.Create(new Constant
+                {
+                    Title = "ساعت چاپ ژتون و مهلت رزرو هفتگی",
+                    Type = ConstantType.FoodTimingPolicy,
+                    Value = serialized
+                });
+            }
+
+            setting.Value = serialized;
+            return base.Update(setting);
+        }
+
         public int? GetNumberValue(ConstantType Type)
         {
             return UOW.Constants.GetNumberValue(Type);
