@@ -677,6 +677,11 @@
 
                 // یک کلیک برای اعمال روی روزهای تیک‌خورده و ذخیره در پایگاه داده.
                 const saved = await saveTimingSettings(false);
+                if (saved) {
+                    timingNotice.textContent =
+                        'مهلت رزرو برای ' + selected.length +
+                        ' روز انتخاب‌شده اعمال و ذخیره شد. روزهای دیگر تغییری نکردند.';
+                }
                 if (!saved) {
                     previous.forEach(item => {
                         item.row.querySelector('.timing-days-before').value = item.daysBefore;
