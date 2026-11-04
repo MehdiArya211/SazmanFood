@@ -240,6 +240,90 @@
             background: #fcecee;
             color: #ab2837;
         }
+        .timing-bulk {
+            background: #fff;
+            border: 1px solid #dce6f1;
+            border-radius: 12px;
+            padding: 17px;
+            margin: 16px 0;
+        }
+        .timing-bulk-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #2d485e;
+            margin-bottom: 12px;
+        }
+        .timing-bulk-days {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 14px;
+        }
+        .timing-bulk-day {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border: 1px solid #dbe4ee;
+            border-radius: 9px;
+            color: #526a80;
+            background: #f9fbfd;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            user-select: none;
+        }
+        .timing-bulk-day:has(input:checked) {
+            border-color: #4296dc;
+            background: #e9f4ff;
+            color: #165c91;
+        }
+        .timing-bulk-day input,
+        .timing-bulk-all input {
+            width: 17px;
+            height: 17px;
+            margin: 0;
+            accent-color: #1e88e5;
+            cursor: pointer;
+        }
+        .timing-bulk-all {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            color: #304a60;
+            cursor: pointer;
+        }
+        .timing-bulk-controls {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        .timing-bulk-controls label {
+            display: block;
+            margin-bottom: 6px;
+            color: #5b7186;
+            font-size: 12px;
+        }
+        .timing-bulk-controls .btn {
+            margin: 0;
+            min-height: 41px;
+            font-weight: 800;
+            border-radius: 8px;
+        }
+        .timing-bulk-help { margin: 10px 0 0; font-size: 11px; color: #73879a; line-height: 1.9; }
+        .timing-day-details { margin-top: 14px; }
+        .timing-day-details summary {
+            cursor: pointer;
+            color: #246f9a;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 11px 0;
+        }
+        .timing-day-details summary:focus-visible,
+        .timing-bulk-day:focus-within { outline: 2px solid #1e88e5; outline-offset: 2px; }
         .timing-options-inactive { opacity: .65; }
         @@media (max-width: 767px) {
             .quota-policy-card { padding: 18px; }
@@ -354,8 +438,62 @@
                             روز بسته‌شده قابل ویرایش یا حذف نیست؛ رزروهای قبلی حفظ می‌شوند.
                         </p>
 
-                        <div class="table-responsive">
-                            <table class="timing-day-table">
+                        <div class="timing-bulk">
+                            <div class="timing-bulk-title">
+                                <i class="material-icons" style="font-size:18px;vertical-align:middle" aria-hidden="true">playlist_add_check</i>
+                                تنظیم سریع چند روز با یک‌بار انتخاب
+                            </div>
+                            <label class="timing-bulk-all" for="timing-select-all">
+                                <input id="timing-select-all" type="checkbox" checked />
+                                همه روزهای هفته
+                            </label>
+                            <div class="timing-bulk-days" role="group" aria-label="روزهای دریافت غذا">
+                                @foreach (var weekDay in weekdays)
+                                {
+                                    <label class="timing-bulk-day">
+                                        <input type="checkbox" class="timing-bulk-day-input"
+                                               data-weekday="@weekDay.DayOfWeek"
+                                               checked />
+                                        @weekDay.Title
+                                    </label>
+                                }
+                            </div>
+                            <div class="timing-bulk-controls">
+                                <div>
+                                    <label for="timing-bulk-days-before">آخرین مهلت رزرو</label>
+                                    <select id="timing-bulk-days-before" class="form-control"
+                                            style="min-width:150px">
+                                        @for (var offset = 0; offset <= 7; offset++)
+                                        {
+                                            <option value="@offset" selected="@(offset == 1)">
+                                                @(offset == 0 ? "همان روز" : offset == 1 ? "یک روز قبل" : $"{offset} روز قبل")
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="timing-bulk-cutoff">تا ساعت</label>
+                                    <input type="time" id="timing-bulk-cutoff"
+                                           class="timing-time-input"
+                                           value="12:00" required />
+                                </div>
+                                <button type="button" class="btn btn-info"
+                                        id="timing-bulk-apply">
+                                    <i class="material-icons" style="vertical-align:middle" aria-hidden="true">done_all</i>
+                                    اعمال و ذخیره
+                                </button>
+                            </div>
+                            <p class="timing-bulk-help">
+                                <span id="timing-bulk-count">۷ روز انتخاب شده</span>.
+                                با «اعمال و ذخیره»، مهلت جدید فقط روی روزهای تیک‌خورده ثبت و محدودیت رزرو فعال می‌شود.
+                                روزهای دیگر بدون تغییر می‌مانند.
+                            </p>
+                        </div>
+
+                        <details class="timing-day-details" id="timing-day-details">
+                            <summary>ویرایش جداگانه روزها (اختیاری)</summary>
+                            <div class="table-responsive">
+                                <table class="timing-day-table">
                                 <thead>
                                     <tr>
                                         <th>روز دریافت غذا</th>
@@ -394,8 +532,9 @@
                                         </tr>
                                     }
                                 </tbody>
-                            </table>
-                        </div>
+                                </table>
+                            </div>
+                        </details>
                         <div class="timing-example">
                             <i class="material-icons" style="font-size:17px;vertical-align:middle">info_outline</i>
                             مثال: برای غذای سه‌شنبه، «یک روز قبل» و «۱۲:۰۰» یعنی
@@ -443,13 +582,36 @@
             reserveEnabled.addEventListener('change', refreshTimingControls);
             refreshTimingControls();
 
-            timingForm.addEventListener('submit', async function (event) {
-                event.preventDefault();
+            const bulkSelectAll = document.getElementById('timing-select-all');
+            const bulkDays = Array.from(document.querySelectorAll('.timing-bulk-day-input'));
+            const bulkApply = document.getElementById('timing-bulk-apply');
+            const bulkCount = document.getElementById('timing-bulk-count');
+            const bulkDaysBefore = document.getElementById('timing-bulk-days-before');
+            const bulkCutoff = document.getElementById('timing-bulk-cutoff');
 
-                if (!window.confirm('تغییرات محدودیت زمانی رزرو و چاپ ژتون ذخیره شود؟'))
-                    return;
+            function refreshBulkSelection() {
+                const count = bulkDays.filter(day => day.checked).length;
+                bulkSelectAll.checked = count === bulkDays.length;
+                bulkSelectAll.indeterminate = count > 0 && count < bulkDays.length;
+                bulkCount.textContent = count + ' روز انتخاب شده';
+                bulkApply.disabled = count === 0;
+            }
+
+            bulkSelectAll.addEventListener('change', function () {
+                bulkDays.forEach(day => { day.checked = bulkSelectAll.checked; });
+                refreshBulkSelection();
+            });
+            bulkDays.forEach(day => day.addEventListener('change', refreshBulkSelection));
+            refreshBulkSelection();
+
+            async function saveTimingSettings(requireConfirmation) {
+                if (requireConfirmation &&
+                    !window.confirm('تغییرات محدودیت زمانی رزرو و چاپ ژتون ذخیره شود؟')) {
+                    return false;
+                }
 
                 timingSave.disabled = true;
+                bulkApply.disabled = true;
                 timingNotice.className = 'timing-notice';
 
                 const values = new FormData(timingForm);
@@ -470,13 +632,66 @@
                     timingNotice.className = 'timing-notice success';
                     timingNotice.textContent = result.message || result.Message ||
                         'محدودیت‌های زمانی با موفقیت ذخیره شدند.';
+                    return true;
                 } catch (error) {
                     timingNotice.className = 'timing-notice error';
                     timingNotice.textContent = error.message || 'ارتباط با سرور برقرار نشد.';
+                    return false;
                 } finally {
                     timingSave.disabled = false;
+                    refreshBulkSelection();
+                }
+            }
+
+            bulkApply.addEventListener('click', async function () {
+                const selected = bulkDays
+                    .filter(day => day.checked)
+                    .map(day => day.dataset.weekday);
+
+                if (!selected.length) return;
+
+                if (!bulkCutoff.value || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(bulkCutoff.value)) {
+                    timingNotice.className = 'timing-notice error';
+                    timingNotice.textContent = 'یک ساعت معتبر برای پایان رزرو انتخاب کنید.';
+                    return;
+                }
+
+                // اعتبارسنجی سمت سرور نیز برقرار است؛ این بخش فقط تنظیم فرم است.
+                const changedRows = selected.map(dayOfWeek =>
+                    timingForm.querySelector('input[name^="Days["][name$=".DayOfWeek"][value="' +
+                        dayOfWeek + '"]').closest('tr')
+                );
+                const previous = changedRows.map(row => ({
+                    row: row,
+                    daysBefore: row.querySelector('.timing-days-before').value,
+                    cutoff: row.querySelector('input[type="time"]').value
+                }));
+                const wasEnabled = reserveEnabled.checked;
+
+                changedRows.forEach(row => {
+                    row.querySelector('.timing-days-before').value = bulkDaysBefore.value;
+                    row.querySelector('input[type="time"]').value = bulkCutoff.value;
+                });
+                reserveEnabled.checked = true;
+                refreshTimingControls();
+
+                // یک کلیک برای اعمال روی روزهای تیک‌خورده و ذخیره در پایگاه داده.
+                const saved = await saveTimingSettings(false);
+                if (!saved) {
+                    previous.forEach(item => {
+                        item.row.querySelector('.timing-days-before').value = item.daysBefore;
+                        item.row.querySelector('input[type="time"]').value = item.cutoff;
+                    });
+                    reserveEnabled.checked = wasEnabled;
+                    refreshTimingControls();
                 }
             });
+
+            timingForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                await saveTimingSettings(true);
+            });
+
             form.addEventListener('submit', async function (event) {
                 event.preventDefault();
 
