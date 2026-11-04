@@ -106,8 +106,18 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             ViewBag.PrintStartTime = timingPolicy.PrintStartTime;
             ViewBag.IranToday = FoodTimingRules.GetIranNow().ToString("yyyy-MM-dd");
 
-            // 🟢 تمدید سشن کاربر
-            await _redis.db.RefreshUserSession(user.Id, /*DeviceId*/ 1, 3);
+            // نبودن Redis نباید دسترسی کاربر به رسید رزرو و چاپ را قطع کند.
+            try
+            {
+                await _redis.db.RefreshUserSession(user.Id, /*DeviceId*/ 1, 3);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "تمدید نشست Redis هنگام نمایش ژتون ناموفق بود. UserId: {UserId}",
+                    user.Id);
+            }
 
             return View(weeklyMeals);
         }
