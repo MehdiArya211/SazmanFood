@@ -4,6 +4,8 @@ using DTO.Entities.FoodReservation;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Printing;
@@ -17,14 +19,26 @@ namespace BLL.ReserveManagment
         protected readonly IHttpContextAccessor httpContextAccessor;
         protected readonly ISession Session;
         protected readonly IFoodReserveDetailManager _foodReserveDetailManager;
+        private readonly ILogger<FoodReserveManager> _printLogger;
+        private readonly string _configuredPrinterName;
 
-        public FoodReserveManager(DbContexts _Context, IHttpContextAccessor httpContextAccessor,
-            IFoodReserveDetailManager foodReserveDetailManager) : base(_Context, httpContextAccessor)
+        public FoodReserveManager(
+            DbContexts context,
+            IHttpContextAccessor httpContextAccessor,
+            IFoodReserveDetailManager foodReserveDetailManager,
+            IOptions<PrinterOptions> printerOptions,
+            ILogger<FoodReserveManager> printLogger) : base(context, httpContextAccessor)
         {
             this.httpContextAccessor = httpContextAccessor;
-            Session = httpContextAccessor.HttpContext.Session;
+            Session = httpContextAccessor.HttpContext?.Session;
             _foodReserveDetailManager = foodReserveDetailManager;
-            //_publisher = publisher;
+            _printLogger = printLogger;
+
+            // اولویت با تنظیمات برنامه است؛ نام قدیمی فقط برای سازگاری حفظ شده.
+            var name = printerOptions?.Value?.FoodTokenPrinterName;
+            _configuredPrinterName = string.IsNullOrWhiteSpace(name)
+                ? "RONGTA 58mm Series Printer(2)"
+                : name.Trim();
         }
 
         public BaseResult AddToReserveAndReserveDetail(FoodReserveDTO model)
@@ -154,18 +168,29 @@ namespace BLL.ReserveManagment
                     "هیچ ژتونی برای چاپ انتخاب نشده است.");
             }
 
-            const string printerName =
-                "RONGTA 58mm Series Printer(2)";
+            var printerName = _configuredPrinterName;
+            var hostName = Environment.MachineName;
+            var hostUser = Environment.UserName;
+
+            _printLogger.LogInformation(
+                "شروع ارسال ژتون به چاپگر سرور. Server: {Server}, ProcessUser: {ProcessUser}, Printer: {Printer}, UserId: {UserId}, DetailCount: {DetailCount}",
+                hostName, hostUser, printerName, userId, foodReserveDetaileIds.Count);
 
             try
             {
+                if (!OperatingSystem.IsWindows())
+                    throw new PlatformNotSupportedException(
+                        "چاپ مستقیم با PrintDocument فقط روی ویندوز پشتیبانی می‌شود؛ از چاپ مرورگر استفاده کنید.");
+
                 EnsurePrinterIsValid(printerName);
             }
             catch (Exception ex)
             {
-                return new BaseResult(
-                    false,
-                    ex.Message);
+                _printLogger.LogError(
+                    ex,
+                    "چاپگر سرور آماده نیست. Server: {Server}, ProcessUser: {ProcessUser}, Printer: {Printer}",
+                    hostName, hostUser, printerName);
+                return new BaseResult(false, ex.Message);
             }
 
             var printedCount = 0;
@@ -186,6 +211,7 @@ namespace BLL.ReserveManagment
                     continue;
                 }
 
+                Bitmap qrBitmap = null;
                 try
                 {
                     var detail =
@@ -239,8 +265,6 @@ namespace BLL.ReserveManagment
                      * داشته باشد QR قدیمی نیز چاپ می‌شود؛ اما نبود آن دیگر
                      * مانع چاپ فیزیکی ژتون نیست.
                      */
-                    Bitmap qrBitmap = null;
-
                     try
                     {
                         var personalCode =
@@ -374,11 +398,13 @@ namespace BLL.ReserveManagment
                             }
                         }
                     }
-                    catch
+                    catch (Exception qrException)
                     {
-                        /*
-                         * خطای QR نباید چاپ فیزیکی ژتون را متوقف کند.
-                         */
+                        // خطای QR قدیمی مانع چاپ رسید نمی‌شود، اما حتماً ثبت می‌شود.
+                        _printLogger.LogWarning(
+                            qrException,
+                            "تولید QR قدیمی ژتون ناموفق بود. DetailId: {DetailId}, UserId: {UserId}",
+                            foodReserveDetaileId, userId);
                         qrBitmap?.Dispose();
                         qrBitmap = null;
                     }
@@ -620,33 +646,46 @@ namespace BLL.ReserveManagment
                                     offset);
                             };
 
-                    using var pd =
-                        new PrintDocument();
+                    using var pd = new PrintDocument();
+                    pd.PrinterSettings.PrinterName = printerName;
+                    pd.PrinterSettings.PrintToFile = false;
+                    pd.PrintController = new StandardPrintController();
+                    pd.DocumentName = $"FoodTicket-{foodReserveDetaileId}";
 
-                    pd.PrinterSettings.PrinterName =
-                        printerName;
-
-                    pd.PrintPage +=
-                        (s, e) =>
-                            printerPage(
-                                s,
-                                e);
+                    var printPageExecuted = false;
+                    pd.PrintPage += (s, e) =>
+                    {
+                        printPageExecuted = true;
+                        printerPage(s, e);
+                    };
 
                     pd.Print();
 
-                    qrBitmap?.Dispose();
+                    if (!printPageExecuted)
+                        throw new InvalidOperationException(
+                            "رویداد PrintPage اجرا نشد؛ هیچ محتوایی به صف چاپ تحویل داده نشد.");
+
+                    // بازگشت Print() یعنی تحویل به چاپگر/Spooler؛
+                    // چاپ فیزیکی کاغذ از داخل این API قابل تأیید نیست.
+                    _printLogger.LogInformation(
+                        "ژتون به صف چاپ ارسال شد (نه تأیید چاپ روی کاغذ). Server: {Server}, Printer: {Printer}, DetailId: {DetailId}, UserId: {UserId}",
+                        hostName, printerName, foodReserveDetaileId, userId);
 
                     printedCount++;
                 }
                 catch (Exception ex)
                 {
                     failedCount++;
-
+                    _printLogger.LogError(
+                        ex,
+                        "ارسال ژتون به صف چاپ ناموفق بود. Server: {Server}, Printer: {Printer}, DetailId: {DetailId}, UserId: {UserId}",
+                        hostName, printerName, foodReserveDetaileId, userId);
                     errors.Add(
                         $"ژتون {foodReserveDetaileId}: {ex.Message}");
                 }
                 finally
                 {
+                    qrBitmap?.Dispose();
                     /*
                      * این قفل فقط برای جلوگیری از چاپ هم‌زمان است؛
                      * پس بعد از پایان عملیات باید آزاد شود تا چاپ مجدد ممکن باشد.
@@ -669,40 +708,46 @@ namespace BLL.ReserveManagment
                         : "هیچ ژتونی چاپ نشد.");
             }
 
-            return new BaseResult(
-                true,
-                failedCount > 0
-                    ? $"{printedCount} ژتون چاپ شد و {failedCount} مورد ناموفق بود."
-                    : $"{printedCount} ژتون با موفقیت چاپ شد.")
+            var queueMessage =
+                $"{printedCount} ژتون به صف چاپ «{printerName}» روی سیستم «{hostName}» ارسال شد. " +
+                "این پیام تأیید خروج کاغذ نیست؛ صف چاپ و دستگاه را بررسی کنید.";
+
+            if (failedCount > 0)
+                queueMessage += $" {failedCount} مورد نیز ناموفق بود.";
+
+            return new BaseResult(true, queueMessage)
             {
                 Model = new
                 {
-                    PrintedCount =
-                        printedCount,
-
-                    FailedCount =
-                        failedCount,
-
-                    Errors =
-                        errors
+                    QueuedCount = printedCount,
+                    FailedCount = failedCount,
+                    PrinterName = printerName,
+                    PrintHost = hostName,
+                    PrintProcessUser = hostUser,
+                    Errors = errors
                 }
             };
         }
 
         private static void EnsurePrinterIsValid(string printerName)
         {
-            var installed = PrinterSettings.InstalledPrinters.Cast<string>().ToList();
+            var installed = PrinterSettings.InstalledPrinters
+                .Cast<string>()
+                .ToList();
 
-            // اگر اینجا پرینتر نبود => نام اشتباه یا برای این User نصب نیست
-            if (!installed.Any(p => string.Equals(p, printerName, StringComparison.OrdinalIgnoreCase)))
+            if (!installed.Any(p =>
+                    string.Equals(p, printerName, StringComparison.OrdinalIgnoreCase)))
+            {
                 throw new InvalidOperationException(
-                    $"پرینتر '{printerName}' در لیست پرینترهای نصب‌شده برای این کاربر/سرویس وجود ندارد.\n" +
-                    $"InstalledPrinters:\n- {string.Join("\n- ", installed)}"
-                );
+                    $"چاپگر «{printerName}» برای حساب اجرای برنامه روی سرور «{Environment.MachineName}» نصب/قابل مشاهده نیست. " +
+                    "نام چاپگر یا حساب IIS را بررسی کنید، یا از گزینه چاپ با پرینتر این رایانه استفاده کنید.");
+            }
 
             var ps = new PrinterSettings { PrinterName = printerName };
             if (!ps.IsValid)
-                throw new InvalidOperationException($"پرینتر '{printerName}' نصب شده ولی از دید این پروسه معتبر نیست (IsValid=false).");
+                throw new InvalidOperationException(
+                    $"چاپگر «{printerName}» از دید فرایند وب معتبر نیست (IsValid=false). " +
+                    "درایور، پورت و حساب اجرای برنامه را بررسی کنید.");
         }
 
         // public async Task PrintFoodReserveAsync(long userId, WeeklyFoodReserveDTO meal)
