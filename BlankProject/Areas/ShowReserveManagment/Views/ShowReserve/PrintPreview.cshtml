@@ -1,0 +1,167 @@
+@model List<DTO.Entities.FoodReservation.WeeklyFoodReserveDTO>
+@using System.Globalization
+
+@{
+    Layout = null;
+    ViewData["Title"] = "چاپ رسید رزرو غذا";
+    var persianCalendar = new PersianCalendar();
+    var printUserName = ViewBag.PrintUserName as string ?? "-";
+}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>چاپ رسید رزرو غذا</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            background: #f1f4f7;
+            color: #171717;
+            font-family: Tahoma, Arial, sans-serif;
+            direction: rtl;
+        }
+        .print-toolbar {
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            padding: 13px;
+            text-align: center;
+            line-height: 1.9;
+        }
+        .print-toolbar p {
+            margin: 4px auto 12px;
+            max-width: 580px;
+            color: #5b6570;
+            font-size: 12px;
+        }
+        .print-toolbar button {
+            padding: 11px 24px;
+            border: 0;
+            border-radius: 8px;
+            background: #276eaa;
+            color: #fff;
+            font: bold 14px Tahoma, sans-serif;
+            cursor: pointer;
+        }
+        .tickets { padding: 12px 0; }
+        .ticket {
+            background: #fff;
+            width: 56mm;
+            margin: 0 auto 14px;
+            padding: 3mm 2mm;
+            border: 1px dashed #777;
+            font-size: 10px;
+            line-height: 1.8;
+            overflow-wrap: anywhere;
+        }
+        .ticket h1 {
+            font-size: 14px;
+            text-align: center;
+            margin: 0 0 4px;
+        }
+        .ticket .subtitle {
+            text-align: center;
+            font-size: 9px;
+            color: #555;
+        }
+        .ticket .ticket-number {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 3px;
+        }
+        .ticket .rule {
+            border-top: 1px dashed #777;
+            margin: 5px 0;
+        }
+        .ticket .row {
+            padding: 2px 0;
+        }
+        .ticket .row span { font-weight: bold; }
+        .ticket .foot {
+            font-size: 9px;
+            text-align: center;
+            margin-top: 6px;
+        }
+        @@media print {
+            @@page { margin: 0; }
+            html, body {
+                background: #fff;
+                margin: 0;
+                padding: 0;
+            }
+            .print-toolbar { display: none !important; }
+            .tickets { padding: 0; }
+            .ticket {
+                border: 0;
+                box-shadow: none;
+                margin: 0;
+                padding: 3mm 2mm;
+                width: 56mm;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                break-after: page;
+                page-break-after: always;
+            }
+            .ticket:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <strong>پیش‌نمایش رسید غذا</strong>
+        <p>
+            برای چاپ از پرینتر متصل به همین رایانه، چاپگر RONGTA یا پرینتر حرارتی موردنظر را در پنجره چاپ انتخاب کنید.
+            چاپگر و اندازه کاغذ باید روی ۵۸ میلی‌متر تنظیم شده باشند.
+        </p>
+        <button type="button" onclick="window.print()">
+            چاپ رسید
+        </button>
+    </div>
+
+    <div class="tickets">
+        @foreach (var item in Model)
+        {
+            var foodDate = item.Date;
+            var persianDate =
+                $"{persianCalendar.GetYear(foodDate)}/" +
+                $"{persianCalendar.GetMonth(foodDate):00}/" +
+                $"{persianCalendar.GetDayOfMonth(foodDate):00}";
+
+            <article class="ticket">
+                <h1>رسید رزرو غذا</h1>
+                <div class="subtitle">سامانه تغذیه</div>
+                <div class="rule"></div>
+                <div class="ticket-number">شماره رزرو: @item.FoodReserveDetaileId</div>
+                <div class="row">نام: <span>@printUserName</span></div>
+                <div class="row">تاریخ: <span>@persianDate</span></div>
+                <div class="row">روز: <span>@item.DayTitle</span></div>
+                <div class="row">وعده: <span>@item.MealTitle</span></div>
+                <div class="rule"></div>
+                <div class="row">غذای اصلی: <span>@item.MainFood</span></div>
+                @if (!string.IsNullOrWhiteSpace(item.Dessert) && item.Dessert != "-")
+                {
+                    <div class="row">دسر: <span>@item.Dessert</span></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(item.SideDish) && item.SideDish != "-")
+                {
+                    <div class="row">همراه: <span>@item.SideDish</span></div>
+                }
+                <div class="rule"></div>
+                <div class="foot">این رسید، جایگزین QR تأیید تحویل غذا نیست.</div>
+            </article>
+        }
+    </div>
+    <script>
+        window.addEventListener('load', function () {
+            // پنجره چاپ به کاربر امکان انتخاب چاپگر واقعی همین رایانه را می‌دهد.
+            window.print();
+        });
+    </script>
+</body>
+</html>
