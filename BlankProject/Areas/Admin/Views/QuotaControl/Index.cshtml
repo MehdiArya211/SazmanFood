@@ -650,7 +650,7 @@
 
                 if (!selected.length) return;
 
-                if (!bulkCutoff.value || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(bulkCutoff.value)) {
+                if (!bulkCutoff.value || !/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(bulkCutoff.value)) {
                     timingNotice.className = 'timing-notice error';
                     timingNotice.textContent = 'یک ساعت معتبر برای پایان رزرو انتخاب کنید.';
                     return;
