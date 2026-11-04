@@ -64,6 +64,14 @@ namespace Domain.Enums
         [Description("رزرو آزاد غذا بدون نیاز به سهمیه فردی")]
         FreeFoodReservationEnabled = 7,
 
+        /// <summary>
+        /// تنظیمات فشرده و قابل بازگشت زمان چاپ و مهلت رزرو هفتگی.
+        /// مقادیر در ستون Value از جدول Constants ذخیره می‌شوند.
+        /// </summary>
+        [CustomDataType(Type = CustomDataType.String, Max = 300)]
+        [Description("زمان‌بندی رزرو و چاپ ژتون غذا")]
+        FoodTimingPolicy = 8,
+
     }
 
 
