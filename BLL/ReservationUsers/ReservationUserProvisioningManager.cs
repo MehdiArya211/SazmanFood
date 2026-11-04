@@ -37,10 +37,15 @@ public class ReservationUserProvisioningManager
         if (string.IsNullOrWhiteSpace(personCode))
             return new BaseResult(false, "برای ساخت حساب کاربری، کد پرسنلی الزامی است.");
 
+        int? parsedPersonCode = null;
+        if (int.TryParse(personCode, out var personCodeValue))
+            parsedPersonCode = personCodeValue;
+
         var existingUser = UOW.Users.FirstOrDefault(x =>
             x.IsDeleted == false &&
             ((personId.HasValue && x.PersonId == personId.Value) ||
-             x.Username == personCode));
+             x.Username == personCode ||
+             (parsedPersonCode.HasValue && x.PersonCode == parsedPersonCode.Value)));
 
         if (existingUser != null)
             return new BaseResult(true, "حساب کاربری پرسنل قبلاً ایجاد شده است.", existingUser.Id);
@@ -52,10 +57,6 @@ public class ReservationUserProvisioningManager
         int? parsedNationalCode = null;
         if (int.TryParse(Normalize(nationalCode), out var nationalCodeValue))
             parsedNationalCode = nationalCodeValue;
-
-        int? parsedPersonCode = null;
-        if (int.TryParse(personCode, out var personCodeValue))
-            parsedPersonCode = personCodeValue;
 
         var mobile = personCode.Length >= 11
             ? personCode.Substring(personCode.Length - 11, 11)
