@@ -56,6 +56,14 @@ namespace Domain.Enums
         [Description("چک کردن تکراری نبودن پسورد با دو یا سه پسورد قدیم")]
         PasswordRepaedByOldPass = 6,
 
+        /// <summary>
+        /// فعال بودن رزرو آزاد غذا برای همه کاربران، مستقل از سهمیه فردی.
+        /// مقدار پیش‌فرض در نبود این تنظیم، غیرفعال است.
+        /// </summary>
+        [CustomDataType(Type = CustomDataType.Bool, DefultValue = "false")]
+        [Description("رزرو آزاد غذا بدون نیاز به سهمیه فردی")]
+        FreeFoodReservationEnabled = 7,
+
     }
 
 
