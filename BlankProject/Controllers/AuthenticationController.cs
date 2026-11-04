@@ -521,13 +521,29 @@ public class AuthenticationController : Controller
             enrollId,
             user.Id);
 
-        var token = await Redis.db.SetLoginToken(user.Id);
-        HttpContext.SetCookieUserToken(token);
-        HttpContext.Session.SetUser(user);
-        if (verifiedFace)
+        try
+        {
+            var token = await Redis.db.SetLoginToken(user.Id);
+            if (string.IsNullOrWhiteSpace(token))
+                throw new InvalidOperationException("توکن نشست کاربر از سرویس ورود دریافت نشد.");
+
+            HttpContext.SetCookieUserToken(token);
+            HttpContext.Session.SetUser(user);
             HttpContext.Session.SetString("VerifiedFaceLogin", "true");
-        else
+        }
+        catch (Exception ex)
+        {
+            // AuthManager ممکن است نشست را قبل از SetLoginToken ساخته باشد.
+            // خطای Redis نباید اجازه دهد نشست نیمه‌کاره به‌عنوان ورود موفق بماند.
+            HttpContext.Session.RemoveUser();
             HttpContext.Session.Remove("VerifiedFaceLogin");
+
+            _logger.LogError(ex,
+                "تکمیل نشست ورود چهره ناموفق بود. UserId: {UserId}", user.Id);
+            TempData["FaceLoginMessage"] =
+                "ورود چهره تأیید شد، اما ایجاد نشست کاربری انجام نشد. دوباره تلاش کنید.";
+            return RedirectToAction("IndexZP");
+        }
 
         _logger.LogInformation(
             "ورود بیومتریک: موفق؛ انتقال به داشبورد. UserId: {UserId}",
