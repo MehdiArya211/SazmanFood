@@ -76,17 +76,17 @@ namespace BLL.ReserveManagment
         /// </summary>
         public BaseResult SaveWeeklyReservation(
             FoodReserveDTO model,
-            IReadOnlyCollection<long> editableDayIds)
+            IReadOnlyCollection<(long DayId, long MealId)> editableSlots)
         {
             if (model == null || model.UserId <= 0 ||
                 model.Details == null || model.Details.Count == 0 ||
-                editableDayIds == null || editableDayIds.Count == 0)
+                editableSlots == null || editableSlots.Count == 0)
             {
                 return new BaseResult(false, "اطلاعات روزهای قابل رزرو کامل نیست.");
             }
 
-            var days = editableDayIds.ToHashSet();
-            if (model.Details.Any(x => !days.Contains(x.DayId)) ||
+            var slots = editableSlots.ToHashSet();
+            if (model.Details.Any(x => !slots.Contains((x.DayId, x.MealId))) ||
                 model.Details
                     .GroupBy(x => new { x.DayId, x.MealId })
                     .Any(x => x.Count() > 1))
@@ -128,10 +128,12 @@ namespace BLL.ReserveManagment
                 }
                 else
                 {
-                    // برخلاف حذف رزرو اصلی و ایجاد مجدد آن، فقط جزئیات روزهای
+                    // برخلاف حذف رزرو اصلی و ایجاد مجدد آن، فقط جزئیات روزها و وعده‌های
                     // قابل‌ویرایش تغییر می‌کنند. موارد قفل‌شده همان شناسه را دارند.
                     var removable = UOW.FoodReserveDetail.Get(
-                        x => x.FoodReserveId == existing.Id && days.Contains(x.DayId))
+                        x => x.FoodReserveId == existing.Id)
+                        .ToList()
+                        .Where(x => slots.Contains((x.DayId, x.MealId)))
                         .ToList();
 
                     if (removable.Count > 0)
