@@ -33,6 +33,7 @@ public class AuthenticationController : Controller
     private readonly IWebApiManager WebApiManager;
     private readonly ApiTokenCacheClient ApiTokenClient;
     private readonly IMemoryCache _faceEventCache;
+    private readonly IReservationUserProvisioningManager _reservationUserProvisioning;
 
 
     public AuthenticationController(IAuthManager _AuthManager, IUserLogManager _UserLogManager,
@@ -44,6 +45,7 @@ public class AuthenticationController : Controller
         IWebApiManager webApiManager,
         ApiTokenCacheClient apiTokenClient,
         IMemoryCache faceEventCache,
+        IReservationUserProvisioningManager reservationUserProvisioning,
         IFajrLogManager fajrLogManager = null
         ) : base()
     {
@@ -53,6 +55,7 @@ public class AuthenticationController : Controller
         WebApiManager = webApiManager;
         ApiTokenClient = apiTokenClient;
         _faceEventCache = faceEventCache;
+        _reservationUserProvisioning = reservationUserProvisioning;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
         Redis = _Redis;
@@ -455,8 +458,18 @@ public class AuthenticationController : Controller
                     return RedirectToAction("IndexZP");
                 }
 
-                var result = UserManager.CreateMealBookerFromPersonnel(
-                    person, personCode);
+                var fullName = !string.IsNullOrWhiteSpace(person.FullName)
+                    ? person.FullName
+                    : $"{person.FirstName} {person.LastName}".Trim();
+
+                var result = _reservationUserProvisioning.EnsureReservationUser(
+                    person.Id,
+                    personCode,
+                    fullName,
+                    person.MelliCode,
+                    null,
+                    0, // ایجاد خودکار توسط سرویس، نه یک کاربر پنل
+                    person.UnitCode);
 
                 if (!result.Status && !UserManager.ExistsByUsername(personCode))
                 {
