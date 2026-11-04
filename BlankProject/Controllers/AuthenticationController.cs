@@ -323,8 +323,10 @@ public class AuthenticationController : Controller
         if (Math.Abs((DateTimeOffset.UtcNow - timestamp).TotalSeconds) > 30)
             return Unauthorized();
 
-        var signedMessage =
-            $"{payload.KioskId}:{payload.EnrollId}:{payload.TimestampUtc}:{payload.Nonce}:{payload.SessionChallenge}";
+        // امضای دستگاه لینوکسی و وب‌سرور ویندوزی باید مستقل
+        // از فرهنگ/زبان پیش‌فرض سیستم دقیقاً روی یک رشته محاسبه شود.
+        var signedMessage = FormattableString.Invariant(
+            $"{payload.KioskId}:{payload.EnrollId}:{payload.TimestampUtc}:{payload.Nonce}:{payload.SessionChallenge}");
 
         try
         {
