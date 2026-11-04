@@ -1,5 +1,8 @@
 ﻿using BLL;
 using BLL.ReserveManagment;
+using BLL.Interface;
+using DTO.User;
+using DTO.Entities.FoodReservation;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Services.RedisService;
@@ -17,18 +20,54 @@ namespace Food.Areas.ShowReserveManagment.Controllers
         private readonly IFoodReserveManager _foodReserveManager;
         private readonly IRedisManager _redis;
         private readonly ILogger<ShowReserveController> _logger;
+        private readonly IConstantManager _constantManager;
+        private readonly IUnitQuotaManager _unitQuotaManager;
 
 
         public ShowReserveController(
             IFoodReserveManager foodReserveManager,
             IRedisManager redis,
-            ILogger<ShowReserveController> logger)
+            ILogger<ShowReserveController> logger,
+            IConstantManager constantManager,
+            IUnitQuotaManager unitQuotaManager)
         {
             _foodReserveManager = foodReserveManager;
             _redis = redis;
             _logger = logger;
+            _constantManager = constantManager;
+            _unitQuotaManager = unitQuotaManager;
         }
 
+
+        /// <summary>
+        /// در حالت سهمیه‌ای، برای هر ژتون تاریخ و شناسه وعده کنترل می‌شود.
+        /// این کنترل هم برای چاپ سرور و هم برای چاپ مرورگر استفاده می‌شود.
+        /// </summary>
+        private HashSet<long> GetPrintableIds(
+            UserSessionDTO user,
+            IReadOnlyCollection<WeeklyFoodReserveDTO> reservations)
+        {
+            if (reservations == null || reservations.Count == 0)
+                return new HashSet<long>();
+
+            if (_constantManager.IsFreeFoodReservationEnabled())
+                return reservations
+                    .Select(x => x.FoodReserveDetaileId)
+                    .ToHashSet();
+
+            var first = reservations.Min(x => x.Date).Date;
+            var last = reservations.Max(x => x.Date).Date;
+            var personCode = user.PersonCode?.ToString() ?? user.Username;
+            var nationalCode = user.NationalCode?.ToString();
+            var allowed = _unitQuotaManager.GetReservableSlots(
+                user.PersonId, personCode, nationalCode, user.OmdOrgId,
+                first, last).ToHashSet();
+
+            return reservations
+                .Where(x => allowed.Contains((x.Date.Date, x.MealId)))
+                .Select(x => x.FoodReserveDetaileId)
+                .ToHashSet();
+        }
 
         public async Task<IActionResult> Index0()
         {
@@ -49,6 +88,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                 return RedirectToAction("Login", "FaceAuth");
 
             var weeklyMeals = await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
+            ViewBag.AllowedPrintIds = GetPrintableIds(user, weeklyMeals);
 
             // 🟢 تمدید سشن کاربر
             await _redis.db.RefreshUserSession(user.Id, /*DeviceId*/ 1, 3);
@@ -98,6 +138,16 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                     user.Id,
                     string.Join(",", ids));
                 return NotFound("ژتون‌های انتخاب‌شده برای این کاربر یافت نشد.");
+            }
+
+            var permittedIds = GetPrintableIds(user, printableItems);
+            if (!ids.IsSubsetOf(permittedIds))
+            {
+                _logger.LogWarning(
+                    "چاپ مرورگری خارج از سهمیه رد شد. UserId: {UserId}, Ids: {Ids}",
+                    user.Id, string.Join(",", ids));
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    "برای چاپ این ژتون، سهمیه فعال در تاریخ و وعده مربوطه ندارید.");
             }
 
             ViewBag.PrintUserName = user.FullName;
@@ -167,6 +217,26 @@ namespace Food.Areas.ShowReserveManagment.Controllers
 
             try
             {
+                var reservations =
+                    await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
+                var owned = reservations
+                    .Where(x => ids.Contains(x.FoodReserveDetaileId))
+                    .ToList();
+
+                if (owned.Count != ids.Count ||
+                    !ids.All(id => GetPrintableIds(user, owned).Contains(id)))
+                {
+                    _logger.LogWarning(
+                        "چاپ سرور با شناسه نامعتبر یا بدون سهمیه رد شد. UserId: {UserId}, Ids: {Ids}",
+                        user.Id, string.Join(",", ids));
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        new
+                        {
+                            Status = false,
+                            Message = "رزرو یا سهمیه معتبر برای چاپ ژتون انتخاب‌شده یافت نشد."
+                        });
+                }
+
                 var result =
                     await _foodReserveManager
                         .PrintFoodReserveAsync(
