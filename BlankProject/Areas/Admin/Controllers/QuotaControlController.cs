@@ -1,5 +1,6 @@
 using BLL.Interface;
 using Domain.Constants;
+using DTO.Base;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Services.SessionServices;
@@ -33,6 +34,7 @@ public class QuotaControlController : Controller
 
         ViewBag.FreeReservationEnabled =
             _constantManager.IsFreeFoodReservationEnabled();
+        ViewBag.TimingPolicy = _constantManager.GetFoodTimingPolicy();
 
         return View();
     }
@@ -80,6 +82,48 @@ public class QuotaControlController : Controller
             Message = enabled
                 ? "رزرو آزاد فعال شد. اکنون کاربران واردشده بدون سهمیه فردی می‌توانند غذا رزرو کنند."
                 : "رزرو آزاد غیرفعال شد. از این لحظه ثبت غذا فقط طبق سهمیه فردی مجاز است."
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult SaveTimingPolicy(FoodTimingPolicyDTO policy)
+    {
+        var user = HttpContext.Session.GetUser();
+        if (user == null || user.RoleId != RoleConstant.Admin || !user.IsEnabled)
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                Status = false,
+                Message = "فقط مدیر سیستم مجاز به تغییر محدودیت‌های زمانی است."
+            });
+
+        var result = _constantManager.SaveFoodTimingPolicy(policy);
+        if (!result.Status)
+        {
+            _logger.LogWarning(
+                "ذخیره محدودیت‌های زمان‌بندی غذا رد شد. AdminUserId: {UserId}, Error: {Message}",
+                user.Id, result.Message);
+
+            return BadRequest(new
+            {
+                Status = false,
+                Message = result.Message
+            });
+        }
+
+        _logger.LogWarning(
+            "محدودیت‌های زمانی غذا توسط مدیر ثبت شد. AdminUserId: {UserId}, PrintEnabled: {PrintEnabled}, PrintStart: {PrintStart}, ReservationEnabled: {ReservationEnabled}, Days: {Days}",
+            user.Id,
+            policy.PrintTimeEnabled,
+            policy.PrintStartTime,
+            policy.ReservationDeadlineEnabled,
+            string.Join(";", policy.Days.OrderBy(x => x.DayOfWeek)
+                .Select(x => $"{x.DayOfWeek}:{x.DaysBefore}@{x.CutoffTime}")));
+
+        return Json(new
+        {
+            Status = true,
+            Message = "تنظیمات ساعت چاپ ژتون و مهلت رزرو غذا با موفقیت ذخیره شد."
         });
     }
 }
