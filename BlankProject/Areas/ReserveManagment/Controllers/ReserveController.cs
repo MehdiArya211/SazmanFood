@@ -343,54 +343,70 @@ namespace Food.Areas.ReserveManagment.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // جزئیات روزهایی که مهلتشان گذشته است، قبلاً ثبت شده‌اند
-                // و باید بدون هیچ تغییری همراه با روزهای مجاز باقی بمانند.
-                // این کار مانع حذف ناخواسته رزروهای گذشته هنگام ویرایش هفته می‌شود.
+                // مهلت روزهای بسته‌شده تمام شده؛ شناسه و محتویات ژتون آن‌ها
+                // بدون حذف و ایجاد مجدد باقی می‌ماند.
                 var existingReserveDetail = _foodReserveManager.GetFoodReserveDetail(userId);
-                if (timingPolicy.ReservationDeadlineEnabled)
+                DTO.Base.BaseResult result;
+
+                if (timingPolicy.ReservationDeadlineEnabled && existingReserveDetail.Count > 0)
                 {
-                    foreach (var existingDetail in existingReserveDetail)
+                    var existingReserve = _foodReserveManager.GetById(
+                        existingReserveDetail.First().FoodReserveId);
+
+                    if (existingReserve == null ||
+                        existingReserve.UserId != userId ||
+                        existingReserve.WeekStartDate.Date != weekStartDate)
                     {
-                        if (existingDetail.Day == null)
+                        TempData["Error"] = "اطلاعات رزرو هفتگی معتبر نیست.";
+                        return RedirectToAction("Index");
+                    }
+
+                    var mutableDetails = new List<FoodReserveDetail>();
+                    foreach (var oldDetail in existingReserveDetail)
+                    {
+                        if (oldDetail.Day == null)
                         {
                             TempData["Error"] = "اطلاعات روز یکی از رزروهای قبلی کامل نیست.";
                             return RedirectToAction("Index");
                         }
 
-                        var dayDate = weekStartDate.AddDays(existingDetail.Day.Code - 1).Date;
-                        if (!FoodTimingRules.CanReserve(
+                        var dayDate = weekStartDate.AddDays(oldDetail.Day.Code - 1).Date;
+                        if (FoodTimingRules.CanReserve(
                                 timingPolicy, dayDate, now, out _))
                         {
-                            plan.Details.Add(new FoodReserveDetailDTO
-                            {
-                                DayId = existingDetail.DayId,
-                                MealId = existingDetail.MealId,
-                                MainFoodId = existingDetail.MainFoodId,
-                                DessertId = existingDetail.DessertId,
-                                SideDishId = existingDetail.SideDishId
-                            });
+                            mutableDetails.Add(oldDetail);
                         }
                     }
-                }
 
-                // اعتبارسنجی کامل انجام شد؛ اکنون رزرو قبلی هفته جایگزین می‌شود.
-                if (existingReserveDetail.Count != 0)
+                    // فقط روزهای قابل‌ویرایش بازنویسی شوند.
+                    // رکوردهای قفل‌شده و شناسه ژتون آن‌ها دست‌نخورده می‌مانند.
+                    foreach (var oldDetail in mutableDetails)
+                    {
+                        _foodReserveDetailManager.Delete(oldDetail.Id);
+                    }
+
+                    result = _foodReserveDetailManager.CreateFoodReserveDetail(
+                        plan.Details.ToList(), existingReserve.Id);
+                }
+                else
                 {
-                    var existingReserve = _foodReserveManager.GetById(
-                        existingReserveDetail.First().FoodReserveId);
-
-                    foreach (var item in existingReserveDetail)
+                    // اگر محدودیت رزرو خاموش است، رفتار ثبت هفتگی فعلی حفظ شود.
+                    if (existingReserveDetail.Count != 0)
                     {
-                        _foodReserveDetailManager.Delete(item.Id);
+                        var existingReserve = _foodReserveManager.GetById(
+                            existingReserveDetail.First().FoodReserveId);
+
+                        foreach (var item in existingReserveDetail)
+                        {
+                            _foodReserveDetailManager.Delete(item.Id);
+                        }
+
+                        if (existingReserve != null)
+                            _foodReserveManager.Delete(existingReserve.Id);
                     }
 
-                    if (existingReserve != null)
-                    {
-                        _foodReserveManager.Delete(existingReserve.Id);
-                    }
+                    result = _foodReserveManager.AddToReserveAndReserveDetail(plan);
                 }
-
-                var result = _foodReserveManager.AddToReserveAndReserveDetail(plan);
 
                 if (result.Status)
                 {
