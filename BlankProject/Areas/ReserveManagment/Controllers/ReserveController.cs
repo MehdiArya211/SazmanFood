@@ -28,12 +28,14 @@ namespace Food.Areas.ReserveManagment.Controllers
         private readonly IRedisManager _redis;
         private readonly IUnitQuotaManager _unitQuotaManager;
         private readonly IConstantManager _constantManager;
+        private readonly ILogger<ReserveController> _logger;
 
         public ReserveController(IFoodPlanDayManager foodPlanDayManager, IMealManager mealManager, IFoodManager foodManager
             , IFoodReserveManager foodReserveManager, IRedisManager redis,
             IFoodReserveDetailManager foodReserveDetailManager,
             IUnitQuotaManager unitQuotaManager,
-            IConstantManager constantManager)
+            IConstantManager constantManager,
+            ILogger<ReserveController> logger)
         {
             _foodPlanDayManager = foodPlanDayManager;
             _foodManager = foodManager;
@@ -43,6 +45,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             _foodReserveDetailManager = foodReserveDetailManager;
             _unitQuotaManager = unitQuotaManager;
             _constantManager = constantManager;
+            _logger = logger;
         }
 
         public IActionResult Index()
@@ -377,10 +380,13 @@ namespace Food.Areas.ReserveManagment.Controllers
                     {
                         await _redis.db.RefreshUserSession(user.Id, 1, 3);
                     }
-                    catch
+                    catch (Exception redisException)
                     {
                         // رزرو در DB ثبت شده و خطای تمدید Redis نباید
                         // به اشتباه به‌عنوان خطای ثبت غذا نمایش داده شود.
+                        _logger.LogWarning(redisException,
+                            "خطا در تمدید نشست Redis پس از ثبت رزرو غذا. UserId: {UserId}",
+                            user.Id);
                     }
 
                     return RedirectToAction("Index");
@@ -393,7 +399,10 @@ namespace Food.Areas.ReserveManagment.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "خطا در ثبت برنامه غذایی: " + ex.Message;
+                _logger.LogError(ex,
+                    "خطای ثبت برنامه غذایی هفتگی. UserId: {UserId}", userId);
+                TempData["Error"] =
+                    "خطا در ثبت برنامه غذایی رخ داد. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.";
                 return RedirectToAction("Index");
             }
         }
@@ -490,8 +499,11 @@ namespace Food.Areas.ReserveManagment.Controllers
                     message = deleteResult.Message
                 });
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex,
+                    "خطا در حذف رزرو غذا. UserId: {UserId}, DayId: {DayId}",
+                    userId, dayId);
                 return Json(new
                 {
                     success = false,
