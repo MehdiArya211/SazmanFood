@@ -180,6 +180,7 @@ namespace Food.Areas.ReserveManagment.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(IFormCollection form)
         {
             var user = HttpContext.Session.GetUser();
@@ -435,6 +436,7 @@ namespace Food.Areas.ReserveManagment.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteDay(long dayId)
         {
             var user = HttpContext.Session.GetUser();
