@@ -83,5 +83,11 @@ namespace BLL.Interface
         /// </summary>
         BaseResult SetFreeFoodReservationEnabled(bool enabled);
 
+        /// <summary>خواندن محدودیت‌های چاپ و رزرو؛ در نبود تنظیمات هر دو غیرفعال‌اند.</summary>
+        FoodTimingPolicyDTO GetFoodTimingPolicy();
+
+        /// <summary>اعتبارسنجی و ثبت یک‌جای محدودیت‌های زمانی.</summary>
+        BaseResult SaveFoodTimingPolicy(FoodTimingPolicyDTO policy);
+
     }
 }
