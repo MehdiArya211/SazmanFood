@@ -133,7 +133,7 @@ namespace BLL
         public bool IsFreeFoodReservationEnabled()
         {
             var setting = UOW.Constants.FirstOrDefault(
-                x => x.Type == ConstantType.FreeFoodReservationEnabled);
+                x => x.Type == ConstantType.FreeFoodReservationEnabled && x.IsDeleted == false);
 
             return setting != null &&
                 string.Equals(setting.Value?.Trim(), "true",
@@ -145,7 +145,7 @@ namespace BLL
             try
             {
                 var setting = UOW.Constants.FirstOrDefault(
-                    x => x.Type == ConstantType.FreeFoodReservationEnabled);
+                    x => x.Type == ConstantType.FreeFoodReservationEnabled && x.IsDeleted == false);
 
                 if (setting == null)
                 {
