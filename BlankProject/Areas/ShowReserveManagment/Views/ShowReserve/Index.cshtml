@@ -657,7 +657,7 @@
                             });
 
                         const canPrint =
-                            status !== 'past' &&
+                            (!printRestrictionEnabled || status !== 'past') &&
                             foodReserveIds.length > 0 &&
                             foodReserveIds.every(id =>
                                 allowedPrintIds.has(Number(id))
@@ -690,13 +690,13 @@
                             printSection.appendChild(serverButton);
                         } else {
                             printButton.textContent =
-                                status === 'past'
+                                printRestrictionEnabled && status === 'past'
                                     ? '❌ تاریخ گذشته'
-                                    : printRestrictionEnabled
-                                        ? (status === 'future'
-                                            ? 'چاپ فقط در روز غذا'
-                                            : 'چاپ از ساعت ' + printStartTime)
-                                        : '❌ بدون سهمیه مجاز';
+                                    : printRestrictionEnabled && status === 'future'
+                                        ? 'چاپ فقط در روز غذا'
+                                        : printRestrictionEnabled && status === 'today'
+                                            ? 'چاپ از ساعت ' + printStartTime
+                                            : '❌ بدون سهمیه مجاز';
                             printButton.disabled = true;
                             printSection.appendChild(printButton);
                         }
