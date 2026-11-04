@@ -42,6 +42,14 @@
                 </div>
             </div>
 
+            <form id="face-finalize-form"
+                  action="@Url.Action("FinalizeFaceLogin", "Authentication", new { area = "" })"
+                  method="post" hidden>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="kioskId" />
+                <input type="hidden" name="enrollId" />
+            </form>
+
             <div class="connection-box" role="status" aria-live="polite">
                 <span class="connection-dot" aria-hidden="true"></span>
                 <span id="connectionStatus">در حال آماده‌سازی اتصال...</span>
@@ -61,6 +69,8 @@
     <script>
         window.API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(apiBaseUrl));
         window.ZP_KIOSK_ID = @kioskId;
+        window.ZP_FACE_CHALLENGE =
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.FaceChallenge ?? ""));
     </script>
     <script src="~/assets/signalr/signalr2.js"></script>
     <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
