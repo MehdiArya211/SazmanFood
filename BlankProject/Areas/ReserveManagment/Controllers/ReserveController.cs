@@ -48,8 +48,11 @@ namespace Food.Areas.ReserveManagment.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int week = 0)
         {
+            if (week < 0 || week > 1)
+                return BadRequest("بازه هفته انتخاب‌شده معتبر نیست.");
+
             var user = HttpContext.Session.GetUser();
             if (user == null)
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
@@ -60,7 +63,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             var now = FoodTimingRules.GetIranNow();
             // محاسبه شروع هفته (فرض: شروع هفته از شنبه)
             int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
-            DateTime weekStartDate = now.AddDays(-1 * diff).Date;
+            DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
             DateTime weekEndDate = weekStartDate.AddDays(6).Date;
 
             var personalCode =
@@ -96,6 +99,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 slotsBeforeTiming - reservableSlots.Count;
 
             ViewBag.FreeReservationEnabled = freeReservationEnabled;
+            ViewBag.WeekOffset = week;
             ViewBag.WeekStartDate = weekStartDate;
             ViewBag.AllowedReservationSlots = reservableSlots
                 .Select(x => $"{x.Date:yyyyMMdd}_{x.MealId}")
@@ -184,8 +188,11 @@ namespace Food.Areas.ReserveManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(IFormCollection form)
+        public async Task<IActionResult> Index(IFormCollection form, int week = 0)
         {
+            if (week < 0 || week > 1)
+                return BadRequest("بازه هفته انتخاب‌شده معتبر نیست.");
+
             var user = HttpContext.Session.GetUser();
             if (user == null)
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
@@ -196,7 +203,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             {
                 var now = FoodTimingRules.GetIranNow();
                 int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
-                DateTime weekStartDate = now.AddDays(-1 * diff).Date;
+                DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
 
                 var personalCode =
@@ -237,7 +244,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                             : freeReservationEnabled
                                 ? "برنامه غذایی قابل رزرو یافت نشد."
                                 : "سهمیه‌ای برای شما ثبت نشده است و امکان رزرو غذا ندارید.";
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", new { week });
                 }
 
                 // جستجوی رزرو قبلی برای هفته جاری
@@ -336,21 +343,21 @@ namespace Food.Areas.ReserveManagment.Controllers
                         (freeReservationEnabled
                             ? "فقط روزها و وعده‌های موجود در برنامه غذایی قابل رزرو هستند."
                             : "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.");
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", new { week });
                 }
 
                 if (invalidFoodSelection)
                 {
                     TempData["Error"] =
                         "غذا، دسر یا دورچین انتخاب‌شده با برنامه غذایی این روز و وعده مطابقت ندارد.";
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", new { week });
                 }
 
                 // اگر هیچ جزئیتی وجود نداشت، خطا
                 if (!plan.Details.Any())
                 {
                     TempData["Error"] = "لطفاً حداقل یک مورد را انتخاب نمایید.";
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", new { week });
                 }
 
                 // فقط روز و وعده‌های واقعاً مجاز در این درخواست تغییر می‌کنند.
@@ -389,12 +396,12 @@ namespace Food.Areas.ReserveManagment.Controllers
                             user.Id);
                     }
 
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", new { week });
                 }
                 else
                 {
                     TempData["Error"] = "خطا در ثبت برنامه غذایی: " + result.Message;
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", new { week });
                 }
             }
             catch (Exception ex)
@@ -403,7 +410,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                     "خطای ثبت برنامه غذایی هفتگی. UserId: {UserId}", userId);
                 TempData["Error"] =
                     "خطا در ثبت برنامه غذایی رخ داد. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.";
-                return RedirectToAction("Index");
+                return RedirectToAction("Index", new { week });
             }
         }
 
@@ -446,8 +453,11 @@ namespace Food.Areas.ReserveManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteDay(long dayId)
+        public IActionResult DeleteDay(long dayId, int week = 0)
         {
+            if (week < 0 || week > 1)
+                return Json(new { success = false, message = "هفته انتخاب‌شده معتبر نیست." });
+
             var user = HttpContext.Session.GetUser();
             if (user == null)
             {
@@ -465,7 +475,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 // محاسبه محدوده هفته جاری
                 var now = FoodTimingRules.GetIranNow();
                 int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
-                DateTime weekStartDate = now.AddDays(-1 * diff).Date;
+                DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
 
                 var foodDay = _foodPlanDayManager.GetAllDay().Model
