@@ -134,6 +134,7 @@ namespace BLL.ReserveManagment
                     .Include(x => x.Meal)
                     .Include(x => x.MainFood)
                     .Include(x => x.Dessert)
+                    .Include(x => x.SideDish)
             ).ToList();
 
             // ساخت لیست خروجی بر اساس جزئیات
@@ -145,7 +146,7 @@ namespace BLL.ReserveManagment
                 MealTitle = d.Meal?.Title ?? "-",
                 MainFood = d.MainFood?.Title ?? "-",
                 Dessert = d.Dessert?.Title ?? "-",
-                SideDish = d.SideDishId?.ToString() ?? "-"
+                SideDish = d.SideDish?.Title ?? "-"
             }).ToList();
 
             return list;
