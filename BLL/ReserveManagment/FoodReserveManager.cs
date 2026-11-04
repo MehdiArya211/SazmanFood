@@ -130,19 +130,46 @@ namespace BLL.ReserveManagment
                 {
                     // برخلاف حذف رزرو اصلی و ایجاد مجدد آن، فقط جزئیات روزها و وعده‌های
                     // قابل‌ویرایش تغییر می‌کنند. موارد قفل‌شده همان شناسه را دارند.
-                    var removable = UOW.FoodReserveDetail.Get(
+                    var editableExisting = UOW.FoodReserveDetail.Get(
                         x => x.FoodReserveId == existing.Id)
                         .ToList()
                         .Where(x => slots.Contains((x.DayId, x.MealId)))
                         .ToList();
 
-                    if (removable.Count > 0)
-                        UOW.FoodReserveDetail.RemoveRange(removable);
+                    var incoming = newDetails.ToDictionary(
+                        x => (x.DayId, x.MealId));
 
-                    foreach (var item in newDetails)
-                        item.FoodReserveId = existing.Id;
+                    foreach (var oldDetail in editableExisting)
+                    {
+                        var key = (oldDetail.DayId, oldDetail.MealId);
+                        if (incoming.TryGetValue(key, out var incomingDetail))
+                        {
+                            // در صورت ویرایش فقط محتوای غذا به‌روزرسانی شود؛
+                            // شناسه ژتون برای همان روز/وعده ثابت می‌ماند.
+                            if (oldDetail.MainFoodId != incomingDetail.MainFoodId ||
+                                oldDetail.DessertId != incomingDetail.DessertId ||
+                                oldDetail.SideDishId != incomingDetail.SideDishId)
+                            {
+                                oldDetail.MainFoodId = incomingDetail.MainFoodId;
+                                oldDetail.DessertId = incomingDetail.DessertId;
+                                oldDetail.SideDishId = incomingDetail.SideDishId;
+                                UOW.FoodReserveDetail.Update(oldDetail);
+                            }
 
-                    UOW.FoodReserveDetail.AddRange(newDetails);
+                            incoming.Remove(key);
+                        }
+                        else
+                        {
+                            // صرفاً وعده حذف‌شده از فرم و هنوز قابل‌ویرایش.
+                            UOW.FoodReserveDetail.Remove(oldDetail);
+                        }
+                    }
+
+                    foreach (var newDetail in incoming.Values)
+                    {
+                        newDetail.FoodReserveId = existing.Id;
+                        UOW.FoodReserveDetail.Add(newDetail);
+                    }
                 }
 
                 // همه حذف‌ها و درج‌ها در یک SaveChanges دیتابیس انجام می‌شوند.
