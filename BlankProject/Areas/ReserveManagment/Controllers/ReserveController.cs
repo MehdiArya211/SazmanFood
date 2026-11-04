@@ -351,13 +351,15 @@ namespace Food.Areas.ReserveManagment.Controllers
             var slots = new HashSet<(DateTime Date, long MealId)>();
             foreach (var day in days)
             {
-                if (day.Code < 1 || day.Code > 7)
+                var dayCode = Convert.ToInt32(day.Code);
+                var dayId = Convert.ToInt64(day.Id);
+                if (dayCode < 1 || dayCode > 7)
                     continue;
 
-                var date = weekStartDate.AddDays(day.Code - 1).Date;
+                var date = weekStartDate.AddDays(dayCode - 1).Date;
                 foreach (var mealId in mealIds)
                 {
-                    if (plannedPairs.Contains((day.Id, mealId)))
+                    if (plannedPairs.Contains((dayId, mealId)))
                         slots.Add((date, mealId));
                 }
             }
