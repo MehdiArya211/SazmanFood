@@ -22,5 +22,16 @@ namespace BLL.ReserveManagment
 
         List<FoodReserveDetail> GetFoodReserveDetail(long userId);
 
+        /// <summary>
+        /// ثبت/ویرایش یک‌مرحله‌ای رزرو هفتگی بدون حذف رکوردهای قفل‌شده.
+        /// editableDayIds روزهایی هستند که مهلت رزروشان هنوز نگذشته است.
+        /// </summary>
+        BaseResult SaveWeeklyReservation(
+            FoodReserveDTO model,
+            IReadOnlyCollection<long> editableDayIds);
+
+        /// <summary>حذف ایمن و یک‌مرحله‌ای رزرو یک روز از هفته.</summary>
+        BaseResult DeleteDayReservation(long userId, DateTime weekStartDate, long dayId);
+
     }
 }
