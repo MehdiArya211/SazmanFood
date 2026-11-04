@@ -101,11 +101,15 @@ public class ReservationUserProvisioningManager
 
         // کد پرسنلی شماره موبایل نیست. شماره ساختگی برای حساب نسازیم
         // تا پیامک‌ها یا بازیابی رمز به شخص دیگری ارسال نشود.
+        var normalizedName = string.IsNullOrWhiteSpace(fullName)
+            ? personCode
+            : fullName.Trim().ToPersianCharacter();
+        if (normalizedName.Length > 50)
+            normalizedName = normalizedName.Substring(0, 50);
+
         var user = new User
         {
-            Name = string.IsNullOrWhiteSpace(fullName)
-                ? personCode
-                : fullName.Trim().ToPersianCharacter(),
+            Name = normalizedName,
             Username = personCode,
             Password = personCode.GetHash(),
             Mobile = null,
