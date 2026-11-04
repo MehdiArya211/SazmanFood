@@ -308,6 +308,7 @@
 }
 
 <div class="food-print-page">
+    @Html.AntiForgeryToken()
     <div class="food-print-container">
         <div class="food-print-header">
             <h1>برنامه غذایی هفتگی</h1>
@@ -457,18 +458,26 @@
                     '⏳ در حال چاپ...';
 
                 try {
-                    const url =
-                        '/ShowReserveManagment/ShowReserve/PrintMeal' +
-                        '?foodReserveDetaileIds=' +
-                        encodeURIComponent(ids.join(','));
+                    const csrfToken = document.querySelector(
+                        'input[name="__RequestVerificationToken"]'
+                    )?.value;
+                    if (!csrfToken) {
+                        throw new Error('توکن امنیتی درخواست چاپ در صفحه یافت نشد.');
+                    }
+
+                    const postData = new URLSearchParams();
+                    postData.set('foodReserveDetaileIds', ids.join(','));
+                    postData.set('__RequestVerificationToken', csrfToken);
 
                     const response =
-                        await fetch(url, {
-                            method: 'GET',
+                        await fetch('/ShowReserveManagment/ShowReserve/PrintMeal', {
+                            method: 'POST',
+                            credentials: 'same-origin',
                             headers: {
-                                'X-Requested-With':
-                                    'XMLHttpRequest'
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Content-Type': 'application/x-www-form-urlencoded'
                             },
+                            body: postData.toString(),
                             cache: 'no-store'
                         });
 
@@ -512,7 +521,8 @@
                     );
 
                     showPrintMessage(
-                        'ارسال درخواست چاپ با خطا همراه بود.',
+                        error?.message ||
+                            'ارسال درخواست چاپ با خطا همراه بود.',
                         false
                     );
                 } finally {
