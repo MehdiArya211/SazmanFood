@@ -26,6 +26,20 @@ namespace Food.Areas.Global.Controllers
 
 
         //[ResponseCache(VaryByHeader = "User-Agent" , Duration = 60)]
+        private static bool HasVisibleMenu(
+            IEnumerable<MenuSessionDTO> items,
+            string area,
+            string controller)
+        {
+            if (items == null)
+                return false;
+
+            return items.Any(item =>
+                (string.Equals(item.Area, area, StringComparison.OrdinalIgnoreCase) &&
+                 string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase)) ||
+                HasVisibleMenu(item.SubMenus, area, controller));
+        }
+
         public IActionResult LoadMenu(int UserId, string CController, string CAction)
         {
             try
@@ -40,15 +54,10 @@ namespace Food.Areas.Global.Controllers
 
                 // منوهای رزرو و چاپ برای همه نقش‌های واردشده نمایش داده شوند.
                 // اگر قبلاً در نقش تعریف شده‌اند، لینک تکراری اضافه نکنیم.
-                var assignedMenus = User?.Menus ?? new List<MenuSessionDTO>();
-                ViewBag.AddReserveShortcut = !assignedMenus.Any(x =>
-                    x.ShowInMenu &&
-                    string.Equals(x.Area, "reservemanagment", StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(x.Controller, "reserve", StringComparison.OrdinalIgnoreCase));
-                ViewBag.AddPrintShortcut = !assignedMenus.Any(x =>
-                    x.ShowInMenu &&
-                    string.Equals(x.Area, "showreservemanagment", StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(x.Controller, "showreserve", StringComparison.OrdinalIgnoreCase));
+                ViewBag.AddReserveShortcut =
+                    !HasVisibleMenu(Menus, "reservemanagment", "reserve");
+                ViewBag.AddPrintShortcut =
+                    !HasVisibleMenu(Menus, "showreservemanagment", "showreserve");
 
                 ViewData["IsRootMenu"] = true;
                 return PartialView("_Menus", Menus);
