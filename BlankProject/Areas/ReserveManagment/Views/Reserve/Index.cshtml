@@ -13,6 +13,8 @@
         new HashSet<string>();
     var hasReservationQuota =
         ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
+    var freeReservationEnabled =
+        ViewBag.FreeReservationEnabled is bool freeMode && freeMode;
 
     DateTime weekStartDate = ViewBag.WeekStartDate != null
         ? (DateTime)ViewBag.WeekStartDate
@@ -544,6 +546,13 @@
         }
     </style>
 }
+@if (freeReservationEnabled)
+{
+    <div class="alert alert-info text-center" role="status" style="font-size:14px;font-weight:700;">
+        <i class="material-icons" aria-hidden="true">info</i>
+        حالت رزرو آزاد فعال است؛ رزرو طبق برنامه غذایی موجود و بدون نیاز به سهمیه فردی انجام می‌شود.
+    </div>
+}
 @if (!string.IsNullOrWhiteSpace(ViewBag.QuotaError as string))
 {
     <div class="alert alert-warning text-center" role="alert" style="font-size:16px;font-weight:bold;">
@@ -588,7 +597,7 @@
             <div class="reserve-guide">
                 <div class="reserve-guide-item">
                     <span class="reserve-guide-number">۱</span>
-                    <span>روز و وعده‌ای که برای شما سهمیه دارد نمایش داده می‌شود.</span>
+                    <span>@(freeReservationEnabled ? "روز و وعده‌های دارای برنامه غذایی نمایش داده می‌شوند." : "روز و وعده‌ای که برای شما سهمیه دارد نمایش داده می‌شود.")</span>
                 </div>
                 <div class="reserve-guide-item">
                     <span class="reserve-guide-number">۲</span>
