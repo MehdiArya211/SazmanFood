@@ -34,7 +34,19 @@ public class QuotaControlController : Controller
 
         ViewBag.FreeReservationEnabled =
             _constantManager.IsFreeFoodReservationEnabled();
-        ViewBag.TimingPolicy = _constantManager.GetFoodTimingPolicy();
+        try
+        {
+            ViewBag.TimingPolicy = _constantManager.GetFoodTimingPolicy();
+        }
+        catch (Exception ex)
+        {
+            // در صورت خرابی مقدار تنظیمات، مدیر باید همچنان بتواند
+            // صفحه را باز کند و با ذخیره مجدد، داده را اصلاح نماید.
+            _logger.LogError(ex, "تنظیمات زمان‌بندی غذا نامعتبر است.");
+            ViewBag.TimingPolicy = new FoodTimingPolicyDTO();
+            ViewBag.TimingPolicyError =
+                "تنظیمات ذخیره‌شده معتبر نیست. برای اصلاح، مقادیر این بخش را بررسی و دوباره ذخیره کنید.";
+        }
 
         return View();
     }
