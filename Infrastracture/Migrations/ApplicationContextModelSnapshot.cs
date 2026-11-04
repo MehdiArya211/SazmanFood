@@ -2266,7 +2266,6 @@ namespace Infrastracture.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Mobile")
-                        .IsRequired()
                         .HasMaxLength(11)
                         .HasColumnType("nvarchar(11)");
 
