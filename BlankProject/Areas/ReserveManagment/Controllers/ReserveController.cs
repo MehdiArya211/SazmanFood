@@ -261,6 +261,7 @@ namespace Food.Areas.ReserveManagment.Controllers
 
                 var unauthorizedSelection = false;
                 var invalidFoodSelection = false;
+                string cutoffViolationMessage = null;
 
                 // فقط روز و وعده‌ای پذیرفته می‌شود که برای کد پرسنلی سهمیه داشته باشد.
                 foreach (var day in days)
@@ -283,6 +284,11 @@ namespace Food.Areas.ReserveManagment.Controllers
                         if (!reservableSlots.Contains((dayDate, meal.Id)))
                         {
                             unauthorizedSelection = true;
+                            if (!FoodTimingRules.CanReserve(
+                                    timingPolicy, dayDate, now, out var cutoffReason))
+                            {
+                                cutoffViolationMessage ??= cutoffReason;
+                            }
                             continue;
                         }
 
@@ -322,10 +328,10 @@ namespace Food.Areas.ReserveManagment.Controllers
 
                 if (unauthorizedSelection)
                 {
-                    TempData["Error"] =
-                        freeReservationEnabled
+                    TempData["Error"] = cutoffViolationMessage ??
+                        (freeReservationEnabled
                             ? "فقط روزها و وعده‌های موجود در برنامه غذایی قابل رزرو هستند."
-                            : "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.";
+                            : "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.");
                     return RedirectToAction("Index");
                 }
 
