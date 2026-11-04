@@ -19,6 +19,7 @@
         ViewBag.ReservationDeadlineEnabled is bool deadlineMode && deadlineMode;
     var closedReservationSlotsCount =
         ViewBag.ClosedReservationSlotsCount is int closedCount ? closedCount : 0;
+    var weekOffset = ViewBag.WeekOffset is int selectedWeek ? selectedWeek : 0;
 
     DateTime weekStartDate = ViewBag.WeekStartDate != null
         ? (DateTime)ViewBag.WeekStartDate
@@ -58,6 +59,34 @@
             padding: 22px 24px;
             background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
             border-bottom: 1px solid #edf1f5;
+        }
+
+        .reserve-week-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+
+        .reserve-week-navigation {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid #d7e2ee;
+            background: #fff;
+            border-radius: 8px;
+            color: #34657e;
+            padding: 8px 11px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .reserve-week-navigation:hover,
+        .reserve-week-navigation:focus {
+            text-decoration: none;
+            background: #eaf4fb;
+            color: #175578;
         }
 
         .reserve-head-main {
@@ -589,8 +618,11 @@
     <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
-<form method="post" class="reserve-form">
+<form method="post"
+      action="@Url.Action("Index", "Reserve", new { area = "ReserveManagment" })"
+      class="reserve-form">
     @Html.AntiForgeryToken()
+    <input type="hidden" name="week" value="@weekOffset" />
     <div class="reserve-page">
     <div class="container reserve-container">
         <div class="reserve-card">
@@ -608,9 +640,25 @@
                     </div>
                 </div>
 
-                <div class="reserve-week">
-                    <i class="material-icons">date_range</i>
-                    <span>@Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))</span>
+                <div class="reserve-week-actions">
+                    <div class="reserve-week">
+                        <i class="material-icons">date_range</i>
+                        <span>@Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))</span>
+                    </div>
+                    @if (weekOffset == 0)
+                    {
+                        <a class="reserve-week-navigation"
+                           href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = 1 })">
+                            هفته آینده <i class="material-icons" aria-hidden="true">chevron_left</i>
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="reserve-week-navigation"
+                           href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = 0 })">
+                            <i class="material-icons" aria-hidden="true">chevron_right</i> هفته جاری
+                        </a>
+                    }
                 </div>
             </div>
 
@@ -881,6 +929,7 @@
                         type: 'POST',
                         data: {
                             dayId: dayId,
+                            week: @weekOffset,
                             __RequestVerificationToken:
                                 $('input[name="__RequestVerificationToken"]').first().val()
                         },
