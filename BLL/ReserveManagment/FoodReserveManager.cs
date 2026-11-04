@@ -143,6 +143,7 @@ namespace BLL.ReserveManagment
                 Date = reserve.WeekStartDate.AddDays(d.Day.Code - 1),
                 DayTitle = d.Day?.Title ?? "-",
                 FoodReserveDetaileId = d.Id,
+                MealId = d.MealId,
                 MealTitle = d.Meal?.Title ?? "-",
                 MainFood = d.MainFood?.Title ?? "-",
                 Dessert = d.Dessert?.Title ?? "-",
