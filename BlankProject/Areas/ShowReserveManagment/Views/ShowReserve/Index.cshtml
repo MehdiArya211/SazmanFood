@@ -314,6 +314,15 @@
             <p>مشاهده و چاپ ژتون غذا</p>
         </div>
 
+        @if (ViewBag.PrintRestrictionEnabled == true)
+        {
+            <div class="alert alert-info text-center" role="status"
+                 style="font-size:13px;font-weight:700;border-radius:10px">
+                <i class="material-icons" aria-hidden="true">schedule</i>
+                چاپ ژتون هر روز فقط از ساعت @ViewBag.PrintStartTime همان روز به وقت ایران مجاز است.
+            </div>
+        }
+
         <div id="printMessage" class="print-message"></div>
         <div id="weeklyFoodContainer"></div>
     </div>
@@ -326,16 +335,15 @@
             const allowedPrintIds = new Set(
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllowedPrintIds ?? new HashSet<long>()))
             );
+            const iranToday = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.IranToday ?? DateTime.Today.ToString("yyyy-MM-dd")));
+            const printRestrictionEnabled = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PrintRestrictionEnabled == true));
+            const printStartTime = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PrintStartTime ?? "12:00"));
 
             function getDayStatus(date) {
-                const today = new Date();
-                const mealDate = new Date(date);
-
-                today.setHours(0, 0, 0, 0);
-                mealDate.setHours(0, 0, 0, 0);
-
-                if (mealDate < today) return 'past';
-                if (mealDate.getTime() === today.getTime()) return 'today';
+                // تاریخ مستقل از ساعت محلی مرورگر با روز رسمی ایران مقایسه می‌شود.
+                const dayKey = String(date || '').split('T')[0];
+                if (dayKey < iranToday) return 'past';
+                if (dayKey === iranToday) return 'today';
                 return 'future';
             }
 
@@ -684,7 +692,11 @@
                             printButton.textContent =
                                 status === 'past'
                                     ? '❌ تاریخ گذشته'
-                                    : '❌ بدون سهمیه مجاز';
+                                    : printRestrictionEnabled
+                                        ? (status === 'future'
+                                            ? 'چاپ فقط در روز غذا'
+                                            : 'چاپ از ساعت ' + printStartTime)
+                                        : '❌ بدون سهمیه مجاز';
                             printButton.disabled = true;
                             printSection.appendChild(printButton);
                         }
