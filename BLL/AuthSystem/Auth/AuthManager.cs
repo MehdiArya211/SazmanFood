@@ -180,7 +180,7 @@ namespace BLL
             var user = UOW.Users.GetOneDTO<UserSessionDTO>(
                 UserSessionDTO.Selector,
                 x => x.Username == personnelCode &&
-                     x.IsEnabled && !x.IsDeleted);
+                     x.IsEnabled && x.IsDeleted == false);
 
             if (user == null)
                 return null;
@@ -198,13 +198,13 @@ namespace BLL
             personCode = personCode.Trim().ToEnglishNumber();
             var user = UOW.Users.GetOneDTO<UserSessionDTO>(
                 UserSessionDTO.Selector,
-                x => x.PersonId == personId && x.IsEnabled && !x.IsDeleted);
+                x => x.PersonId == personId && x.IsEnabled && x.IsDeleted == false);
 
             if (user == null)
             {
                 user = UOW.Users.GetOneDTO<UserSessionDTO>(
                     UserSessionDTO.Selector,
-                    x => x.Username == personCode && x.IsEnabled && !x.IsDeleted);
+                    x => x.Username == personCode && x.IsEnabled && x.IsDeleted == false);
             }
 
             if (user == null && int.TryParse(personCode, out var parsedCode))
@@ -212,7 +212,7 @@ namespace BLL
                 user = UOW.Users.GetOneDTO<UserSessionDTO>(
                     UserSessionDTO.Selector,
                     x => x.PersonCode == parsedCode &&
-                         x.IsEnabled && !x.IsDeleted);
+                         x.IsEnabled && x.IsDeleted == false);
             }
 
             if (user == null)
