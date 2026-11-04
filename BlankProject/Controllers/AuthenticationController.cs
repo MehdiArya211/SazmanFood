@@ -142,6 +142,9 @@ public class AuthenticationController : Controller
         Mobile = Mobile?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
         Password = Password?.Trim().ToEnglishNumber();
 
+        // هر ورود با رمز، مجوز استثنای ورود چهره قبلی را حذف می‌کند.
+        HttpContext.Session.Remove("VerifiedFaceLogin");
+
         var res = AuthManager.Login(Mobile, Password);
         var User = res.Model as UserSessionDTO;
 
@@ -326,7 +329,16 @@ public class AuthenticationController : Controller
             return BadRequest();
         }
 
-        var timestamp = DateTimeOffset.FromUnixTimeSeconds(payload.TimestampUtc);
+        DateTimeOffset timestamp;
+        try
+        {
+            timestamp = DateTimeOffset.FromUnixTimeSeconds(payload.TimestampUtc);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+
         if (Math.Abs((DateTimeOffset.UtcNow - timestamp).TotalSeconds) > 30)
             return Unauthorized();
 
