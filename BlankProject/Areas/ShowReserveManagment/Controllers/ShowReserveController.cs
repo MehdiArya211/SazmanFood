@@ -57,6 +57,58 @@ namespace Food.Areas.ShowReserveManagment.Controllers
         }
 
 
+        /// <summary>
+        /// رسیدهای رزرو متعلق به کاربر جاری را برای چاپ در مرورگر آماده می‌کند.
+        /// از این مسیر، چاپگر رایانه کاربر (نه چاپگر نصب‌شده روی سرور) استفاده می‌شود.
+        /// </summary>
+        [HttpGet]
+        [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
+        public async Task<IActionResult> PrintPreview(string foodReserveDetaileIds)
+        {
+            var user = HttpContext.Session.GetUser();
+            if (user == null)
+                return Unauthorized("نشست کاربری منقضی شده است.");
+
+            var ids = (foodReserveDetaileIds ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(value => long.TryParse(value, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToHashSet();
+
+            if (ids.Count == 0 || ids.Count > 30)
+                return BadRequest("شناسه ژتون‌های انتخاب‌شده معتبر نیست.");
+
+            // داده‌ها فقط از رزروهای همین کاربر خوانده می‌شوند؛
+            // شناسه‌های ارسالی مرورگر به تنهایی مجوز چاپ ایجاد نمی‌کنند.
+            var userReservations =
+                await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
+
+            var printableItems = userReservations
+                .Where(item => ids.Contains(item.FoodReserveDetaileId))
+                .OrderBy(item => item.Date)
+                .ThenBy(item => item.MealTitle)
+                .ToList();
+
+            if (printableItems.Count == 0 ||
+                printableItems.Count != ids.Count)
+            {
+                _logger.LogWarning(
+                    "درخواست چاپ مرورگری با شناسه نامعتبر یا متعلق به کاربر دیگر. UserId: {UserId}, Ids: {Ids}",
+                    user.Id,
+                    string.Join(",", ids));
+                return NotFound("ژتون‌های انتخاب‌شده برای این کاربر یافت نشد.");
+            }
+
+            ViewBag.PrintUserName = user.FullName;
+            _logger.LogInformation(
+                "پیش‌نمایش چاپ ژتون در مرورگر ایجاد شد. UserId: {UserId}, DetailIds: {DetailIds}",
+                user.Id,
+                string.Join(",", ids));
+
+            return View(printableItems);
+        }
+
         [HttpGet]
         public async Task<IActionResult> PrintMealMaxa(
             string foodReserveDetaileIds)
@@ -125,7 +177,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                 if (result.Status)
                 {
                     _logger.LogInformation(
-                        "چاپ ژتون غذا موفق بود. UserId: {UserId}, DetailIds: {DetailIds}, Message: {Message}",
+                        "درخواست ژتون به صف چاپ سرور ارسال شد. UserId: {UserId}, DetailIds: {DetailIds}, Message: {Message}",
                         user.Id,
                         string.Join(",", ids),
                         result.Message);
@@ -141,11 +193,18 @@ namespace Food.Areas.ShowReserveManagment.Controllers
 
                 if (result.Status)
                 {
-                    await _redis.db
-                        .RefreshUserSession(
-                            user.Id,
-                            1,
-                            3);
+                    try
+                    {
+                        await _redis.db.RefreshUserSession(user.Id, 1, 3);
+                    }
+                    catch (Exception refreshException)
+                    {
+                        // خطای تمدید نشست، وضعیت ارسال چاپ را تغییر نمی‌دهد.
+                        _logger.LogWarning(
+                            refreshException,
+                            "تمدید نشست پس از ارسال چاپ ناموفق بود. UserId: {UserId}",
+                            user.Id);
+                    }
                 }
 
                 return Json(new
