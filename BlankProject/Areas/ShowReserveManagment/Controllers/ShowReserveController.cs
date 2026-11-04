@@ -195,7 +195,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             return View(printableItems);
         }
 
-        [HttpGet]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> PrintMealMaxa(
             string foodReserveDetaileIds)
         {
@@ -203,7 +204,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                 foodReserveDetaileIds);
         }
 
-        [HttpGet]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> PrintMeal(
             string foodReserveDetaileIds)
         {
