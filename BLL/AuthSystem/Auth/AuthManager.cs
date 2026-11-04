@@ -173,21 +173,19 @@ namespace BLL
 
 
 
-        public UserSessionDTO LoginWithFaceZP(long userId)
+        public UserSessionDTO LoginWithFaceZP(long enrollId)
         {
-            var filter = PredicateBuilder.New<User>(true);
+            // enrollId در رویداد ZP معادل کد پرسنلی است، نه User.Id.
+            var personnelCode = enrollId.ToString();
+            var user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                UserSessionDTO.Selector,
+                x => x.Username == personnelCode &&
+                     x.IsEnabled && !x.IsDeleted);
 
-            filter.And(x => x.Username == userId.ToString());
+            if (user == null)
+                return null;
 
-            var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
-            try
-            {
-                SetAuthenticatedUser(user);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message.ToString());
-            }
+            SetAuthenticatedUser(user);
             return user;
         }
 
