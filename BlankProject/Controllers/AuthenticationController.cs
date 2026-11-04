@@ -420,7 +420,11 @@ public class AuthenticationController : Controller
         }
 
         var verifiedFace = ConsumeVerifiedFaceEvent(kioskId, enrollId);
-        var requireSignedEvents = _configuration.GetValue<bool>("FaceLogin:RequireSignedEvents");
+        // اگر Secret تنظیم شده باشد، پیش‌فرض امن این است که ورود نیز
+        // اعلان معتبر و امضاشده نیاز داشته باشد.
+        var signedEventsOption = _configuration.GetValue<bool?>("FaceLogin:RequireSignedEvents");
+        var requireSignedEvents = signedEventsOption ??
+            !string.IsNullOrWhiteSpace(_configuration["FaceLogin:WebhookSecret"]);
         if (requireSignedEvents && !verifiedFace)
         {
             _logger.LogWarning(
@@ -471,7 +475,7 @@ public class AuthenticationController : Controller
                     0, // ایجاد خودکار توسط سرویس، نه یک کاربر پنل
                     person.UnitCode);
 
-                if (!result.Status && !UserManager.ExistsByUsername(personCode))
+                if (!result.Status)
                 {
                     _logger.LogWarning(
                         "ایجاد حساب هنگام ورود چهره موفق نبود. EnrollId: {EnrollId}, Reason: {Reason}",
@@ -485,7 +489,7 @@ public class AuthenticationController : Controller
                 if (user != null)
                 {
                     _logger.LogInformation(
-                        "حساب جدید با کد پرسنلی پس از تأیید ZP ایجاد شد. UserId: {UserId}, EnrollId: {EnrollId}",
+                        "حساب معتبر پرسنلی پس از تأیید ZP برای ورود آماده شد. UserId: {UserId}, EnrollId: {EnrollId}",
                         user.Id, enrollId);
                 }
             }
