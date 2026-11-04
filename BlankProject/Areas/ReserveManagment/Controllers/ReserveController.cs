@@ -256,7 +256,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 var days = _foodPlanDayManager.GetAllDay().Model;
                 var meals = _mealManager.GetAll().ToList();
                 var plannedFoodItems = _foodPlanDayManager.GetAll()
-                    .Where(x => !x.IsDeleted)
+                    .Where(x => x.IsDeleted == false)
                     .ToList();
 
                 var unauthorizedSelection = false;
@@ -443,7 +443,7 @@ namespace Food.Areas.ReserveManagment.Controllers
         {
             var days = _foodPlanDayManager.GetAllDay().Model;
             var plannedPairs = _foodPlanDayManager.GetAll()
-                .Where(x => !x.IsDeleted)
+                .Where(x => x.IsDeleted == false)
                 .Select(x => (x.DayId, x.MealId))
                 .ToHashSet();
 
