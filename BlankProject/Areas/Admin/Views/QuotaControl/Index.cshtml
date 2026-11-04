@@ -397,6 +397,14 @@
                 زمان‌ها بر اساس ساعت رسمی ایران محاسبه می‌شوند.
                 هیچ رزرو قبلی با تغییر تنظیمات حذف نمی‌شود.
             </p>
+            @if (ViewBag.TimingPolicyError is string timingError &&
+                 !string.IsNullOrWhiteSpace(timingError))
+            {
+                <div class="alert alert-warning" role="alert">
+                    <i class="material-icons" aria-hidden="true">warning</i>
+                    @timingError
+                </div>
+            }
 
             <form id="food-timing-form" method="post"
                   action="@Url.Action("SaveTimingPolicy", "QuotaControl", new { area = "Admin" })">
