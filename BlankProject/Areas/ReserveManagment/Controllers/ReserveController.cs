@@ -27,11 +27,13 @@ namespace Food.Areas.ReserveManagment.Controllers
         private readonly IFoodReserveDetailManager _foodReserveDetailManager;
         private readonly IRedisManager _redis;
         private readonly IUnitQuotaManager _unitQuotaManager;
+        private readonly IConstantManager _constantManager;
 
         public ReserveController(IFoodPlanDayManager foodPlanDayManager, IMealManager mealManager, IFoodManager foodManager
             , IFoodReserveManager foodReserveManager, IRedisManager redis,
             IFoodReserveDetailManager foodReserveDetailManager,
-            IUnitQuotaManager unitQuotaManager)
+            IUnitQuotaManager unitQuotaManager,
+            IConstantManager constantManager)
         {
             _foodPlanDayManager = foodPlanDayManager;
             _foodManager = foodManager;
@@ -40,6 +42,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             _redis = redis;
             _foodReserveDetailManager = foodReserveDetailManager;
             _unitQuotaManager = unitQuotaManager;
+            _constantManager = constantManager;
         }
 
         public IActionResult Index()
@@ -64,16 +67,22 @@ namespace Food.Areas.ReserveManagment.Controllers
             var nationalCode =
                 user.NationalCode?.ToString();
 
-            var reservableSlots = _unitQuotaManager
-                .GetReservableSlots(
-                    user.PersonId,
-                    personalCode,
-                    nationalCode,
-                    user.OmdOrgId,
-                    weekStartDate,
-                    weekEndDate)
-                .ToHashSet();
+            var freeReservationEnabled =
+                _constantManager.IsFreeFoodReservationEnabled();
 
+            var reservableSlots = freeReservationEnabled
+                ? GetOpenReservableSlots(weekStartDate)
+                : _unitQuotaManager
+                    .GetReservableSlots(
+                        user.PersonId,
+                        personalCode,
+                        nationalCode,
+                        user.OmdOrgId,
+                        weekStartDate,
+                        weekEndDate)
+                    .ToHashSet();
+
+            ViewBag.FreeReservationEnabled = freeReservationEnabled;
             ViewBag.WeekStartDate = weekStartDate;
             ViewBag.AllowedReservationSlots = reservableSlots
                 .Select(x => $"{x.Date:yyyyMMdd}_{x.MealId}")
@@ -82,8 +91,9 @@ namespace Food.Areas.ReserveManagment.Controllers
 
             if (reservableSlots.Count == 0)
             {
-                ViewBag.QuotaError =
-                    "سهمیه‌ای برای شما ثبت نشده است.";
+                ViewBag.QuotaError = freeReservationEnabled
+                    ? "برای این هفته برنامه غذایی قابل رزرو تعریف نشده است."
+                    : "سهمیه‌ای برای شما ثبت نشده است.";
             }
 
             // --- جستجوی رزرو قبلی کاربر در این هفته ---
@@ -179,19 +189,28 @@ namespace Food.Areas.ReserveManagment.Controllers
                 var nationalCode =
                     user.NationalCode?.ToString();
 
-                var reservableSlots = _unitQuotaManager
-                    .GetReservableSlots(
-                        user.PersonId,
-                        personalCode,
-                        nationalCode,
-                        user.OmdOrgId,
-                        weekStartDate,
-                        weekEndDate)
-                    .ToHashSet();
+                // وضعیت در هر درخواست ثبت دوباره از دیتابیس خوانده می‌شود.
+                // با خاموش شدن رزرو آزاد، امکان دورزدن سهمیه از سمت کلاینت وجود ندارد.
+                var freeReservationEnabled =
+                    _constantManager.IsFreeFoodReservationEnabled();
+
+                var reservableSlots = freeReservationEnabled
+                    ? GetOpenReservableSlots(weekStartDate)
+                    : _unitQuotaManager
+                        .GetReservableSlots(
+                            user.PersonId,
+                            personalCode,
+                            nationalCode,
+                            user.OmdOrgId,
+                            weekStartDate,
+                            weekEndDate)
+                        .ToHashSet();
 
                 if (reservableSlots.Count == 0)
                 {
-                    TempData["Error"] = "سهمیه‌ای برای شما ثبت نشده است و امکان رزرو غذا ندارید.";
+                    TempData["Error"] = freeReservationEnabled
+                        ? "برنامه غذایی قابل رزرو یافت نشد."
+                        : "سهمیه‌ای برای شما ثبت نشده است و امکان رزرو غذا ندارید.";
                     return RedirectToAction("Index");
                 }
 
@@ -259,7 +278,9 @@ namespace Food.Areas.ReserveManagment.Controllers
                 if (unauthorizedSelection)
                 {
                     TempData["Error"] =
-                        "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.";
+                        freeReservationEnabled
+                            ? "فقط روزها و وعده‌های موجود در برنامه غذایی قابل رزرو هستند."
+                            : "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.";
                     return RedirectToAction("Index");
                 }
 
@@ -307,6 +328,41 @@ namespace Food.Areas.ReserveManagment.Controllers
                 TempData["Error"] = "خطا در ثبت برنامه غذایی: " + ex.Message;
                 return RedirectToAction("Index");
             }
+        }
+
+        /// <summary>
+        /// روزها و وعده‌های دارای برنامه غذایی برای حالت رزرو آزاد.
+        /// از تعریف برنامه غذا استفاده می‌شود؛ این حالت به معنای
+        /// مجاز شدن وعده یا غذای تعریف‌نشده نیست.
+        /// </summary>
+        private HashSet<(DateTime Date, long MealId)> GetOpenReservableSlots(
+            DateTime weekStartDate)
+        {
+            var days = _foodPlanDayManager.GetAllDay().Model;
+            var plannedPairs = _foodPlanDayManager.GetAll()
+                .Where(x => !x.IsDeleted)
+                .Select(x => (x.DayId, x.MealId))
+                .ToHashSet();
+
+            var mealIds = _mealManager.GetAll()
+                .Select(x => x.Id)
+                .ToHashSet();
+
+            var slots = new HashSet<(DateTime Date, long MealId)>();
+            foreach (var day in days)
+            {
+                if (day.Code < 1 || day.Code > 7)
+                    continue;
+
+                var date = weekStartDate.AddDays(day.Code - 1).Date;
+                foreach (var mealId in mealIds)
+                {
+                    if (plannedPairs.Contains((day.Id, mealId)))
+                        slots.Add((date, mealId));
+                }
+            }
+
+            return slots;
         }
 
         [HttpPost]
