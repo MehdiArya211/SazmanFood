@@ -104,6 +104,7 @@ public class AuthenticationController : Controller
     /// <param name="RetUrl"></param>
     /// <returns></returns>
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(string Mobile, string Password, string Captcha, string RetUrl, long? MenuId)
     {
 
@@ -151,63 +152,13 @@ public class AuthenticationController : Controller
         var res = AuthManager.Login(Mobile, Password);
         var User = res.Model as UserSessionDTO;
 
-        if (!res.Status && User == null && !UserManager.ExistsByUsername(Mobile))
+        // ورود با رمز، به هیچ عنوان حساب جدید از روی کد پرسنلی نمی‌سازد.
+        // کد پرسنلی یک راز نیست و ثبت حساب بدون احراز هویت چهره می‌تواند
+        // به تصاحب حساب فرد دیگری منجر شود.
+        if (!res.Status && User == null)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(Mobile) || Password != Mobile)
-                {
-                    res.Message =
-                        "کاربر در سامانه یافت نشد. در اولین ورود، نام کاربری و کلمه عبور باید همان کد پرسنلی باشند.";
-                }
-                else
-                {
-                    var accessToken = await ApiTokenClient.GetApiToken(
-                        CustomSettings.Instance.ClientId,
-                        CustomSettings.Instance.Scope,
-                        CustomSettings.Instance.ClientSecret,
-                        CustomSettings.Instance.ROPC_UserName,
-                        CustomSettings.Instance.ROPC_Password);
-
-                    var person = WebApiManager.GetPersonalByPersonCode(Mobile, accessToken);
-
-                    if (person == null ||
-                        string.IsNullOrWhiteSpace(person.personalCode) ||
-                        person.personalCode.Trim().ToEnglishNumber() != Mobile)
-                    {
-                        res.Message = "پرسنلی با این کد پرسنلی در سرویس پرسنلی یافت نشد.";
-                    }
-                    else
-                    {
-                        var createResult =
-                            UserManager.CreateMealBookerFromPersonnel(person, Password);
-
-                        if (!createResult.Status)
-                        {
-                            res.Message = createResult.Message;
-                        }
-                        else
-                        {
-                            _logger.LogInformation(
-                                "کاربر رزروکننده غذا از سرویس پرسنلی ایجاد شد. PersonCode: {PersonCode}",
-                                Mobile);
-
-                            res = AuthManager.Login(Mobile, Password);
-                            User = res.Model as UserSessionDTO;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "استعلام سرویس پرسنلی یا ساخت خودکار کاربر ناموفق بود. PersonCode: {PersonCode}",
-                    Mobile);
-
-                res.Message =
-                    "در حال حاضر ارتباط با سرویس پرسنلی برقرار نیست. لطفاً دوباره تلاش کنید.";
-            }
+            res.Message =
+                "حساب کاربری یا کلمه عبور معتبر نیست. برای ثبت اولیه حساب، از دستگاه تشخیص چهره استفاده کنید.";
         }
 
         if (!res.Status || User == null)
