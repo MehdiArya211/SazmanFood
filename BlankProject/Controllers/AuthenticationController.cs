@@ -434,14 +434,22 @@ public class AuthenticationController : Controller
             return RedirectToAction("IndexZP");
         }
 
-        var user = AuthManager.LoginWithFaceZP(enrollId);
+        // بعضی سازمان‌ها کد پرسنلی را با صفرهای ابتدایی ذخیره می‌کنند.
+        // طول کد فقط در صورت تنظیم صریح مشخص می‌شود؛ مقدار پیش‌فرض
+        // همان کد واقعی فرستاده‌شده از دستگاه است.
+        var personCode = enrollId.ToString();
+        var configuredCodeLength =
+            _configuration.GetValue<int>("FaceLogin:PersonnelCodeLength");
+        if (configuredCodeLength > 0 && configuredCodeLength <= 30)
+            personCode = personCode.PadLeft(configuredCodeLength, '0');
+
+        var user = AuthManager.LoginWithFaceZP(personCode);
 
         if (user == null && verifiedFace)
         {
             try
             {
                 // صرفاً شناسایی معتبر و امضاشده دستگاه اجازه ساخت حساب جدید می‌دهد.
-                var personCode = enrollId.ToString();
                 var accessToken = await ApiTokenClient.GetApiToken(
                     CustomSettings.Instance.ClientId,
                     CustomSettings.Instance.Scope,
