@@ -50,20 +50,32 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             if (reservations == null || reservations.Count == 0)
                 return new HashSet<long>();
 
+            var timingPolicy = _constantManager.GetFoodTimingPolicy();
+            var nowIran = FoodTimingRules.GetIranNow();
+
+            // سیاست زمانی همیشه مستقل از آزاد یا سهمیه‌ای بودن غذا اعمال می‌شود.
+            var timeEligible = reservations
+                .Where(x => FoodTimingRules.CanPrint(
+                    timingPolicy, x.Date, nowIran, out _))
+                .ToList();
+
+            if (timeEligible.Count == 0)
+                return new HashSet<long>();
+
             if (_constantManager.IsFreeFoodReservationEnabled())
-                return reservations
+                return timeEligible
                     .Select(x => x.FoodReserveDetaileId)
                     .ToHashSet();
 
-            var first = reservations.Min(x => x.Date).Date;
-            var last = reservations.Max(x => x.Date).Date;
+            var first = timeEligible.Min(x => x.Date).Date;
+            var last = timeEligible.Max(x => x.Date).Date;
             var personCode = user.PersonCode?.ToString() ?? user.Username;
             var nationalCode = user.NationalCode?.ToString();
             var allowed = _unitQuotaManager.GetReservableSlots(
                 user.PersonId, personCode, nationalCode, user.OmdOrgId,
                 first, last).ToHashSet();
 
-            return reservations
+            return timeEligible
                 .Where(x => allowed.Contains((x.Date.Date, x.MealId)))
                 .Select(x => x.FoodReserveDetaileId)
                 .ToHashSet();
@@ -89,6 +101,10 @@ namespace Food.Areas.ShowReserveManagment.Controllers
 
             var weeklyMeals = await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
             ViewBag.AllowedPrintIds = GetPrintableIds(user, weeklyMeals);
+            var timingPolicy = _constantManager.GetFoodTimingPolicy();
+            ViewBag.PrintRestrictionEnabled = timingPolicy.PrintTimeEnabled;
+            ViewBag.PrintStartTime = timingPolicy.PrintStartTime;
+            ViewBag.IranToday = FoodTimingRules.GetIranNow().ToString("yyyy-MM-dd");
 
             // 🟢 تمدید سشن کاربر
             await _redis.db.RefreshUserSession(user.Id, /*DeviceId*/ 1, 3);
@@ -143,11 +159,21 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             var permittedIds = GetPrintableIds(user, printableItems);
             if (!ids.IsSubsetOf(permittedIds))
             {
+                var policy = _constantManager.GetFoodTimingPolicy();
+                var nowIran = FoodTimingRules.GetIranNow();
+                var timingError = printableItems
+                    .Select(item =>
+                    {
+                        FoodTimingRules.CanPrint(policy, item.Date, nowIran, out var message);
+                        return message;
+                    })
+                    .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message));
+
                 _logger.LogWarning(
-                    "چاپ مرورگری خارج از سهمیه رد شد. UserId: {UserId}, Ids: {Ids}",
+                    "چاپ مرورگری بدون سهمیه یا خارج از ساعت مجاز رد شد. UserId: {UserId}, Ids: {Ids}",
                     user.Id, string.Join(",", ids));
                 return StatusCode(StatusCodes.Status403Forbidden,
-                    "برای چاپ این ژتون، سهمیه فعال در تاریخ و وعده مربوطه ندارید.");
+                    timingError ?? "برای چاپ این ژتون سهمیه فعال ندارید.");
             }
 
             ViewBag.PrintUserName = user.FullName;
@@ -227,14 +253,25 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                 if (owned.Count != ids.Count ||
                     !ids.All(permittedIds.Contains))
                 {
+                    var policy = _constantManager.GetFoodTimingPolicy();
+                    var nowIran = FoodTimingRules.GetIranNow();
+                    var timingError = owned
+                        .Select(item =>
+                        {
+                            FoodTimingRules.CanPrint(policy, item.Date, nowIran, out var message);
+                            return message;
+                        })
+                        .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message));
+
                     _logger.LogWarning(
-                        "چاپ سرور با شناسه نامعتبر یا بدون سهمیه رد شد. UserId: {UserId}, Ids: {Ids}",
+                        "چاپ سرور بدون سهمیه یا خارج از ساعت مجاز رد شد. UserId: {UserId}, Ids: {Ids}",
                         user.Id, string.Join(",", ids));
                     return StatusCode(StatusCodes.Status403Forbidden,
                         new
                         {
                             Status = false,
-                            Message = "رزرو یا سهمیه معتبر برای چاپ ژتون انتخاب‌شده یافت نشد."
+                            Message = timingError ??
+                                "رزرو یا سهمیه معتبر برای چاپ ژتون انتخاب‌شده یافت نشد."
                         });
                 }
 
