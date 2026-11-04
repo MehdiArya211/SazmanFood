@@ -480,7 +480,8 @@ public class AuthenticationController : Controller
                     return RedirectToAction("IndexZP");
                 }
 
-                user = AuthManager.LoginWithFaceZP(enrollId);
+                user = AuthManager.LoginWithVerifiedFacePersonnel(
+                    person.Id, personCode);
                 if (user != null)
                 {
                     _logger.LogInformation(
