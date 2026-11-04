@@ -349,70 +349,24 @@ namespace Food.Areas.ReserveManagment.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // مهلت روزهای بسته‌شده تمام شده؛ شناسه و محتویات ژتون آن‌ها
-                // بدون حذف و ایجاد مجدد باقی می‌ماند.
-                var existingReserveDetail = _foodReserveManager.GetFoodReserveDetail(userId);
-                DTO.Base.BaseResult result;
+                // فقط روز و وعده‌های واقعاً مجاز در این درخواست تغییر می‌کنند.
+                // بقیه رکوردها (مهلت‌گذشته، بدون سهمیه یا برنامه قبلی)
+                // همان شماره ژتون را حفظ می‌کنند.
+                var dayCodes = days
+                    .ToDictionary(x => x.Code, x => x.Id);
 
-                if (timingPolicy.ReservationDeadlineEnabled && existingReserveDetail.Count > 0)
+                var editableSlots = new HashSet<(long DayId, long MealId)>();
+                foreach (var slot in reservableSlots)
                 {
-                    var existingReserve = _foodReserveManager.GetById(
-                        existingReserveDetail.First().FoodReserveId);
-
-                    if (existingReserve == null ||
-                        existingReserve.UserId != userId ||
-                        existingReserve.WeekStartDate.Date != weekStartDate)
+                    var dayCode = (int)(slot.Date.Date - weekStartDate).TotalDays + 1;
+                    if (dayCodes.TryGetValue(dayCode, out var dayId))
                     {
-                        TempData["Error"] = "اطلاعات رزرو هفتگی معتبر نیست.";
-                        return RedirectToAction("Index");
+                        editableSlots.Add((dayId, slot.MealId));
                     }
-
-                    var mutableDetails = new List<FoodReserveDetail>();
-                    foreach (var oldDetail in existingReserveDetail)
-                    {
-                        if (oldDetail.Day == null)
-                        {
-                            TempData["Error"] = "اطلاعات روز یکی از رزروهای قبلی کامل نیست.";
-                            return RedirectToAction("Index");
-                        }
-
-                        var dayDate = weekStartDate.AddDays(oldDetail.Day.Code - 1).Date;
-                        if (FoodTimingRules.CanReserve(
-                                timingPolicy, dayDate, now, out _))
-                        {
-                            mutableDetails.Add(oldDetail);
-                        }
-                    }
-
-                    // فقط روزهای قابل‌ویرایش بازنویسی شوند.
-                    // رکوردهای قفل‌شده و شناسه ژتون آن‌ها دست‌نخورده می‌مانند.
-                    foreach (var oldDetail in mutableDetails)
-                    {
-                        _foodReserveDetailManager.Delete(oldDetail.Id);
-                    }
-
-                    result = _foodReserveDetailManager.CreateFoodReserveDetail(
-                        plan.Details.ToList(), existingReserve.Id);
                 }
-                else
-                {
-                    // اگر محدودیت رزرو خاموش است، رفتار ثبت هفتگی فعلی حفظ شود.
-                    if (existingReserveDetail.Count != 0)
-                    {
-                        var existingReserve = _foodReserveManager.GetById(
-                            existingReserveDetail.First().FoodReserveId);
 
-                        foreach (var item in existingReserveDetail)
-                        {
-                            _foodReserveDetailManager.Delete(item.Id);
-                        }
-
-                        if (existingReserve != null)
-                            _foodReserveManager.Delete(existingReserve.Id);
-                    }
-
-                    result = _foodReserveManager.AddToReserveAndReserveDetail(plan);
-                }
+                var result = _foodReserveManager.SaveWeeklyReservation(
+                    plan, editableSlots);
 
                 if (result.Status)
                 {
@@ -513,38 +467,16 @@ namespace Food.Areas.ReserveManagment.Controllers
                     });
                 }
 
-                // جستجوی رزرو فعلی
-                var existingReserve = _foodReserveManager.GetAll()
-                    .FirstOrDefault(r => r.UserId == userId &&
-                                        r.WeekStartDate == weekStartDate &&
-                                        r.WeekEndDate == weekEndDate);
+                // حذف در سرویس با یک Commit انجام می‌شود؛ حذف جزئیات
+                // به‌صورت جداگانه نباید منجر به وضعیت نیمه‌کاره شود.
+                var deleteResult = _foodReserveManager.DeleteDayReservation(
+                    userId, weekStartDate, dayId);
 
-                if (existingReserve == null)
+                return Json(new
                 {
-                    return Json(new { success = false, message = "رزرو ایجاد نشده است." });
-                }
-
-                // حذف تمام جزئیات مربوط به این روز
-                var detailsToDelete = _foodReserveDetailManager.GetAll()
-                    .Where(d => d.FoodReserveId == existingReserve.Id && d.DayId == dayId)
-                    .ToList();
-
-                foreach (var detail in detailsToDelete)
-                {
-                    _foodReserveDetailManager.Delete(detail.Id);
-                }
-
-                // اگر هیچ جزئیاتی برای این رزرو باقی نماند، رزرو را حذف کن
-                var remainingDetails = _foodReserveDetailManager.GetAll()
-                    .Where(d => d.FoodReserveId == existingReserve.Id)
-                    .ToList();
-
-                if (!remainingDetails.Any())
-                {
-                    _foodReserveManager.Delete(existingReserve.Id);
-                }
-
-                return Json(new { success = true, message = "روز با موفقیت حذف شد." });
+                    success = deleteResult.Status,
+                    message = deleteResult.Message
+                });
             }
             catch
             {
