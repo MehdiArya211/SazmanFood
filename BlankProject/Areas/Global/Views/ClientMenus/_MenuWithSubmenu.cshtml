@@ -21,7 +21,7 @@
                 Model.Title != null &&
                 Model.Title.Trim().Contains("امکانات مدیریت"))
             {
-                <li class="nav-item">
+                <li class="nav-item @(ViewBag.Controller == "quotacontrol" ? "active" : "")">
                     <a class="nav-link"
                        href="/Admin/QuotaControl/Index">
                         <i class="material-icons">tune</i>
