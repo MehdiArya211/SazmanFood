@@ -48,6 +48,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             _logger = logger;
         }
 
+        [HttpGet]
         public IActionResult Index(int week = 0)
         {
             if (week < 0 || week > 1)
