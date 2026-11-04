@@ -180,7 +180,7 @@ namespace Food.Areas.ReserveManagment.Controllers
         }
 
         [HttpPost]
-        public IActionResult Index(IFormCollection form)
+        public async Task<IActionResult> Index(IFormCollection form)
         {
             var user = HttpContext.Session.GetUser();
             if (user == null)
@@ -371,7 +371,17 @@ namespace Food.Areas.ReserveManagment.Controllers
                 if (result.Status)
                 {
                     TempData["Success"] = "برنامه غذایی با موفقیت ثبت شد.";
-                    _redis.db.RefreshUserSession(user.Id, 1, 3);
+
+                    try
+                    {
+                        await _redis.db.RefreshUserSession(user.Id, 1, 3);
+                    }
+                    catch
+                    {
+                        // رزرو در DB ثبت شده و خطای تمدید Redis نباید
+                        // به اشتباه به‌عنوان خطای ثبت غذا نمایش داده شود.
+                    }
+
                     return RedirectToAction("Index");
                 }
                 else
