@@ -25,14 +25,14 @@
 
 @if (rootMenu && ViewBag.CanControlQuota == true && !hasManagementMenu)
 {
-    <li class="nav-item">
+    <li class="nav-item @(ViewBag.Controller == "quotacontrol" ? "active" : "")">
         <a data-toggle="collapse" href="#foodQuotaManagementMenu">
             <i class="material-icons">settings</i>
             <p>امکانات مدیریت <b class="caret"></b></p>
         </a>
         <div class="collapse" id="foodQuotaManagementMenu">
             <ul class="nav">
-                <li class="nav-item">
+                <li class="nav-item @(ViewBag.Controller == "quotacontrol" ? "active" : "")">
                     <a class="nav-link" href="/Admin/QuotaControl/Index">
                         <i class="material-icons">tune</i>
                         <p>کنترل سهمیه‌بندی غذا</p>
