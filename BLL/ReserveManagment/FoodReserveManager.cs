@@ -43,7 +43,7 @@ namespace BLL.ReserveManagment
 
         public BaseResult AddToReserveAndReserveDetail(FoodReserveDTO model)
         {
-            var now = DateTime.Now;
+            var now = FoodTimingRules.GetIranNow();
 
             // محاسبه شروع و پایان هفته (با فرض شروع هفته از شنبه)
             int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
@@ -71,7 +71,7 @@ namespace BLL.ReserveManagment
 
         public List<FoodReserveDetail> GetFoodReserveDetail(long userId)
         {
-            var today = DateTime.Today;
+            var today = FoodTimingRules.GetIranNow().Date;
 
             // گرفتن رزرو هفته جاری با متد GetDTO
             var reserve = UOW.FoodReserve.GetDTO<FoodReserveDTO>(
@@ -107,7 +107,7 @@ namespace BLL.ReserveManagment
 
         public async Task<List<WeeklyFoodReserveDTO>> GetWeeklyFoodReserve(long userId)
         {
-            var today = DateTime.Today;
+            var today = FoodTimingRules.GetIranNow().Date;
 
             // گرفتن رزرو هفته جاری با متد GetDTO
             var reserve = UOW.FoodReserve.GetDTO<FoodReserveDTO>(
