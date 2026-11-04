@@ -17,7 +17,9 @@
 @{
     var rootMenu = ViewData["IsRootMenu"] is bool isRoot && isRoot;
     var hasManagementMenu = Model != null && Model.Any(item =>
-        item.Title != null && item.Title.Trim().Contains("امکانات مدیریت"));
+        item.Title != null &&
+        item.Title.Trim().Contains("امکانات مدیریت") &&
+        item.SubMenus != null && item.SubMenus.Any());
 }
 
 
