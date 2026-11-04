@@ -28,7 +28,7 @@ namespace BLL.ReserveManagment
         /// </summary>
         BaseResult SaveWeeklyReservation(
             FoodReserveDTO model,
-            IReadOnlyCollection<long> editableDayIds);
+            IReadOnlyCollection<(long DayId, long MealId)> editableSlots);
 
         /// <summary>حذف ایمن و یک‌مرحله‌ای رزرو یک روز از هفته.</summary>
         BaseResult DeleteDayReservation(long userId, DateTime weekStartDate, long dayId);
