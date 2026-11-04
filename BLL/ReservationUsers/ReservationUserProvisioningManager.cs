@@ -16,6 +16,10 @@ public class ReservationUserProvisioningManager
     : Manager<User, ApplicationContext>,
       IReservationUserProvisioningManager
 {
+    // همزمانی درخواست‌های تشخیص چهره در یک نمونه وب نباید
+    // منجر به درج چند حساب یا دسترسی تکراری شود.
+    private static readonly object ProvisioningSync = new();
+
     public ReservationUserProvisioningManager(
         DbContexts contexts,
         IHttpContextAccessor httpContextAccessor)
@@ -31,6 +35,23 @@ public class ReservationUserProvisioningManager
         long? organGarrisonId,
         long creatorId,
         int omdOrgId = 0)
+    {
+        lock (ProvisioningSync)
+        {
+            return EnsureReservationUserCore(
+                personId, personCode, fullName, nationalCode,
+                organGarrisonId, creatorId, omdOrgId);
+        }
+    }
+
+    private BaseResult EnsureReservationUserCore(
+        long? personId,
+        string personCode,
+        string fullName,
+        string nationalCode,
+        long? organGarrisonId,
+        long creatorId,
+        int omdOrgId)
     {
         personCode = Normalize(personCode);
 
@@ -48,7 +69,27 @@ public class ReservationUserProvisioningManager
              (parsedPersonCode.HasValue && x.PersonCode == parsedPersonCode)));
 
         if (existingUser != null)
-            return new BaseResult(true, "حساب کاربری پرسنل قبلاً ایجاد شده است.", existingUser.Id);
+        {
+            // تطابق نام کاربری به تنهایی کافی نیست؛ اگر حساب موجود صراحتاً
+            // به شخص دیگری وصل شده، نباید با چهره یک نفر وارد آن حساب شد.
+            if ((personId.HasValue && existingUser.PersonId.HasValue &&
+                 existingUser.PersonId.Value != personId.Value) ||
+                (parsedPersonCode.HasValue && existingUser.PersonCode.HasValue &&
+                 existingUser.PersonCode.Value != parsedPersonCode.Value))
+            {
+                return new BaseResult(false,
+                    "کد پرسنلی با اطلاعات هویتی حساب موجود مطابقت ندارد. با مدیر سامانه تماس بگیرید.");
+            }
+
+            if (!existingUser.IsEnabled)
+            {
+                return new BaseResult(false,
+                    "حساب کاربری غیرفعال است. با مدیر سامانه تماس بگیرید.");
+            }
+
+            return new BaseResult(true,
+                "حساب کاربری پرسنل قبلاً ایجاد شده است.", existingUser.Id);
+        }
 
         var roleResult = EnsureReservationRole();
         if (!roleResult.Status)
@@ -58,10 +99,8 @@ public class ReservationUserProvisioningManager
         if (int.TryParse(Normalize(nationalCode), out var nationalCodeValue))
             parsedNationalCode = nationalCodeValue;
 
-        var mobile = personCode.Length >= 11
-            ? personCode.Substring(personCode.Length - 11, 11)
-            : personCode.PadLeft(11, '0');
-
+        // کد پرسنلی شماره موبایل نیست. شماره ساختگی برای حساب نسازیم
+        // تا پیامک‌ها یا بازیابی رمز به شخص دیگری ارسال نشود.
         var user = new User
         {
             Name = string.IsNullOrWhiteSpace(fullName)
@@ -69,7 +108,7 @@ public class ReservationUserProvisioningManager
                 : fullName.Trim().ToPersianCharacter(),
             Username = personCode,
             Password = personCode.GetHash(),
-            Mobile = mobile,
+            Mobile = null,
             RoleId = RoleConstant.MealBooker,
             Type = UserType.Other,
             CreatorId = creatorId > 0 ? creatorId : null,
@@ -86,7 +125,24 @@ public class ReservationUserProvisioningManager
 
         var result = base.Create(user);
         if (result.Status)
+        {
             result.Message = "حساب کاربری رزرو غذا با موفقیت ایجاد شد.";
+            return result;
+        }
+
+        // Unique Index نام کاربری در دیتابیس، رقابت بین چند نمونه وب
+        // را در سطح SQL محدود می‌کند. در صورت همزمانی، حساب موجود
+        // پس از شکست درج دوباره بررسی می‌شود.
+        var createdElsewhere = UOW.Users.FirstOrDefault(x =>
+            x.Username == personCode && x.IsDeleted == false);
+        if (createdElsewhere != null &&
+            createdElsewhere.IsEnabled &&
+            (!personId.HasValue || !createdElsewhere.PersonId.HasValue ||
+             createdElsewhere.PersonId.Value == personId.Value))
+        {
+            return new BaseResult(true,
+                "حساب پرسنلی قبلاً ایجاد شده است.", createdElsewhere.Id);
+        }
 
         return result;
     }
