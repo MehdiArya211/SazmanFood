@@ -1,4 +1,5 @@
 ﻿using BLL.Interface;
+using Domain.Constants;
 using DTO.Menu;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,8 @@ namespace Food.Areas.Global.Controllers
                     Menus = authManager.ReshapeMenuData(User.Menus);
                 ViewBag.Controller = CController;
                 ViewBag.Action = CAction;
+                ViewBag.CanControlQuota = User?.RoleId == RoleConstant.Admin && User.IsEnabled;
+                ViewData["IsRootMenu"] = true;
                 return PartialView("_Menus", Menus);
             }
             catch
