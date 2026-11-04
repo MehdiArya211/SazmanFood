@@ -15,6 +15,10 @@
         ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
     var freeReservationEnabled =
         ViewBag.FreeReservationEnabled is bool freeMode && freeMode;
+    var reservationDeadlineEnabled =
+        ViewBag.ReservationDeadlineEnabled is bool deadlineMode && deadlineMode;
+    var closedReservationSlotsCount =
+        ViewBag.ClosedReservationSlotsCount is int closedCount ? closedCount : 0;
 
     DateTime weekStartDate = ViewBag.WeekStartDate != null
         ? (DateTime)ViewBag.WeekStartDate
@@ -553,6 +557,21 @@
         حالت رزرو آزاد فعال است؛ رزرو طبق برنامه غذایی موجود و بدون نیاز به سهمیه فردی انجام می‌شود.
     </div>
 }
+@if (reservationDeadlineEnabled)
+{
+    <div class="alert alert-info text-center" role="status"
+         style="font-size:13px;font-weight:700;">
+        <i class="material-icons" aria-hidden="true">schedule</i>
+        محدودیت مهلت رزرو فعال است.
+        @if (closedReservationSlotsCount > 0)
+        {
+            <span>
+                مهلت رزرو @closedReservationSlotsCount وعده از این هفته به پایان رسیده است.
+                رزروهای ثبت‌شده قبلی این روزها حذف نمی‌شوند و ژتون آن‌ها طبق شرایط چاپ قابل دریافت است.
+            </span>
+        }
+    </div>
+}
 @if (!string.IsNullOrWhiteSpace(ViewBag.QuotaError as string))
 {
     <div class="alert alert-warning text-center" role="alert" style="font-size:16px;font-weight:bold;">
@@ -764,7 +783,9 @@
                     else
                     {
                         <button type="button" class="btn btn-default btn-lg" disabled>
-                            سهمیه‌ای برای رزرو وجود ندارد
+                            @(reservationDeadlineEnabled && closedReservationSlotsCount > 0
+                                ? "مهلت رزرو به پایان رسیده است"
+                                : "سهمیه‌ای برای رزرو وجود ندارد")
                         </button>
                     }
                 </div>
