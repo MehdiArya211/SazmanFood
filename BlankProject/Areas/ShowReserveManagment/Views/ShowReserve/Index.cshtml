@@ -268,6 +268,13 @@
             color: #c62828;
         }
 
+        .print-message.info {
+            display: block;
+            background: #eaf4ff;
+            border: 1px solid #a8cfef;
+            color: #245780;
+        }
+
         .empty-state {
             padding: 70px 20px;
             text-align: center;
@@ -378,19 +385,18 @@
                 return row;
             }
 
-            function showPrintMessage(message, isSuccess) {
+            function showPrintMessage(message, isSuccess, isInformational) {
                 const box = document.getElementById('printMessage');
 
                 if (!box) return;
 
-                box.className =
-                    'print-message ' +
-                    (isSuccess ? 'success' : 'error');
-
+                const status =
+                    isInformational ? 'info' : (isSuccess ? 'success' : 'error');
+                box.className = 'print-message ' + status;
                 box.textContent =
                     message ||
                     (isSuccess
-                        ? 'چاپ با موفقیت انجام شد.'
+                        ? 'درخواست چاپ به صف ارسال شد؛ وضعیت کاغذ قابل تأیید نیست.'
                         : 'چاپ ژتون انجام نشد.');
             }
 
@@ -418,6 +424,7 @@
 
                 showPrintMessage(
                     'پیش‌نمایش چاپ باز شد. در پنجره چاپ، پرینتر متصل به همین رایانه را انتخاب کنید. چاپ فیزیکی هنوز تأیید نشده است.',
+                    true,
                     true
                 );
             }
@@ -484,6 +491,7 @@
                         (response.ok
                             ? 'پاسخ چاپ از سرور معتبر نبود.'
                             : 'ارتباط با سرویس چاپ با خطا همراه بود.'),
+                        isSuccess,
                         isSuccess
                     );
                 } catch (error) {
