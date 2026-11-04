@@ -223,8 +223,9 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                     .Where(x => ids.Contains(x.FoodReserveDetaileId))
                     .ToList();
 
+                var permittedIds = GetPrintableIds(user, owned);
                 if (owned.Count != ids.Count ||
-                    !ids.All(id => GetPrintableIds(user, owned).Contains(id)))
+                    !ids.All(permittedIds.Contains))
                 {
                     _logger.LogWarning(
                         "چاپ سرور با شناسه نامعتبر یا بدون سهمیه رد شد. UserId: {UserId}, Ids: {Ids}",
