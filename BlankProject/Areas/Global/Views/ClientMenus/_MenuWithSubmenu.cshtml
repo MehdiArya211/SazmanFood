@@ -12,7 +12,23 @@
     <div class="collapse" id="@("menu" + Model.Id)">
         <ul class="nav">
 
-            <partial name="_Menus" model="Model.SubMenus" />            
+            @{
+                var childViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData);
+                childViewData["IsRootMenu"] = false;
+            }
+            <partial name="_Menus" model="Model.SubMenus" view-data="childViewData" />
+            @if (ViewBag.CanControlQuota == true &&
+                Model.Title != null &&
+                Model.Title.Trim().Contains("امکانات مدیریت"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link"
+                       href="/Admin/QuotaControl/Index">
+                        <i class="material-icons">tune</i>
+                        <p>کنترل سهمیه‌بندی غذا</p>
+                    </a>
+                </li>
+            }            
 
         </ul>
     </div>
