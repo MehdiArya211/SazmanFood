@@ -2,9 +2,7 @@
     "use strict";
 
     const settings = {
-        kioskKey: "KioskId",
-        hubPath: "/kioskHub",
-        finalizeUrl: "/Authentication/FinalizeFaceLogin"
+        hubPath: "/kioskHub"
     };
 
     const connections = [];
@@ -32,37 +30,21 @@
     }
 
     function getKioskId() {
-        const queryKioskId = Number(
-            new URLSearchParams(window.location.search).get("kioskId")
-        );
-        const configuredKioskId = Number(window.ZP_KIOSK_ID);
-        let kioskId = 0;
-
-        try {
-            if (Number.isInteger(queryKioskId) && queryKioskId > 0) {
-                kioskId = queryKioskId;
-
-                const cleanUrl = new URL(window.location.href);
-                cleanUrl.searchParams.delete("kioskId");
-                window.history.replaceState({}, document.title, cleanUrl.toString());
-            } else if (Number.isInteger(configuredKioskId) && configuredKioskId > 0) {
-                kioskId = configuredKioskId;
-            } else {
-                kioskId = Number(localStorage.getItem(settings.kioskKey));
-            }
-
-            if (Number.isInteger(kioskId) && kioskId > 0) {
-                localStorage.setItem(settings.kioskKey, String(kioskId));
-            }
-        } catch (error) {
-            logWarning("خواندن شناسه کیوسک ناموفق بود.", error);
+        // شناسه کیوسک فقط از تنظیمات معتبر سرور گرفته می‌شود.
+        // query string یا localStorage نباید بتوانند دستگاه را عوض کنند.
+        const kioskId = Number(window.ZP_KIOSK_ID);
+        if (!Number.isSafeInteger(kioskId) || kioskId <= 0) {
+            throw new Error("شناسه دستگاه در تنظیمات سامانه معتبر نیست.");
         }
-
-        if (!Number.isInteger(kioskId) || kioskId <= 0) {
-            throw new Error("شناسه کیوسک تنظیم نشده است.");
-        }
-
         return kioskId;
+    }
+
+    function getFaceChallenge() {
+        const challenge = String(window.ZP_FACE_CHALLENGE || "");
+        if (!/^[0-9A-F]{64}$/.test(challenge)) {
+            throw new Error("شناسه نشست انتظار تشخیص چهره معتبر نیست؛ صفحه را دوباره باز کنید.");
+        }
+        return challenge;
     }
 
     function getHubUrls() {
@@ -75,61 +57,66 @@
             : [];
     }
 
-    function extractEnrollId(args) {
+    function parseEnrollId(value) {
+        // Number() کدهای طولانی را گرد می‌کند و ممکن است باعث ورود فرد دیگری شود.
+        let text = null;
+        if (typeof value === "string") {
+            text = value.trim();
+        } else if (typeof value === "number" && Number.isSafeInteger(value)) {
+            text = String(value);
+        }
+
+        if (!text || !/^[0-9]{1,19}$/.test(text)) return null;
+        try {
+            const id = BigInt(text);
+            return id > 0n && id <= 9223372036854775807n ? text : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function getBiometricEvent(args) {
+        // رویداد باید شناسه نشست را همراه کد پرسنلی برگرداند؛
+        // صرف دریافت enrollId از یک Hub عمومی اثبات احراز هویت نیست.
         for (const value of args) {
-            if (value === null || value === undefined) {
-                continue;
-            }
+            if (!value || typeof value !== "object") continue;
 
-            if (typeof value === "number" || typeof value === "string") {
-                const parsed = Number(value);
-                if (Number.isInteger(parsed) && parsed > 0) {
-                    return parsed;
-                }
-                continue;
-            }
-
-            if (typeof value === "object") {
-                const candidate =
-                    value.enrollId ??
-                    value.EnrollId ??
-                    value.personCode ??
-                    value.PersonCode ??
-                    value.personalCode ??
-                    value.PersonalCode;
-
-                const parsed = Number(candidate);
-                if (Number.isInteger(parsed) && parsed > 0) {
-                    return parsed;
-                }
+            const enrollId = parseEnrollId(
+                value.enrollId ?? value.EnrollId ??
+                value.personCode ?? value.PersonCode ??
+                value.personalCode ?? value.PersonalCode
+            );
+            const sessionChallenge = String(
+                value.sessionChallenge ?? value.SessionChallenge ?? ""
+            );
+            if (enrollId && sessionChallenge) {
+                return { enrollId, sessionChallenge };
             }
         }
 
-        return 0;
+        return null;
     }
 
     function redirectToFinalize(kioskId, enrollId) {
-        if (redirected) {
+        if (redirected) return;
+
+        const form = document.getElementById("face-finalize-form");
+        if (!form || !form.elements.namedItem("__RequestVerificationToken")) {
+            setStatus("فرم امن ورود پیدا نشد؛ صفحه را دوباره باز کنید.");
             return;
         }
 
-        const parsedEnrollId = Number(enrollId);
-        if (!Number.isInteger(parsedEnrollId) || parsedEnrollId <= 0) {
-            logError("کد پرسنلی دریافتی از ZP معتبر نیست.");
-            setStatus("کد پرسنلی دریافتی معتبر نیست.");
+        const safeEnrollId = parseEnrollId(enrollId);
+        if (!safeEnrollId) {
+            setStatus("کد پرسنلی دریافتی از دستگاه معتبر نیست.");
             return;
         }
 
+        form.elements.namedItem("kioskId").value = String(kioskId);
+        form.elements.namedItem("enrollId").value = safeEnrollId;
         redirected = true;
-        setStatus("چهره شناسایی شد؛ در حال ورود...");
-        logInfo("کد پرسنلی " + parsedEnrollId + " دریافت شد.");
-
-        const query = new URLSearchParams({
-            kioskId: String(kioskId),
-            enrollId: String(parsedEnrollId)
-        });
-
-        window.location.replace(settings.finalizeUrl + "?" + query.toString());
+        setStatus("چهره شناسایی شد؛ در حال تأیید ورود...");
+        form.submit();
     }
 
     function createConnection(hubUrl, kioskId) {
@@ -220,18 +207,20 @@
 
 
         connection.on("ReceiveAutoLogin", (...args) => {
-            const enrollId = extractEnrollId(args);
-            if (enrollId <= 0) {
-                logError("پیام ZP دریافت شد، اما کد پرسنلی معتبر نبود.");
+            const event = getBiometricEvent(args);
+            const challenge = getFaceChallenge();
+            if (!event || event.sessionChallenge !== challenge) {
+                logWarning("پیام ZP فاقد شناسه نشست معتبر بود یا به مرورگر دیگری تعلق داشت.");
+                setStatus("داده تشخیص چهره به این نشست تعلق ندارد؛ منتظر تأیید معتبر دستگاه بمانید.");
                 return;
             }
 
-            redirectToFinalize(kioskId, enrollId);
+            redirectToFinalize(kioskId, event.enrollId);
         });
 
         connection.onreconnected(async () => {
             try {
-                await connection.invoke("Register", kioskId);
+                await connection.invoke("Register", kioskId, getFaceChallenge());
             } catch (error) {
                 logError("ثبت مجدد کیوسک ناموفق بود.", error);
             }
@@ -266,7 +255,8 @@
 
             await connection.invoke(
                 "Register",
-                kioskId
+                kioskId,
+                getFaceChallenge()
             );
 
             connections.push(connection);
@@ -324,7 +314,9 @@
             );
 
             if (!results.some(Boolean)) {
-                setStatus("اتصال به سرویس ZP برقرار نشد.");
+                setStatus(
+                    "اتصال امن به ZP برقرار نشد. سرویس باید Register(kioskId, sessionChallenge) و رویداد امضاشده را پشتیبانی کند."
+                );
                 return;
             }
 
