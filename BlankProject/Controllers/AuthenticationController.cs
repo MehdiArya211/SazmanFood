@@ -1,5 +1,8 @@
 ﻿using BLL;
 using BLL.FajrLog;
+using Microsoft.Extensions.Caching.Memory;
+using System.Security.Cryptography;
+using System.Text;
 using BLL.Interface;
 using DTO.User;
 using ITOWebApiClient;
@@ -29,6 +32,7 @@ public class AuthenticationController : Controller
     private readonly IUserManager UserManager;
     private readonly IWebApiManager WebApiManager;
     private readonly ApiTokenCacheClient ApiTokenClient;
+    private readonly IMemoryCache _faceEventCache;
 
 
     public AuthenticationController(IAuthManager _AuthManager, IUserLogManager _UserLogManager,
@@ -39,6 +43,7 @@ public class AuthenticationController : Controller
         IUserManager userManager,
         IWebApiManager webApiManager,
         ApiTokenCacheClient apiTokenClient,
+        IMemoryCache faceEventCache,
         IFajrLogManager fajrLogManager = null
         ) : base()
     {
@@ -47,6 +52,7 @@ public class AuthenticationController : Controller
         UserManager = userManager;
         WebApiManager = webApiManager;
         ApiTokenClient = apiTokenClient;
+        _faceEventCache = faceEventCache;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
         Redis = _Redis;
@@ -234,6 +240,9 @@ public class AuthenticationController : Controller
         await Redis.db.RemoveLoginLog(Mobile);
         #endregion
 
+        // ورود با نام کاربری نباید از مجوز نشست ورود چهره قبلی استفاده کند.
+        HttpContext.Session.Remove("VerifiedFaceLogin");
+
         // کاربری که با کد پرسنلی ساخته شده، پیش از دسترسی به سامانه
         // باید رمز اولیه خود را تغییر دهد.
         if (!User.PasswordIsChanged)
@@ -292,6 +301,81 @@ public class AuthenticationController : Controller
         return View("IndexZP"); // نام فایل ویو
     }
 
+    /// <summary>
+    /// دریافت اعلان امضاشده از سرویس معتبر ZP.
+    /// فقط سرویس دستگاه (نه JavaScript مرورگر) باید این endpoint را فراخوانی کند.
+    /// Message-to-sign: KioskId:EnrollId:TimestampUtc:Nonce
+    /// Signature: HMAC-SHA256 hex با FaceLogin:WebhookSecret
+    /// </summary>
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult RecordVerifiedFace([FromBody] VerifiedFaceEvent payload)
+    {
+        var secret = _configuration["FaceLogin:WebhookSecret"];
+        if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        var expectedKiosk = _configuration.GetValue<int?>("ApiAddress:KioskId");
+        if (payload == null || payload.KioskId <= 0 || payload.EnrollId <= 0 ||
+            payload.TimestampUtc <= 0 || string.IsNullOrWhiteSpace(payload.Nonce) ||
+            payload.Nonce.Length > 100 ||
+            string.IsNullOrWhiteSpace(payload.Signature) ||
+            (expectedKiosk.HasValue && expectedKiosk.Value > 0 &&
+             payload.KioskId != expectedKiosk.Value))
+        {
+            return BadRequest();
+        }
+
+        var timestamp = DateTimeOffset.FromUnixTimeSeconds(payload.TimestampUtc);
+        if (Math.Abs((DateTimeOffset.UtcNow - timestamp).TotalSeconds) > 30)
+            return Unauthorized();
+
+        var message =
+            $"{payload.KioskId}:{payload.EnrollId}:{payload.TimestampUtc}:{payload.Nonce}";
+        var providedSignature = payload.Signature.Trim();
+
+        try
+        {
+            var provided = Convert.FromHexString(providedSignature);
+            var expected = HMACSHA256.HashData(
+                Encoding.UTF8.GetBytes(secret),
+                Encoding.UTF8.GetBytes(message));
+
+            if (!CryptographicOperations.FixedTimeEquals(provided, expected))
+                return Unauthorized();
+        }
+        catch (FormatException)
+        {
+            return Unauthorized();
+        }
+
+        var replayKey = $"VerifiedFaceNonce:{payload.KioskId}:{payload.Nonce}";
+        if (_faceEventCache.TryGetValue(replayKey, out _))
+            return Conflict();
+
+        _faceEventCache.Set(replayKey, true, TimeSpan.FromMinutes(2));
+        _faceEventCache.Set(
+            $"VerifiedFace:{payload.KioskId}:{payload.EnrollId}",
+            true,
+            TimeSpan.FromSeconds(45));
+
+        _logger.LogInformation(
+            "رویداد امضاشده ZP تأیید شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
+            payload.KioskId, payload.EnrollId);
+
+        return Ok(new { Status = true });
+    }
+
+    private bool ConsumeVerifiedFaceEvent(int kioskId, long enrollId)
+    {
+        var key = $"VerifiedFace:{kioskId}:{enrollId}";
+        if (!_faceEventCache.TryGetValue(key, out bool verified) || !verified)
+            return false;
+
+        _faceEventCache.Remove(key);
+        return true;
+    }
+
     [HttpGet]
     public async Task<IActionResult> FinalizeFaceLogin(int kioskId, long enrollId)
     {
@@ -311,16 +395,94 @@ public class AuthenticationController : Controller
             return RedirectToAction("IndexZP");
         }
 
-        var user = AuthManager.LoginWithFaceZP(enrollId);
+        var configuredKiosk = _configuration.GetValue<int?>("ApiAddress:KioskId");
+        if (configuredKiosk.HasValue && configuredKiosk.Value > 0 &&
+            kioskId != configuredKiosk.Value)
+        {
+            _logger.LogWarning("درخواست ورود با شناسه کیوسک ناشناس. KioskId: {KioskId}", kioskId);
+            TempData["FaceLoginMessage"] = "شناسه دستگاه ورود معتبر نیست.";
+            return RedirectToAction("IndexZP");
+        }
 
-        if (user == null)
+        var verifiedFace = ConsumeVerifiedFaceEvent(kioskId, enrollId);
+        var requireSignedEvents = _configuration.GetValue<bool>("FaceLogin:RequireSignedEvents");
+        if (requireSignedEvents && !verifiedFace)
         {
             _logger.LogWarning(
-                "ورود بیومتریک: کاربر پیدا نشد. KioskId: {KioskId}، کد پرسنلی: {EnrollId}",
-                kioskId,
-                enrollId);
+                "درخواست ورود چهره بدون اعلان معتبر سرویس ZP رد شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
+                kioskId, enrollId);
+            TempData["FaceLoginMessage"] =
+                "رویداد تشخیص چهره از سرویس دستگاه تأیید نشده است.";
+            return RedirectToAction("IndexZP");
+        }
 
-            TempData["FaceLoginMessage"] = "کاربر یافت نشد. لطفاً دوباره تلاش کنید.";
+        var user = AuthManager.LoginWithFaceZP(enrollId);
+
+        if (user == null && verifiedFace)
+        {
+            try
+            {
+                // صرفاً شناسایی معتبر و امضاشده دستگاه اجازه ساخت حساب جدید می‌دهد.
+                var personCode = enrollId.ToString();
+                var accessToken = await ApiTokenClient.GetApiToken(
+                    CustomSettings.Instance.ClientId,
+                    CustomSettings.Instance.Scope,
+                    CustomSettings.Instance.ClientSecret,
+                    CustomSettings.Instance.ROPC_UserName,
+                    CustomSettings.Instance.ROPC_Password);
+
+                var person = WebApiManager.GetPersonalByPersonCode(
+                    personCode, accessToken);
+
+                if (person == null ||
+                    person.personalCode?.Trim().ToEnglishNumber() != personCode ||
+                    person.Id <= 0)
+                {
+                    TempData["FaceLoginMessage"] =
+                        "کد پرسنلی شناسایی‌شده در سرویس معتبر پرسنلی یافت نشد.";
+                    return RedirectToAction("IndexZP");
+                }
+
+                var result = UserManager.CreateMealBookerFromPersonnel(
+                    person, personCode);
+
+                if (!result.Status && !UserManager.ExistsByUsername(personCode))
+                {
+                    _logger.LogWarning(
+                        "ایجاد حساب هنگام ورود چهره موفق نبود. EnrollId: {EnrollId}, Reason: {Reason}",
+                        enrollId, result.Message);
+                    TempData["FaceLoginMessage"] = result.Message;
+                    return RedirectToAction("IndexZP");
+                }
+
+                user = AuthManager.LoginWithFaceZP(enrollId);
+                if (user != null)
+                {
+                    _logger.LogInformation(
+                        "حساب جدید با کد پرسنلی پس از تأیید ZP ایجاد شد. UserId: {UserId}, EnrollId: {EnrollId}",
+                        user.Id, enrollId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "استعلام و ساخت حساب در اولین ورود با چهره ناموفق بود. EnrollId: {EnrollId}",
+                    enrollId);
+                TempData["FaceLoginMessage"] =
+                    "در حال حاضر ایجاد حساب از طریق سرویس پرسنلی امکان‌پذیر نیست.";
+                return RedirectToAction("IndexZP");
+            }
+        }
+
+        if (user == null || !user.IsEnabled)
+        {
+            _logger.LogWarning(
+                "ورود بیومتریک: حساب معتبر یافت نشد. KioskId: {KioskId}, EnrollId: {EnrollId}",
+                kioskId, enrollId);
+            TempData["FaceLoginMessage"] =
+                verifiedFace
+                    ? "حساب پرسنلی یافت نشد یا غیرفعال است."
+                    : "برای ثبت خودکار حساب، تأیید امن سرویس تشخیص چهره لازم است.";
             return RedirectToAction("IndexZP");
         }
 
@@ -333,6 +495,10 @@ public class AuthenticationController : Controller
         var token = await Redis.db.SetLoginToken(user.Id);
         HttpContext.SetCookieUserToken(token);
         HttpContext.Session.SetUser(user);
+        if (verifiedFace)
+            HttpContext.Session.SetString("VerifiedFaceLogin", "true");
+        else
+            HttpContext.Session.Remove("VerifiedFaceLogin");
 
         _logger.LogInformation(
             "ورود بیومتریک: موفق؛ انتقال به داشبورد. UserId: {UserId}",
@@ -357,6 +523,7 @@ public class AuthenticationController : Controller
             await Redis.db.RemoveLoginToken(user.Id);
 
             Session.RemoveUser();
+            Session.Remove("VerifiedFaceLogin");
 
             // پاک کردن کوکی
             HttpContext.Response.Cookies.Delete("_session.cookie"); // توجه: اسم کوکی باید دقیق باشه
@@ -370,4 +537,16 @@ public class AuthenticationController : Controller
 
 
 
+}
+/// <summary>
+/// اعلان امضاشده ZP برای اثبات رویداد تشخیص چهره.
+/// این مدل نباید مستقیماً از مرورگر ارسال شود.
+/// </summary>
+public sealed class VerifiedFaceEvent
+{
+    public int KioskId { get; set; }
+    public long EnrollId { get; set; }
+    public long TimestampUtc { get; set; }
+    public string Nonce { get; set; }
+    public string Signature { get; set; }
 }
