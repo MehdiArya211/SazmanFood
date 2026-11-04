@@ -466,7 +466,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             try
             {
                 // محاسبه محدوده هفته جاری
-                var now = DateTime.Now;
+                var now = FoodTimingRules.GetIranNow();
                 int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
                 DateTime weekStartDate = now.AddDays(-1 * diff).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
