@@ -189,6 +189,39 @@ namespace BLL
             return user;
         }
 
+        public UserSessionDTO LoginWithVerifiedFacePersonnel(
+            long personId, string personCode)
+        {
+            if (personId <= 0 || string.IsNullOrWhiteSpace(personCode))
+                return null;
+
+            personCode = personCode.Trim().ToEnglishNumber();
+            var user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                UserSessionDTO.Selector,
+                x => x.PersonId == personId && x.IsEnabled && !x.IsDeleted);
+
+            if (user == null)
+            {
+                user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                    UserSessionDTO.Selector,
+                    x => x.Username == personCode && x.IsEnabled && !x.IsDeleted);
+            }
+
+            if (user == null && int.TryParse(personCode, out var parsedCode))
+            {
+                user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                    UserSessionDTO.Selector,
+                    x => x.PersonCode == parsedCode &&
+                         x.IsEnabled && !x.IsDeleted);
+            }
+
+            if (user == null)
+                return null;
+
+            SetAuthenticatedUser(user);
+            return user;
+        }
+
         /// <summary>
         /// گرفتن اطلاعات لازم برای ذخیره کاربر در سشن
         /// </summary>
