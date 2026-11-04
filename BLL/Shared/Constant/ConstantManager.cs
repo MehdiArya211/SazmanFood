@@ -130,6 +130,43 @@ namespace BLL
         /// </summary>
         /// <param name="Type">نوع مقادیر ثابت مورد نظر</param>
         /// <returns></returns>
+        public bool IsFreeFoodReservationEnabled()
+        {
+            var setting = UOW.Constants.FirstOrDefault(
+                x => x.Type == ConstantType.FreeFoodReservationEnabled);
+
+            return setting != null &&
+                string.Equals(setting.Value?.Trim(), "true",
+                    StringComparison.OrdinalIgnoreCase);
+        }
+
+        public BaseResult SetFreeFoodReservationEnabled(bool enabled)
+        {
+            try
+            {
+                var setting = UOW.Constants.FirstOrDefault(
+                    x => x.Type == ConstantType.FreeFoodReservationEnabled);
+
+                if (setting == null)
+                {
+                    return base.Create(new Constant
+                    {
+                        Title = "رزرو آزاد غذا بدون کنترل سهمیه فردی",
+                        Type = ConstantType.FreeFoodReservationEnabled,
+                        Value = enabled ? "true" : "false"
+                    });
+                }
+
+                setting.Value = enabled ? "true" : "false";
+                return base.Update(setting);
+            }
+            catch (Exception)
+            {
+                return new BaseResult(false,
+                    "ذخیره تنظیمات رزرو غذا با خطا همراه شد.");
+            }
+        }
+
         public int? GetNumberValue(ConstantType Type)
         {
             return UOW.Constants.GetNumberValue(Type);
