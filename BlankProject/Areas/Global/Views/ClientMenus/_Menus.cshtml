@@ -42,3 +42,23 @@
         </div>
     </li>
 }
+
+@if (rootMenu && ViewBag.AddReserveShortcut == true)
+{
+    <li class="nav-item">
+        <a class="nav-link" href="/ReserveManagment/Reserve/Index">
+            <i class="material-icons">restaurant_menu</i>
+            <p>رزرو غذا</p>
+        </a>
+    </li>
+}
+
+@if (rootMenu && ViewBag.AddPrintShortcut == true)
+{
+    <li class="nav-item">
+        <a class="nav-link" href="/ShowReserveManagment/ShowReserve/Index">
+            <i class="material-icons">print</i>
+            <p>پرینت فاکتور</p>
+        </a>
+    </li>
+}
