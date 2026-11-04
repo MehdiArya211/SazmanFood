@@ -280,8 +280,14 @@ namespace Filters
                 string.Equals(currentController, "Profile", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(currentAction, "ChangePassword", StringComparison.OrdinalIgnoreCase);
 
+            // تغییر رمز فقط هنگام ورود با نام کاربری/کلمه عبور اجباری است.
+            // نشست ورود چهره صرفاً پس از اعلان امضاشده ZP ایجاد می‌شود.
+            var signedFaceLogin =
+                context.HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
+
             if (checkPasswordChange &&
                 User.PasswordIsChanged == false &&
+                !signedFaceLogin &&
                 isChangePasswordPage == false)
             {
                 if (IsAjaxRequest(context))
