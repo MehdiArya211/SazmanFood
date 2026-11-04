@@ -45,7 +45,7 @@ public class ReservationUserProvisioningManager
             x.IsDeleted == false &&
             ((personId.HasValue && x.PersonId == personId.Value) ||
              x.Username == personCode ||
-             (parsedPersonCode.HasValue && x.PersonCode == parsedPersonCode.Value)));
+             (parsedPersonCode.HasValue && x.PersonCode == parsedPersonCode)));
 
         if (existingUser != null)
             return new BaseResult(true, "حساب کاربری پرسنل قبلاً ایجاد شده است.", existingUser.Id);
