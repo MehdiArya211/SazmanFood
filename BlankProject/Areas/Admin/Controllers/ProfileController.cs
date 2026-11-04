@@ -19,7 +19,9 @@ namespace Food.Areas.Admin.Controllers
 
     [Area("Admin")]
     //[UserAuthorize(Area: "admin", Controller: "profile", Action: "edit")]
-    [UserAuthorize(IsPublic: true, CheckPasswordChange: false)]
+    // فقط صفحه تغییر رمز از الزام تغییر رمز اولیه مستثنی است.
+    // بقیه بخش‌های پروفایل باید همان قانون دسترسی را رعایت کنند.
+    [UserAuthorize(IsPublic: true)]
     public class ProfileController : Controller
     {
         private readonly IUserManager userManager;
