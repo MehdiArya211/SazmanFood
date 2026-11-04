@@ -26,6 +26,12 @@ namespace BLL.Interface
         /// <param name="userId"></param>
         /// <returns></returns>
         public UserSessionDTO LoginWithFaceZP(long userId);
+        /// <summary>
+        /// ورود پس از تأیید امضاشده چهره و استعلام هویت در سرویس پرسنلی.
+        /// حساب موجود با نام کاربری متفاوت نیز از PersonId یا PersonCode یافت می‌شود.
+        /// </summary>
+        UserSessionDTO LoginWithVerifiedFacePersonnel(long personId, string personCode);
+
 
         BaseResult LoginAuth( string UserId );
 
