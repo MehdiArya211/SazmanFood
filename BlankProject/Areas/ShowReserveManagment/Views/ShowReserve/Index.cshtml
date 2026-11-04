@@ -323,6 +323,9 @@
     <script>
         (function () {
             const weeklyFoodData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model ?? new List<WeeklyFoodReserveDTO>()));
+            const allowedPrintIds = new Set(
+                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllowedPrintIds ?? new HashSet<long>()))
+            );
 
             function getDayStatus(date) {
                 const today = new Date();
@@ -563,7 +566,6 @@
                     .forEach(function (dateKey) {
                         const dayInfo = groupedData[dateKey];
                         const status = getDayStatus(dayInfo.date);
-                        const canPrint = status !== 'past';
 
                         const dayColumn = document.createElement('div');
                         dayColumn.className = 'day-column ' + status + '-day';
@@ -646,6 +648,13 @@
                                 return id !== null && id !== undefined && id !== '';
                             });
 
+                        const canPrint =
+                            status !== 'past' &&
+                            foodReserveIds.length > 0 &&
+                            foodReserveIds.every(id =>
+                                allowedPrintIds.has(Number(id))
+                            );
+
                         const printSection = document.createElement('div');
                         printSection.className = 'print-section';
 
@@ -672,7 +681,10 @@
                             printSection.appendChild(printButton);
                             printSection.appendChild(serverButton);
                         } else {
-                            printButton.textContent = '❌ غیرفعال';
+                            printButton.textContent =
+                                status === 'past'
+                                    ? '❌ تاریخ گذشته'
+                                    : '❌ بدون سهمیه مجاز';
                             printButton.disabled = true;
                             printSection.appendChild(printButton);
                         }
