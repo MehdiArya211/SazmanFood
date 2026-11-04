@@ -1,0 +1,231 @@
+@{
+    ViewData["Title"] = "کنترل سیاست سهمیه‌بندی غذا";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var isEnabled = ViewBag.FreeReservationEnabled == true;
+}
+
+@section styles {
+    <style>
+        .quota-policy-page {
+            direction: rtl;
+            margin: 0 auto;
+            max-width: 920px;
+            padding: 12px 5px 32px;
+        }
+        .quota-policy-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 27px;
+            box-shadow: 0 6px 24px rgba(31, 45, 61, .08);
+        }
+        .quota-policy-title {
+            color: #26384d;
+            margin: 0 0 8px;
+            font-size: 23px;
+            font-weight: 800;
+        }
+        .quota-policy-subtitle {
+            color: #728093;
+            line-height: 2;
+            font-size: 13px;
+        }
+        .quota-policy-switch {
+            margin: 23px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            background: #f6f9fc;
+            border: 1px solid #e0e8f0;
+            border-radius: 12px;
+        }
+        .quota-policy-switch input {
+            width: 23px;
+            height: 23px;
+            accent-color: #1e88e5;
+            cursor: pointer;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        .quota-policy-switch label {
+            font-size: 16px;
+            font-weight: 800;
+            margin: 0;
+            cursor: pointer;
+            color: #34495e;
+        }
+        .quota-policy-info {
+            color: #657587;
+            font-size: 12px;
+            font-weight: 400;
+            margin-top: 5px;
+            line-height: 2;
+        }
+        .quota-policy-status {
+            padding: 13px 16px;
+            border-radius: 10px;
+            margin: 15px 0;
+            line-height: 1.9;
+            font-weight: 700;
+        }
+        .quota-policy-status.free {
+            background: #e6f4ea;
+            color: #266a35;
+        }
+        .quota-policy-status.limited {
+            background: #f0f4fa;
+            color: #3a546e;
+        }
+        .quota-policy-actions {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .quota-policy-actions button {
+            min-width: 170px;
+            padding: 11px 24px;
+            border-radius: 9px;
+            font-weight: 800;
+        }
+        .quota-policy-notice {
+            display: none;
+            border-radius: 9px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            line-height: 1.9;
+            text-align: center;
+        }
+        .quota-policy-notice.success {
+            display: block;
+            background: #eaf7ef;
+            color: #23643b;
+        }
+        .quota-policy-notice.error {
+            display: block;
+            background: #fcecee;
+            color: #ab2837;
+        }
+        @@media (max-width: 767px) {
+            .quota-policy-card { padding: 18px; }
+            .quota-policy-title { font-size: 19px; }
+        }
+    </style>
+}
+
+<div class="col-md-12">
+    <div class="quota-policy-page">
+        <div class="quota-policy-card">
+            <h2 class="quota-policy-title">
+                <i class="material-icons" aria-hidden="true">verified_user</i>
+                کنترل سهمیه‌بندی غذا
+            </h2>
+            <p class="quota-policy-subtitle">
+                با این گزینه می‌توانید موقتاً رزرو غذا را برای تمام کاربران واردشده آزاد کنید.
+                سهمیه‌های تعریف‌شده حذف یا ویرایش نمی‌شوند.
+            </p>
+
+            <form id="quota-policy-form" method="post"
+                  action="@Url.Action("Save", "QuotaControl", new { area = "Admin" })">
+                @Html.AntiForgeryToken()
+
+                <div class="quota-policy-switch">
+                    <input id="freeReservationEnabled"
+                           name="enabled"
+                           type="checkbox"
+                           value="true"
+                           @(isEnabled ? "checked" : "") />
+                    <div>
+                        <label for="freeReservationEnabled">
+                            همه کاربران بدون نیاز به سهمیه فردی بتوانند غذا رزرو کنند
+                        </label>
+                        <div class="quota-policy-info">
+                            این گزینه فقط کنترل سهمیه فردی را موقتاً غیرفعال می‌کند؛
+                            انتخاب غذا همچنان طبق برنامه غذایی و وعده‌های تعریف‌شده است.
+                        </div>
+                    </div>
+                </div>
+
+                <div id="quota-policy-status"
+                     class="quota-policy-status @(isEnabled ? "free" : "limited")">
+                    @(isEnabled
+                        ? "حالت فعلی: رزرو آزاد برای تمام کاربران."
+                        : "حالت فعلی: فقط کاربران دارای سهمیه ثبت‌شده مجاز به رزرو هستند.")
+                </div>
+
+                <div class="quota-policy-actions">
+                    <button id="quota-policy-save" class="btn btn-info" type="submit">
+                        <i class="material-icons">save</i>
+                        ذخیره تنظیمات
+                    </button>
+                </div>
+            </form>
+
+            <div id="quota-policy-notice" class="quota-policy-notice" role="status"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('quota-policy-form');
+            const checkbox = document.getElementById('freeReservationEnabled');
+            const button = document.getElementById('quota-policy-save');
+            const status = document.getElementById('quota-policy-status');
+            const notice = document.getElementById('quota-policy-notice');
+            let savedValue = @isEnabled.ToString().ToLowerInvariant();
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                if (checkbox.checked === savedValue) {
+                    notice.className = 'quota-policy-notice success';
+                    notice.textContent = 'تنظیمات بدون تغییر است.';
+                    return;
+                }
+
+                const message = checkbox.checked
+                    ? 'با فعال‌سازی رزرو آزاد، سهمیه فردی برای رزرو بررسی نمی‌شود. ادامه می‌دهید؟'
+                    : 'با غیرفعال‌سازی، فقط اشخاص دارای سهمیه فردی می‌توانند رزرو جدید انجام دهند. ادامه می‌دهید؟';
+
+                if (!window.confirm(message)) {
+                    checkbox.checked = savedValue;
+                    return;
+                }
+
+                button.disabled = true;
+                notice.className = 'quota-policy-notice';
+                const data = new FormData(form);
+                data.set('enabled', checkbox.checked ? 'true' : 'false');
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: data
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok || !(result.status === true || result.Status === true)) {
+                        throw new Error(result.message || result.Message || 'ذخیره تنظیمات انجام نشد.');
+                    }
+
+                    savedValue = checkbox.checked;
+                    status.className = 'quota-policy-status ' + (savedValue ? 'free' : 'limited');
+                    status.textContent = savedValue
+                        ? 'حالت فعلی: رزرو آزاد برای تمام کاربران.'
+                        : 'حالت فعلی: فقط کاربران دارای سهمیه ثبت‌شده مجاز به رزرو هستند.';
+
+                    notice.className = 'quota-policy-notice success';
+                    notice.textContent = result.message || result.Message || 'تنظیمات با موفقیت ذخیره شد.';
+                } catch (error) {
+                    checkbox.checked = savedValue;
+                    notice.className = 'quota-policy-notice error';
+                    notice.textContent = error.message || 'ارتباط با سرور برقرار نشد.';
+                } finally {
+                    button.disabled = false;
+                }
+            });
+        })();
+    </script>
+}
