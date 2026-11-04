@@ -69,6 +69,144 @@ namespace BLL.ReserveManagment
 
         }
 
+        /// <summary>
+        /// ثبت یا ویرایش رزرو هفتگی با یک SaveChanges در Context اصلی.
+        /// رکوردهای روزهایی که از مهلت رزرو گذشته‌اند اصلاً در ChangeTracker
+        /// برای حذف/ویرایش قرار نمی‌گیرند و شماره ژتونشان حفظ می‌شود.
+        /// </summary>
+        public BaseResult SaveWeeklyReservation(
+            FoodReserveDTO model,
+            IReadOnlyCollection<long> editableDayIds)
+        {
+            if (model == null || model.UserId <= 0 ||
+                model.Details == null || model.Details.Count == 0 ||
+                editableDayIds == null || editableDayIds.Count == 0)
+            {
+                return new BaseResult(false, "اطلاعات روزهای قابل رزرو کامل نیست.");
+            }
+
+            var days = editableDayIds.ToHashSet();
+            if (model.Details.Any(x => !days.Contains(x.DayId)) ||
+                model.Details
+                    .GroupBy(x => new { x.DayId, x.MealId })
+                    .Any(x => x.Count() > 1))
+            {
+                return new BaseResult(
+                    false, "رزرو شامل روز غیرمجاز یا وعده تکراری است.");
+            }
+
+            try
+            {
+                var existing = UOW.FoodReserve.Get(
+                    x => x.UserId == model.UserId &&
+                         x.WeekStartDate == model.WeekStartDate.Date &&
+                         x.WeekEndDate == model.WeekEndDate.Date)
+                    .FirstOrDefault();
+
+                var newDetails = model.Details.Select(item => new FoodReserveDetail
+                {
+                    DayId = item.DayId,
+                    MealId = item.MealId,
+                    MainFoodId = item.MainFoodId,
+                    DessertId = item.DessertId,
+                    SideDishId = item.SideDishId
+                }).ToList();
+
+                if (existing == null)
+                {
+                    var now = FoodTimingRules.GetIranNow();
+                    UOW.FoodReserve.Add(new FoodReserve
+                    {
+                        UserId = model.UserId,
+                        WeekStartDate = model.WeekStartDate.Date,
+                        WeekEndDate = model.WeekEndDate.Date,
+                        Year = now.Year,
+                        Month = now.Month,
+                        CreatedAt = now,
+                        Details = newDetails
+                    });
+                }
+                else
+                {
+                    // برخلاف حذف رزرو اصلی و ایجاد مجدد آن، فقط جزئیات روزهای
+                    // قابل‌ویرایش تغییر می‌کنند. موارد قفل‌شده همان شناسه را دارند.
+                    var removable = UOW.FoodReserveDetail.Get(
+                        x => x.FoodReserveId == existing.Id && days.Contains(x.DayId))
+                        .ToList();
+
+                    if (removable.Count > 0)
+                        UOW.FoodReserveDetail.RemoveRange(removable);
+
+                    foreach (var item in newDetails)
+                        item.FoodReserveId = existing.Id;
+
+                    UOW.FoodReserveDetail.AddRange(newDetails);
+                }
+
+                // همه حذف‌ها و درج‌ها در یک SaveChanges دیتابیس انجام می‌شوند.
+                // EF Core تغییرات یک SaveChanges را به صورت تراکنشی ذخیره می‌کند.
+                var success = UOW.Commit();
+                return new BaseResult(
+                    success,
+                    success
+                        ? "برنامه غذایی با موفقیت ثبت شد."
+                        : "ذخیره رزرو انجام نشد؛ رزرو قبلی را بررسی کنید.");
+            }
+            catch (Exception ex)
+            {
+                _printLogger.LogError(
+                    ex,
+                    "خطا در ذخیره اتمیک رزرو هفتگی. UserId: {UserId}, Week: {Week}",
+                    model.UserId, model.WeekStartDate);
+                return new BaseResult(false,
+                    "ثبت رزرو با خطا همراه بود؛ لطفاً دوباره بررسی کنید.");
+            }
+        }
+
+        public BaseResult DeleteDayReservation(
+            long userId, DateTime weekStartDate, long dayId)
+        {
+            if (userId <= 0 || dayId <= 0)
+                return new BaseResult(false, "شناسه کاربر یا روز معتبر نیست.");
+
+            try
+            {
+                var reservation = UOW.FoodReserve.Get(x =>
+                    x.UserId == userId &&
+                    x.WeekStartDate == weekStartDate.Date)
+                    .FirstOrDefault();
+
+                if (reservation == null)
+                    return new BaseResult(false, "رزرو این هفته پیدا نشد.");
+
+                var details = UOW.FoodReserveDetail.Get(
+                    x => x.FoodReserveId == reservation.Id).ToList();
+
+                var forDay = details.Where(x => x.DayId == dayId).ToList();
+                if (forDay.Count == 0)
+                    return new BaseResult(false, "برای این روز رزروی ثبت نشده است.");
+
+                UOW.FoodReserveDetail.RemoveRange(forDay);
+
+                if (details.Count == forDay.Count)
+                    UOW.FoodReserve.Remove(reservation);
+
+                var success = UOW.Commit();
+                return new BaseResult(success,
+                    success
+                        ? "رزرو روز انتخاب‌شده حذف شد."
+                        : "حذف رزرو انجام نشد.");
+            }
+            catch (Exception ex)
+            {
+                _printLogger.LogError(
+                    ex,
+                    "خطا در حذف رزرو یک روز. UserId: {UserId}, DayId: {DayId}",
+                    userId, dayId);
+                return new BaseResult(false, "حذف رزرو با خطا همراه بود.");
+            }
+        }
+
         public List<FoodReserveDetail> GetFoodReserveDetail(long userId)
         {
             var today = FoodTimingRules.GetIranNow().Date;
