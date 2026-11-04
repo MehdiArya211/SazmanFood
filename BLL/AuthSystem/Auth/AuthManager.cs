@@ -185,6 +185,12 @@ namespace BLL
             if (user == null)
                 return null;
 
+            // اگر روی حساب، کد پرسنلی دیگری ثبت شده است
+            // ورود با enrollId ظاهراً مشابه نباید پذیرفته شود.
+            if (user.PersonCode.HasValue &&
+                user.PersonCode.Value.ToString() != personnelCode)
+                return null;
+
             SetAuthenticatedUser(user);
             return user;
         }
@@ -216,6 +222,15 @@ namespace BLL
             }
 
             if (user == null)
+                return null;
+
+            // تطابق صرفاً رشته‌ای کافی نیست؛ شناسه‌های هویتی
+            // شناخته‌شده نباید به پرسنل دیگری تعلق داشته باشند.
+            if (user.PersonId.HasValue && user.PersonId.Value != personId)
+                return null;
+            if (user.PersonCode.HasValue &&
+                int.TryParse(personCode, out var expectedPersonCode) &&
+                user.PersonCode.Value != expectedPersonCode)
                 return null;
 
             SetAuthenticatedUser(user);
