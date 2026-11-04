@@ -228,6 +228,23 @@
             cursor: not-allowed;
         }
 
+        .print-server-button {
+            display: block;
+            margin: 8px auto 0;
+            padding: 5px 10px;
+            border: 0;
+            border-bottom: 1px dashed #71808d;
+            background: transparent;
+            color: #586a79;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .print-server-button:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
         .print-message {
             display: none;
             margin-bottom: 16px;
@@ -375,6 +392,34 @@
                     (isSuccess
                         ? 'چاپ با موفقیت انجام شد.'
                         : 'چاپ ژتون انجام نشد.');
+            }
+
+            function openLocalPrintPreview(ids) {
+                if (!ids || !ids.length) {
+                    showPrintMessage('ژتونی برای چاپ انتخاب نشده است.', false);
+                    return;
+                }
+
+                const url =
+                    '/ShowReserveManagment/ShowReserve/PrintPreview' +
+                    '?foodReserveDetaileIds=' +
+                    encodeURIComponent(ids.join(','));
+
+                // این دستور در رویداد کلیک اجرا می‌شود تا پنجره توسط مرورگر مسدود نشود.
+                const printWindow = window.open(url, '_blank');
+
+                if (!printWindow) {
+                    showPrintMessage(
+                        'مرورگر پنجره چاپ را مسدود کرده است. اجازه باز شدن پنجره جدید را بدهید.',
+                        false
+                    );
+                    return;
+                }
+
+                showPrintMessage(
+                    'پیش‌نمایش چاپ باز شد. در پنجره چاپ، پرینتر متصل به همین رایانه را انتخاب کنید. چاپ فیزیکی هنوز تأیید نشده است.',
+                    true
+                );
             }
 
             async function printTickets(ids, button) {
@@ -601,19 +646,28 @@
                         printButton.className = 'print-button';
 
                         if (canPrint && foodReserveIds.length > 0) {
-                            printButton.textContent = '🖨️ چاپ کل روز';
+                            printButton.textContent = '🖨️ چاپ با پرینتر این رایانه';
                             printButton.addEventListener('click', function () {
-                                printTickets(
-                                    foodReserveIds,
-                                    printButton
-                                );
+                                openLocalPrintPreview(foodReserveIds);
                             });
+
+                            const serverButton = document.createElement('button');
+                            serverButton.type = 'button';
+                            serverButton.className = 'print-server-button';
+                            serverButton.textContent = 'ارسال به پرینتر سرور';
+                            serverButton.title =
+                                'فقط در صورتی که پرینتر روی رایانه سرور نصب شده است؛ تحویل به صف چاپ به معنی خروج کاغذ نیست.';
+                            serverButton.addEventListener('click', function () {
+                                printTickets(foodReserveIds, serverButton);
+                            });
+
+                            printSection.appendChild(printButton);
+                            printSection.appendChild(serverButton);
                         } else {
                             printButton.textContent = '❌ غیرفعال';
                             printButton.disabled = true;
+                            printSection.appendChild(printButton);
                         }
-
-                        printSection.appendChild(printButton);
                         dayColumn.appendChild(printSection);
                         daysGrid.appendChild(dayColumn);
                     });
