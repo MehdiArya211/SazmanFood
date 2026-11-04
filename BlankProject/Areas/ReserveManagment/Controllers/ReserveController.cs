@@ -233,8 +233,12 @@ namespace Food.Areas.ReserveManagment.Controllers
                 // گرفتن روزها و وعده‌ها
                 var days = _foodPlanDayManager.GetAllDay().Model;
                 var meals = _mealManager.GetAll().ToList();
+                var plannedFoodItems = _foodPlanDayManager.GetAll()
+                    .Where(x => !x.IsDeleted)
+                    .ToList();
 
                 var unauthorizedSelection = false;
+                var invalidFoodSelection = false;
 
                 // فقط روز و وعده‌ای پذیرفته می‌شود که برای کد پرسنلی سهمیه داشته باشد.
                 foreach (var day in days)
@@ -264,6 +268,25 @@ namespace Food.Areas.ReserveManagment.Controllers
                         long.TryParse(dessert, out var dessertId);
                         long.TryParse(sideDish, out var sideDishId);
 
+                        // شناسه غذاها باید از برنامه ثبت‌شده همین روز و وعده باشند.
+                        // این کنترل در هر دو حالت آزاد و سهمیه‌ای الزامی است.
+                        var dayId = Convert.ToInt64(day.Id);
+                        var mealId = Convert.ToInt64(meal.Id);
+                        var plannedForMeal = plannedFoodItems
+                            .Where(x => x.DayId == dayId && x.MealId == mealId)
+                            .ToList();
+
+                        if (mainFoodId <= 0 ||
+                            !plannedForMeal.Any(x => x.FoodId == mainFoodId) ||
+                            (dessertId > 0 &&
+                             !plannedForMeal.Any(x => x.FoodDesserId == dessertId)) ||
+                            (sideDishId > 0 &&
+                             !plannedForMeal.Any(x => x.FoodDorchinId == sideDishId)))
+                        {
+                            invalidFoodSelection = true;
+                            continue;
+                        }
+
                         plan.Details.Add(new FoodReserveDetailDTO
                         {
                             DayId = day.Id,
@@ -281,6 +304,13 @@ namespace Food.Areas.ReserveManagment.Controllers
                         freeReservationEnabled
                             ? "فقط روزها و وعده‌های موجود در برنامه غذایی قابل رزرو هستند."
                             : "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.";
+                    return RedirectToAction("Index");
+                }
+
+                if (invalidFoodSelection)
+                {
+                    TempData["Error"] =
+                        "غذا، دسر یا دورچین انتخاب‌شده با برنامه غذایی این روز و وعده مطابقت ندارد.";
                     return RedirectToAction("Index");
                 }
 
