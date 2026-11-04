@@ -43,30 +43,28 @@ namespace BLL.ReserveManagment
 
         public BaseResult AddToReserveAndReserveDetail(FoodReserveDTO model)
         {
+            if (model == null || model.Details == null || model.Details.Count == 0)
+                return new BaseResult(false, "اطلاعات رزرو برای ثبت کامل نیست.");
+
+            // فراخوانی‌های قدیمی نیز از همان ذخیره‌سازی یک‌مرحله‌ای
+            // استفاده می‌کنند تا ابتدا رکورد اصلی و سپس جزئیات جداگانه
+            // Commit نشوند.
             var now = FoodTimingRules.GetIranNow();
+            if (model.WeekStartDate == default)
+            {
+                int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
+                model.WeekStartDate = now.AddDays(-diff).Date;
+            }
 
-            // محاسبه شروع و پایان هفته (با فرض شروع هفته از شنبه)
-            int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
-            DateTime weekStartDate = now.AddDays(-1 * diff).Date;
-            DateTime weekEndDate = weekStartDate.AddDays(6).Date;
+            if (model.WeekEndDate == default)
+                model.WeekEndDate = model.WeekStartDate.Date.AddDays(6);
 
-            var foodReserve = new FoodReserve();
+            var editableSlots = model.Details
+                .Select(x => (x.DayId, x.MealId))
+                .Distinct()
+                .ToList();
 
-            foodReserve.CreatedAt = DateTime.Now;
-            foodReserve.Year = DateTime.Now.Year;
-            foodReserve.Month = DateTime.Now.Month;
-            foodReserve.WeekStartDate = weekStartDate;
-            foodReserve.WeekEndDate = weekEndDate;
-            foodReserve.UserId = model.UserId;
-
-            var resultFoodReserve = base.Create(foodReserve);
-
-            var resultFoodReserveDetail = _foodReserveDetailManager.CreateFoodReserveDetail(model.Details.ToList(), resultFoodReserve.Model);
-
-
-            return resultFoodReserveDetail;
-
-
+            return SaveWeeklyReservation(model, editableSlots);
         }
 
         /// <summary>
