@@ -2,6 +2,7 @@
 using BLL.FoodManag.FoodBL;
 using BLL.Interface;
 using BLL.ReserveManagment;
+using Domain.Entities;
 using Domain.Entities.FoodManage;
 using Domain.Entities.FoodReservation;
 using DTO.Entities;
@@ -265,7 +266,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 };
 
                 // گرفتن روزها و وعده‌ها
-                var days = _foodPlanDayManager.GetAllDay().Model;
+                List<Days> days = (List<Days>)_foodPlanDayManager.GetAllDay().Model;
                 var meals = _mealManager.GetAll().ToList();
                 var plannedFoodItems = _foodPlanDayManager.GetAll()
                     .Where(x => x.IsDeleted == false)
@@ -297,7 +298,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                         {
                             unauthorizedSelection = true;
                             if (!FoodTimingRules.CanReserve(
-                                    timingPolicy, dayDate, now, out var cutoffReason))
+                                    timingPolicy, dayDate, now, out string cutoffReason))
                             {
                                 cutoffViolationMessage ??= cutoffReason;
                             }
@@ -364,14 +365,14 @@ namespace Food.Areas.ReserveManagment.Controllers
                 // فقط روز و وعده‌های واقعاً مجاز در این درخواست تغییر می‌کنند.
                 // بقیه رکوردها (مهلت‌گذشته، بدون سهمیه یا برنامه قبلی)
                 // همان شماره ژتون را حفظ می‌کنند.
-                var dayCodes = days
+                Dictionary<int, long> dayCodes = days
                     .ToDictionary(x => x.Code, x => x.Id);
 
                 var editableSlots = new HashSet<(long DayId, long MealId)>();
                 foreach (var slot in reservableSlots)
                 {
                     var dayCode = (int)(slot.Date.Date - weekStartDate).TotalDays + 1;
-                    if (dayCodes.TryGetValue(dayCode, out var dayId))
+                    if (dayCodes.TryGetValue(dayCode, out long dayId))
                     {
                         editableSlots.Add((dayId, slot.MealId));
                     }
@@ -423,7 +424,7 @@ namespace Food.Areas.ReserveManagment.Controllers
         private HashSet<(DateTime Date, long MealId)> GetOpenReservableSlots(
             DateTime weekStartDate)
         {
-            var days = _foodPlanDayManager.GetAllDay().Model;
+            List<Days> days = (List<Days>)_foodPlanDayManager.GetAllDay().Model;
             var plannedPairs = _foodPlanDayManager.GetAll()
                 .Where(x => x.IsDeleted == false)
                 .Select(x => (x.DayId, x.MealId))
@@ -479,8 +480,8 @@ namespace Food.Areas.ReserveManagment.Controllers
                 DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
 
-                var foodDay = _foodPlanDayManager.GetAllDay().Model
-                    .FirstOrDefault(x => x.Id == dayId);
+                List<Days> days = (List<Days>)_foodPlanDayManager.GetAllDay().Model;
+                var foodDay = days.FirstOrDefault(x => x.Id == dayId);
 
                 if (foodDay == null)
                 {
@@ -490,7 +491,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 var dayDate = weekStartDate.AddDays(foodDay.Code - 1).Date;
                 var timingPolicy = _constantManager.GetFoodTimingPolicy();
                 if (!FoodTimingRules.CanReserve(
-                        timingPolicy, dayDate, now, out var timingMessage))
+                        timingPolicy, dayDate, now, out string timingMessage))
                 {
                     return Json(new
                     {
