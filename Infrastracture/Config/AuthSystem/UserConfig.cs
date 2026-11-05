@@ -16,6 +16,10 @@ namespace Infrastructure.Config
             // یونیک کردن نام کاربری
             builder.HasIndex(x => x.Username).IsUnique(true);
 
+            // در ثبت بیومتریک شماره موبایل واقعی از سرویس پرسنلی
+            // دریافت نمی‌شود و نباید مقدار ساختگی اجباری شود.
+            builder.Property(x => x.Mobile).IsRequired(false);
+
 
             // نقش
             builder.HasOne(x => x.Role)

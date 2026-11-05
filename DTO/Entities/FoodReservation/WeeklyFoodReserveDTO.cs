@@ -3,6 +3,7 @@
 public class WeeklyFoodReserveDTO
 {
     public long FoodReserveDetaileId { get; set; }
+    public long MealId { get; set; }
     public DateTime Date { get; set; }
     public string DayTitle { get; set; }
     public string MealTitle { get; set; }

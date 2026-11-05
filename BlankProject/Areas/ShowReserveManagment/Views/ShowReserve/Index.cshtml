@@ -228,6 +228,23 @@
             cursor: not-allowed;
         }
 
+        .print-server-button {
+            display: block;
+            margin: 8px auto 0;
+            padding: 5px 10px;
+            border: 0;
+            border-bottom: 1px dashed #71808d;
+            background: transparent;
+            color: #586a79;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .print-server-button:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
         .print-message {
             display: none;
             margin-bottom: 16px;
@@ -249,6 +266,13 @@
             background: #ffebee;
             border: 1px solid #ef9a9a;
             color: #c62828;
+        }
+
+        .print-message.info {
+            display: block;
+            background: #eaf4ff;
+            border: 1px solid #a8cfef;
+            color: #245780;
         }
 
         .empty-state {
@@ -284,11 +308,21 @@
 }
 
 <div class="food-print-page">
+    @Html.AntiForgeryToken()
     <div class="food-print-container">
         <div class="food-print-header">
             <h1>برنامه غذایی هفتگی</h1>
             <p>مشاهده و چاپ ژتون غذا</p>
         </div>
+
+        @if (ViewBag.PrintRestrictionEnabled == true)
+        {
+            <div class="alert alert-info text-center" role="status"
+                 style="font-size:13px;font-weight:700;border-radius:10px">
+                <i class="material-icons" aria-hidden="true">schedule</i>
+                چاپ ژتون هر روز فقط از ساعت @ViewBag.PrintStartTime همان روز به وقت ایران مجاز است.
+            </div>
+        }
 
         <div id="printMessage" class="print-message"></div>
         <div id="weeklyFoodContainer"></div>
@@ -299,16 +333,18 @@
     <script>
         (function () {
             const weeklyFoodData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model ?? new List<WeeklyFoodReserveDTO>()));
+            const allowedPrintIds = new Set(
+                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllowedPrintIds ?? new HashSet<long>()))
+            );
+            const iranToday = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.IranToday ?? DateTime.Today.ToString("yyyy-MM-dd")));
+            const printRestrictionEnabled = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PrintRestrictionEnabled == true));
+            const printStartTime = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PrintStartTime ?? "12:00"));
 
             function getDayStatus(date) {
-                const today = new Date();
-                const mealDate = new Date(date);
-
-                today.setHours(0, 0, 0, 0);
-                mealDate.setHours(0, 0, 0, 0);
-
-                if (mealDate < today) return 'past';
-                if (mealDate.getTime() === today.getTime()) return 'today';
+                // تاریخ مستقل از ساعت محلی مرورگر با روز رسمی ایران مقایسه می‌شود.
+                const dayKey = String(date || '').split('T')[0];
+                if (dayKey < iranToday) return 'past';
+                if (dayKey === iranToday) return 'today';
                 return 'future';
             }
 
@@ -361,20 +397,48 @@
                 return row;
             }
 
-            function showPrintMessage(message, isSuccess) {
+            function showPrintMessage(message, isSuccess, isInformational) {
                 const box = document.getElementById('printMessage');
 
                 if (!box) return;
 
-                box.className =
-                    'print-message ' +
-                    (isSuccess ? 'success' : 'error');
-
+                const status =
+                    isInformational ? 'info' : (isSuccess ? 'success' : 'error');
+                box.className = 'print-message ' + status;
                 box.textContent =
                     message ||
                     (isSuccess
-                        ? 'چاپ با موفقیت انجام شد.'
+                        ? 'درخواست چاپ به صف ارسال شد؛ وضعیت کاغذ قابل تأیید نیست.'
                         : 'چاپ ژتون انجام نشد.');
+            }
+
+            function openLocalPrintPreview(ids) {
+                if (!ids || !ids.length) {
+                    showPrintMessage('ژتونی برای چاپ انتخاب نشده است.', false);
+                    return;
+                }
+
+                const url =
+                    '/ShowReserveManagment/ShowReserve/PrintPreview' +
+                    '?foodReserveDetaileIds=' +
+                    encodeURIComponent(ids.join(','));
+
+                // این دستور در رویداد کلیک اجرا می‌شود تا پنجره توسط مرورگر مسدود نشود.
+                const printWindow = window.open(url, '_blank');
+
+                if (!printWindow) {
+                    showPrintMessage(
+                        'مرورگر پنجره چاپ را مسدود کرده است. اجازه باز شدن پنجره جدید را بدهید.',
+                        false
+                    );
+                    return;
+                }
+
+                showPrintMessage(
+                    'پیش‌نمایش چاپ باز شد. در پنجره چاپ، پرینتر متصل به همین رایانه را انتخاب کنید. چاپ فیزیکی هنوز تأیید نشده است.',
+                    true,
+                    true
+                );
             }
 
             async function printTickets(ids, button) {
@@ -394,18 +458,26 @@
                     '⏳ در حال چاپ...';
 
                 try {
-                    const url =
-                        '/ShowReserveManagment/ShowReserve/PrintMeal' +
-                        '?foodReserveDetaileIds=' +
-                        encodeURIComponent(ids.join(','));
+                    const csrfToken = document.querySelector(
+                        'input[name="__RequestVerificationToken"]'
+                    )?.value;
+                    if (!csrfToken) {
+                        throw new Error('توکن امنیتی درخواست چاپ در صفحه یافت نشد.');
+                    }
+
+                    const postData = new URLSearchParams();
+                    postData.set('foodReserveDetaileIds', ids.join(','));
+                    postData.set('__RequestVerificationToken', csrfToken);
 
                     const response =
-                        await fetch(url, {
-                            method: 'GET',
+                        await fetch('/ShowReserveManagment/ShowReserve/PrintMeal', {
+                            method: 'POST',
+                            credentials: 'same-origin',
                             headers: {
-                                'X-Requested-With':
-                                    'XMLHttpRequest'
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Content-Type': 'application/x-www-form-urlencoded'
                             },
+                            body: postData.toString(),
                             cache: 'no-store'
                         });
 
@@ -439,6 +511,7 @@
                         (response.ok
                             ? 'پاسخ چاپ از سرور معتبر نبود.'
                             : 'ارتباط با سرویس چاپ با خطا همراه بود.'),
+                        isSuccess,
                         isSuccess
                     );
                 } catch (error) {
@@ -448,7 +521,8 @@
                     );
 
                     showPrintMessage(
-                        'ارسال درخواست چاپ با خطا همراه بود.',
+                        error?.message ||
+                            'ارسال درخواست چاپ با خطا همراه بود.',
                         false
                     );
                 } finally {
@@ -510,7 +584,6 @@
                     .forEach(function (dateKey) {
                         const dayInfo = groupedData[dateKey];
                         const status = getDayStatus(dayInfo.date);
-                        const canPrint = status !== 'past';
 
                         const dayColumn = document.createElement('div');
                         dayColumn.className = 'day-column ' + status + '-day';
@@ -593,6 +666,13 @@
                                 return id !== null && id !== undefined && id !== '';
                             });
 
+                        const canPrint =
+                            (!printRestrictionEnabled || status !== 'past') &&
+                            foodReserveIds.length > 0 &&
+                            foodReserveIds.every(id =>
+                                allowedPrintIds.has(Number(id))
+                            );
+
                         const printSection = document.createElement('div');
                         printSection.className = 'print-section';
 
@@ -601,19 +681,35 @@
                         printButton.className = 'print-button';
 
                         if (canPrint && foodReserveIds.length > 0) {
-                            printButton.textContent = '🖨️ چاپ کل روز';
+                            printButton.textContent = '🖨️ چاپ با پرینتر این رایانه';
                             printButton.addEventListener('click', function () {
-                                printTickets(
-                                    foodReserveIds,
-                                    printButton
-                                );
+                                openLocalPrintPreview(foodReserveIds);
                             });
-                        } else {
-                            printButton.textContent = '❌ غیرفعال';
-                            printButton.disabled = true;
-                        }
 
-                        printSection.appendChild(printButton);
+                            const serverButton = document.createElement('button');
+                            serverButton.type = 'button';
+                            serverButton.className = 'print-server-button';
+                            serverButton.textContent = 'ارسال به پرینتر سرور';
+                            serverButton.title =
+                                'فقط در صورتی که پرینتر روی رایانه سرور نصب شده است؛ تحویل به صف چاپ به معنی خروج کاغذ نیست.';
+                            serverButton.addEventListener('click', function () {
+                                printTickets(foodReserveIds, serverButton);
+                            });
+
+                            printSection.appendChild(printButton);
+                            printSection.appendChild(serverButton);
+                        } else {
+                            printButton.textContent =
+                                printRestrictionEnabled && status === 'past'
+                                    ? '❌ تاریخ گذشته'
+                                    : printRestrictionEnabled && status === 'future'
+                                        ? 'چاپ فقط در روز غذا'
+                                        : printRestrictionEnabled && status === 'today'
+                                            ? 'چاپ از ساعت ' + printStartTime
+                                            : '❌ بدون سهمیه مجاز';
+                            printButton.disabled = true;
+                            printSection.appendChild(printButton);
+                        }
                         dayColumn.appendChild(printSection);
                         daysGrid.appendChild(dayColumn);
                     });

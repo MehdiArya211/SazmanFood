@@ -41,6 +41,7 @@
                   asp-route-RetUrl="@Context.Request.Query["RetUrl"]"
                   asp-route-MenuId="@Context.Request.Query["mid"]"
                   method="post"
+                  asp-antiforgery="true"
                   id="loginForm"
                   onsubmit="return Validate();"
                   novalidate>

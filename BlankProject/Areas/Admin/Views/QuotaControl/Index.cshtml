@@ -1,0 +1,762 @@
+@using DTO.Base
+@{
+    var timing = ViewBag.TimingPolicy as FoodTimingPolicyDTO ?? new FoodTimingPolicyDTO();
+    var weekdays = new[]
+    {
+        new { DayOfWeek = 6, Title = "شنبه" },
+        new { DayOfWeek = 0, Title = "یکشنبه" },
+        new { DayOfWeek = 1, Title = "دوشنبه" },
+        new { DayOfWeek = 2, Title = "سه‌شنبه" },
+        new { DayOfWeek = 3, Title = "چهارشنبه" },
+        new { DayOfWeek = 4, Title = "پنجشنبه" },
+        new { DayOfWeek = 5, Title = "جمعه" }
+    };
+    ViewData["Title"] = "کنترل سیاست سهمیه‌بندی غذا";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var isEnabled = ViewBag.FreeReservationEnabled == true;
+}
+
+@section styles {
+    <style>
+        .quota-policy-page {
+            direction: rtl;
+            margin: 0 auto;
+            max-width: 1040px;
+            padding: 12px 5px 32px;
+        }
+        .quota-policy-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 27px;
+            box-shadow: 0 6px 24px rgba(31, 45, 61, .08);
+        }
+        .quota-policy-title {
+            color: #26384d;
+            margin: 0 0 8px;
+            font-size: 23px;
+            font-weight: 800;
+        }
+        .quota-policy-subtitle {
+            color: #728093;
+            line-height: 2;
+            font-size: 13px;
+        }
+        .quota-policy-switch {
+            margin: 23px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            background: #f6f9fc;
+            border: 1px solid #e0e8f0;
+            border-radius: 12px;
+        }
+        .quota-policy-switch input {
+            width: 23px;
+            height: 23px;
+            accent-color: #1e88e5;
+            cursor: pointer;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        .quota-policy-switch label {
+            font-size: 16px;
+            font-weight: 800;
+            margin: 0;
+            cursor: pointer;
+            color: #34495e;
+        }
+        .quota-policy-info {
+            color: #657587;
+            font-size: 12px;
+            font-weight: 400;
+            margin-top: 5px;
+            line-height: 2;
+        }
+        .quota-policy-status {
+            padding: 13px 16px;
+            border-radius: 10px;
+            margin: 15px 0;
+            line-height: 1.9;
+            font-weight: 700;
+        }
+        .quota-policy-status.free {
+            background: #e6f4ea;
+            color: #266a35;
+        }
+        .quota-policy-status.limited {
+            background: #f0f4fa;
+            color: #3a546e;
+        }
+        .quota-policy-actions {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .quota-policy-actions button {
+            min-width: 170px;
+            padding: 11px 24px;
+            border-radius: 9px;
+            font-weight: 800;
+        }
+        .quota-policy-notice {
+            display: none;
+            border-radius: 9px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            line-height: 1.9;
+            text-align: center;
+        }
+        .quota-policy-notice.success {
+            display: block;
+            background: #eaf7ef;
+            color: #23643b;
+        }
+        .quota-policy-notice.error {
+            display: block;
+            background: #fcecee;
+            color: #ab2837;
+        }
+        .timing-card {
+            margin-top: 24px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 6px 24px rgba(31, 45, 61, .08);
+        }
+        .timing-card h3 {
+            margin: 0 0 9px;
+            font-size: 19px;
+            color: #273d56;
+            font-weight: 800;
+        }
+        .timing-intro {
+            color: #728093;
+            line-height: 2;
+            font-size: 12px;
+            margin-bottom: 18px;
+        }
+        .timing-section {
+            border: 1px solid #e3eaf2;
+            border-radius: 12px;
+            padding: 17px 18px;
+            margin-bottom: 18px;
+            background: #fafcfe;
+        }
+        .timing-section-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 13px;
+            color: #34495e;
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .timing-section-heading input {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 20px;
+            cursor: pointer;
+            accent-color: #1e88e5;
+            margin: 0;
+        }
+        .timing-help { color: #728093; font-size: 12px; line-height: 2; }
+        .timing-time-input {
+            border: 1px solid #d2dce7;
+            background: #fff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: Tahoma, sans-serif;
+            direction: ltr;
+            min-height: 40px;
+            min-width: 130px;
+        }
+        .timing-day-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 7px;
+        }
+        .timing-day-table th {
+            padding: 7px 9px;
+            color: #64768a;
+            text-align: right;
+            font-size: 12px;
+        }
+        .timing-day-table td {
+            background: #fff;
+            padding: 10px 9px;
+            border-top: 1px solid #e7edf3;
+            border-bottom: 1px solid #e7edf3;
+            vertical-align: middle;
+        }
+        .timing-day-table td:first-child {
+            border-right: 1px solid #e7edf3;
+            border-radius: 0 8px 8px 0;
+            font-weight: 800;
+            color: #3e566d;
+        }
+        .timing-day-table td:last-child {
+            border-left: 1px solid #e7edf3;
+            border-radius: 8px 0 0 8px;
+        }
+        .timing-day-table select {
+            max-width: 240px;
+            min-width: 150px;
+            min-height: 40px;
+            padding: 7px 9px;
+            background: #fff;
+            border: 1px solid #d2dce7;
+            border-radius: 8px;
+        }
+        .timing-example {
+            padding: 12px;
+            border-radius: 9px;
+            background: #edf5ff;
+            color: #476888;
+            font-size: 12px;
+            line-height: 2;
+        }
+        .timing-save {
+            text-align: left;
+            margin-top: 17px;
+        }
+        .timing-save button {
+            min-width: 190px;
+            border-radius: 9px;
+        }
+        .timing-notice {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 9px;
+            line-height: 1.9;
+        }
+        .timing-notice.success {
+            display: block;
+            background: #eaf7ef;
+            color: #23643b;
+        }
+        .timing-notice.error {
+            display: block;
+            background: #fcecee;
+            color: #ab2837;
+        }
+        .timing-bulk {
+            background: #fff;
+            border: 1px solid #dce6f1;
+            border-radius: 12px;
+            padding: 17px;
+            margin: 16px 0;
+        }
+        .timing-bulk-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #2d485e;
+            margin-bottom: 12px;
+        }
+        .timing-bulk-days {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 14px;
+        }
+        .timing-bulk-day {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border: 1px solid #dbe4ee;
+            border-radius: 9px;
+            color: #526a80;
+            background: #f9fbfd;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            user-select: none;
+        }
+        .timing-bulk-day:has(input:checked) {
+            border-color: #4296dc;
+            background: #e9f4ff;
+            color: #165c91;
+        }
+        .timing-bulk-day input,
+        .timing-bulk-all input {
+            width: 17px;
+            height: 17px;
+            margin: 0;
+            accent-color: #1e88e5;
+            cursor: pointer;
+        }
+        .timing-bulk-all {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            color: #304a60;
+            cursor: pointer;
+        }
+        .timing-bulk-controls {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        .timing-bulk-controls label {
+            display: block;
+            margin-bottom: 6px;
+            color: #5b7186;
+            font-size: 12px;
+        }
+        .timing-bulk-controls .btn {
+            margin: 0;
+            min-height: 41px;
+            font-weight: 800;
+            border-radius: 8px;
+        }
+        .timing-bulk-help { margin: 10px 0 0; font-size: 11px; color: #73879a; line-height: 1.9; }
+        .timing-day-details { margin-top: 14px; }
+        .timing-day-details summary {
+            cursor: pointer;
+            color: #246f9a;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 11px 0;
+        }
+        .timing-day-details summary:focus-visible,
+        .timing-bulk-day:focus-within { outline: 2px solid #1e88e5; outline-offset: 2px; }
+        .timing-options-inactive { opacity: .65; }
+        @@media (max-width: 767px) {
+            .quota-policy-card { padding: 18px; }
+            .quota-policy-title { font-size: 19px; }
+            .timing-card { padding: 15px; }
+            .timing-section { padding: 13px; }
+            .timing-day-table select { min-width: 120px; max-width: 150px; }
+            .timing-time-input { min-width: 102px; width: 104px; }
+        }
+    </style>
+}
+
+<div class="col-md-12">
+    <div class="quota-policy-page">
+        <div class="quota-policy-card">
+            <h2 class="quota-policy-title">
+                <i class="material-icons" aria-hidden="true">verified_user</i>
+                کنترل سهمیه‌بندی غذا
+            </h2>
+            <p class="quota-policy-subtitle">
+                با این گزینه می‌توانید موقتاً رزرو غذا را برای تمام کاربران واردشده آزاد کنید.
+                سهمیه‌های تعریف‌شده حذف یا ویرایش نمی‌شوند.
+            </p>
+
+            <form id="quota-policy-form" method="post"
+                  action="@Url.Action("Save", "QuotaControl", new { area = "Admin" })">
+                @Html.AntiForgeryToken()
+
+                <div class="quota-policy-switch">
+                    <input id="freeReservationEnabled"
+                           name="enabled"
+                           type="checkbox"
+                           value="true"
+                           checked="@isEnabled" />
+                    <div>
+                        <label for="freeReservationEnabled">
+                            همه کاربران بدون نیاز به سهمیه فردی بتوانند غذا رزرو کنند
+                        </label>
+                        <div class="quota-policy-info">
+                            این گزینه فقط کنترل سهمیه فردی را موقتاً غیرفعال می‌کند؛
+                            انتخاب غذا همچنان طبق برنامه غذایی و وعده‌های تعریف‌شده است.
+                        </div>
+                    </div>
+                </div>
+
+                <div id="quota-policy-status"
+                     class="quota-policy-status @(isEnabled ? "free" : "limited")">
+                    @(isEnabled
+                        ? "حالت فعلی: رزرو آزاد برای تمام کاربران."
+                        : "حالت فعلی: فقط کاربران دارای سهمیه ثبت‌شده مجاز به رزرو هستند.")
+                </div>
+
+                <div class="quota-policy-actions">
+                    <button id="quota-policy-save" class="btn btn-info" type="submit">
+                        <i class="material-icons">save</i>
+                        ذخیره تنظیمات
+                    </button>
+                </div>
+            </form>
+
+            <div id="quota-policy-notice" class="quota-policy-notice" role="status"></div>
+        </div>
+
+        <div id="food-timing-settings" class="timing-card">
+            <h3>
+                <i class="material-icons" aria-hidden="true">schedule</i>
+                محدودیت زمان رزرو و چاپ ژتون
+            </h3>
+            <p class="timing-intro">
+                هر یک از محدودیت‌ها مستقل است و هر زمان می‌توانید آن را فعال یا غیرفعال کنید.
+                زمان‌ها بر اساس ساعت رسمی ایران محاسبه می‌شوند.
+                هیچ رزرو قبلی با تغییر تنظیمات حذف نمی‌شود.
+            </p>
+            @if (ViewBag.TimingPolicyError is string timingError &&
+                 !string.IsNullOrWhiteSpace(timingError))
+            {
+                <div class="alert alert-warning" role="alert">
+                    <i class="material-icons" aria-hidden="true">warning</i>
+                    @timingError
+                </div>
+            }
+
+            <form id="food-timing-form" method="post"
+                  action="@Url.Action("SaveTimingPolicy", "QuotaControl", new { area = "Admin" })">
+                @Html.AntiForgeryToken()
+
+                <section class="timing-section">
+                    <div class="timing-section-heading">
+                        <input type="checkbox" id="printTimeEnabled"
+                               name="PrintTimeEnabled" value="true"
+                               checked="@timing.PrintTimeEnabled" />
+                        <label for="printTimeEnabled" style="margin:0;cursor:pointer">
+                            محدودیت ساعت چاپ ژتون فعال باشد
+                        </label>
+                    </div>
+                    <div id="print-timing-options">
+                        <label for="printStartTime" class="timing-help">شروع چاپ در روز غذا از ساعت:</label>
+                        <input id="printStartTime" name="PrintStartTime"
+                               class="timing-time-input" type="time" required
+                               value="@timing.PrintStartTime" />
+                        <p class="timing-help">
+                            مثال: 12:00 یعنی تا قبل از ظهر امکان چاپ ژتون نیست؛
+                            ژتون فردا هم زودتر از فردا ساعت ۱۲ قابل چاپ نخواهد بود.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="timing-section">
+                    <div class="timing-section-heading">
+                        <input type="checkbox" id="reservationDeadlineEnabled"
+                               name="ReservationDeadlineEnabled" value="true"
+                               checked="@timing.ReservationDeadlineEnabled" />
+                        <label for="reservationDeadlineEnabled" style="margin:0;cursor:pointer">
+                            محدودیت مهلت رزرو برای هر روز فعال باشد
+                        </label>
+                    </div>
+                    <div id="reservation-timing-options">
+                        <p class="timing-help">
+                            برای هر روز غذا تعیین کنید رزرو چند روز قبل و تا چه ساعتی باز باشد.
+                            روز بسته‌شده قابل ویرایش یا حذف نیست؛ رزروهای قبلی حفظ می‌شوند.
+                        </p>
+
+                        <div class="timing-bulk">
+                            <div class="timing-bulk-title">
+                                <i class="material-icons" style="font-size:18px;vertical-align:middle" aria-hidden="true">playlist_add_check</i>
+                                تنظیم سریع چند روز با یک‌بار انتخاب
+                            </div>
+                            <label class="timing-bulk-all" for="timing-select-all">
+                                <input id="timing-select-all" type="checkbox" checked />
+                                همه روزهای هفته
+                            </label>
+                            <div class="timing-bulk-days" role="group" aria-label="روزهای دریافت غذا">
+                                @foreach (var weekDay in weekdays)
+                                {
+                                    <label class="timing-bulk-day">
+                                        <input type="checkbox" class="timing-bulk-day-input"
+                                               data-weekday="@weekDay.DayOfWeek"
+                                               checked />
+                                        @weekDay.Title
+                                    </label>
+                                }
+                            </div>
+                            <div class="timing-bulk-controls">
+                                <div>
+                                    <label for="timing-bulk-days-before">آخرین مهلت رزرو</label>
+                                    <select id="timing-bulk-days-before" class="form-control"
+                                            style="min-width:150px">
+                                        @for (var offset = 0; offset <= 7; offset++)
+                                        {
+                                            <option value="@offset" selected="@(offset == 1)">
+                                                @(offset == 0 ? "همان روز" : offset == 1 ? "یک روز قبل" : $"{offset} روز قبل")
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="timing-bulk-cutoff">تا ساعت</label>
+                                    <input type="time" id="timing-bulk-cutoff"
+                                           class="timing-time-input"
+                                           value="12:00" required />
+                                </div>
+                                <button type="button" class="btn btn-info"
+                                        id="timing-bulk-apply">
+                                    <i class="material-icons" style="vertical-align:middle" aria-hidden="true">done_all</i>
+                                    اعمال و ذخیره
+                                </button>
+                            </div>
+                            <p class="timing-bulk-help">
+                                <span id="timing-bulk-count">۷ روز انتخاب شده</span>.
+                                با «اعمال و ذخیره»، مهلت جدید فقط روی روزهای تیک‌خورده ثبت و محدودیت رزرو فعال می‌شود.
+                                روزهای دیگر بدون تغییر می‌مانند.
+                            </p>
+                        </div>
+
+                        <details class="timing-day-details" id="timing-day-details">
+                            <summary>ویرایش جداگانه روزها (اختیاری)</summary>
+                            <div class="table-responsive">
+                                <table class="timing-day-table">
+                                <thead>
+                                    <tr>
+                                        <th>روز دریافت غذا</th>
+                                        <th>آخرین روز مجاز برای رزرو</th>
+                                        <th>تا ساعت</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (var i = 0; i < weekdays.Length; i++)
+                                    {
+                                        var weekDay = weekdays[i];
+                                        var row = timing.Days.Single(x => x.DayOfWeek == weekDay.DayOfWeek);
+                                        <tr>
+                                            <td>
+                                                @weekDay.Title
+                                                <input type="hidden"
+                                                       name="Days[@i].DayOfWeek"
+                                                       value="@weekDay.DayOfWeek" />
+                                            </td>
+                                            <td>
+                                                <select name="Days[@i].DaysBefore" class="timing-days-before">
+                                                    @for (var offset = 0; offset <= 7; offset++)
+                                                    {
+                                                        <option value="@offset" selected="@(row.DaysBefore == offset)">
+                                                            @(offset == 0 ? "همان روز" : offset == 1 ? "یک روز قبل" : $"{offset} روز قبل")
+                                                        </option>
+                                                    }
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="time"
+                                                       name="Days[@i].CutoffTime"
+                                                       class="timing-time-input"
+                                                       value="@row.CutoffTime" required />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                </table>
+                            </div>
+                        </details>
+                        <div class="timing-example">
+                            <i class="material-icons" style="font-size:17px;vertical-align:middle">info_outline</i>
+                            مثال: برای غذای سه‌شنبه، «یک روز قبل» و «۱۲:۰۰» یعنی
+                            دوشنبه تا ساعت ۱۲ ظهر فرصت رزرو سه‌شنبه وجود دارد.
+                        </div>
+                    </div>
+                </section>
+
+                <div class="timing-save">
+                    <button class="btn btn-info" id="food-timing-save" type="submit">
+                        <i class="material-icons">save</i>
+                        ذخیره محدودیت‌های زمانی
+                    </button>
+                </div>
+            </form>
+            <div id="food-timing-notice" class="timing-notice" role="status"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('quota-policy-form');
+            const checkbox = document.getElementById('freeReservationEnabled');
+            const button = document.getElementById('quota-policy-save');
+            const status = document.getElementById('quota-policy-status');
+            const notice = document.getElementById('quota-policy-notice');
+            let savedValue = @isEnabled.ToString().ToLowerInvariant();
+
+
+            const timingForm = document.getElementById('food-timing-form');
+            const timingSave = document.getElementById('food-timing-save');
+            const timingNotice = document.getElementById('food-timing-notice');
+            const printEnabled = document.getElementById('printTimeEnabled');
+            const reserveEnabled = document.getElementById('reservationDeadlineEnabled');
+
+            function refreshTimingControls() {
+                document.getElementById('print-timing-options')
+                    .classList.toggle('timing-options-inactive', !printEnabled.checked);
+                document.getElementById('reservation-timing-options')
+                    .classList.toggle('timing-options-inactive', !reserveEnabled.checked);
+            }
+            printEnabled.addEventListener('change', refreshTimingControls);
+            reserveEnabled.addEventListener('change', refreshTimingControls);
+            refreshTimingControls();
+
+            const bulkSelectAll = document.getElementById('timing-select-all');
+            const bulkDays = Array.from(document.querySelectorAll('.timing-bulk-day-input'));
+            const bulkApply = document.getElementById('timing-bulk-apply');
+            const bulkCount = document.getElementById('timing-bulk-count');
+            const bulkDaysBefore = document.getElementById('timing-bulk-days-before');
+            const bulkCutoff = document.getElementById('timing-bulk-cutoff');
+
+            function refreshBulkSelection() {
+                const count = bulkDays.filter(day => day.checked).length;
+                bulkSelectAll.checked = count === bulkDays.length;
+                bulkSelectAll.indeterminate = count > 0 && count < bulkDays.length;
+                bulkCount.textContent = count + ' روز انتخاب شده';
+                bulkApply.disabled = count === 0;
+            }
+
+            bulkSelectAll.addEventListener('change', function () {
+                bulkDays.forEach(day => { day.checked = bulkSelectAll.checked; });
+                refreshBulkSelection();
+            });
+            bulkDays.forEach(day => day.addEventListener('change', refreshBulkSelection));
+            refreshBulkSelection();
+
+            async function saveTimingSettings(requireConfirmation) {
+                if (requireConfirmation &&
+                    !window.confirm('تغییرات محدودیت زمانی رزرو و چاپ ژتون ذخیره شود؟')) {
+                    return false;
+                }
+
+                timingSave.disabled = true;
+                bulkApply.disabled = true;
+                timingNotice.className = 'timing-notice';
+
+                const values = new FormData(timingForm);
+                values.set('PrintTimeEnabled', printEnabled.checked ? 'true' : 'false');
+                values.set('ReservationDeadlineEnabled', reserveEnabled.checked ? 'true' : 'false');
+
+                try {
+                    const response = await fetch(timingForm.action, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: values
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !(result.status === true || result.Status === true))
+                        throw new Error(result.message || result.Message || 'ذخیره انجام نشد.');
+
+                    timingNotice.className = 'timing-notice success';
+                    timingNotice.textContent = result.message || result.Message ||
+                        'محدودیت‌های زمانی با موفقیت ذخیره شدند.';
+                    return true;
+                } catch (error) {
+                    timingNotice.className = 'timing-notice error';
+                    timingNotice.textContent = error.message || 'ارتباط با سرور برقرار نشد.';
+                    return false;
+                } finally {
+                    timingSave.disabled = false;
+                    refreshBulkSelection();
+                }
+            }
+
+            bulkApply.addEventListener('click', async function () {
+                const selected = bulkDays
+                    .filter(day => day.checked)
+                    .map(day => day.dataset.weekday);
+
+                if (!selected.length) return;
+
+                if (!bulkCutoff.value || !/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(bulkCutoff.value)) {
+                    timingNotice.className = 'timing-notice error';
+                    timingNotice.textContent = 'یک ساعت معتبر برای پایان رزرو انتخاب کنید.';
+                    return;
+                }
+
+                // اعتبارسنجی سمت سرور نیز برقرار است؛ این بخش فقط تنظیم فرم است.
+                const changedRows = selected.map(dayOfWeek =>
+                    timingForm.querySelector('input[name^="Days["][name$=".DayOfWeek"][value="' +
+                        dayOfWeek + '"]').closest('tr')
+                );
+                const previous = changedRows.map(row => ({
+                    row: row,
+                    daysBefore: row.querySelector('.timing-days-before').value,
+                    cutoff: row.querySelector('input[type="time"]').value
+                }));
+                const wasEnabled = reserveEnabled.checked;
+
+                changedRows.forEach(row => {
+                    row.querySelector('.timing-days-before').value = bulkDaysBefore.value;
+                    row.querySelector('input[type="time"]').value = bulkCutoff.value;
+                });
+                reserveEnabled.checked = true;
+                refreshTimingControls();
+
+                // یک کلیک برای اعمال روی روزهای تیک‌خورده و ذخیره در پایگاه داده.
+                const saved = await saveTimingSettings(false);
+                if (saved) {
+                    timingNotice.textContent =
+                        'مهلت رزرو برای ' + selected.length +
+                        ' روز انتخاب‌شده اعمال و ذخیره شد. روزهای دیگر تغییری نکردند.';
+                }
+                if (!saved) {
+                    previous.forEach(item => {
+                        item.row.querySelector('.timing-days-before').value = item.daysBefore;
+                        item.row.querySelector('input[type="time"]').value = item.cutoff;
+                    });
+                    reserveEnabled.checked = wasEnabled;
+                    refreshTimingControls();
+                }
+            });
+
+            timingForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                await saveTimingSettings(true);
+            });
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                if (checkbox.checked === savedValue) {
+                    notice.className = 'quota-policy-notice success';
+                    notice.textContent = 'تنظیمات بدون تغییر است.';
+                    return;
+                }
+
+                const message = checkbox.checked
+                    ? 'با فعال‌سازی رزرو آزاد، سهمیه فردی برای رزرو بررسی نمی‌شود. ادامه می‌دهید؟'
+                    : 'با غیرفعال‌سازی، فقط اشخاص دارای سهمیه فردی می‌توانند رزرو جدید انجام دهند. ادامه می‌دهید؟';
+
+                if (!window.confirm(message)) {
+                    checkbox.checked = savedValue;
+                    return;
+                }
+
+                button.disabled = true;
+                notice.className = 'quota-policy-notice';
+                const data = new FormData(form);
+                data.set('enabled', checkbox.checked ? 'true' : 'false');
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: data
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok || !(result.status === true || result.Status === true)) {
+                        throw new Error(result.message || result.Message || 'ذخیره تنظیمات انجام نشد.');
+                    }
+
+                    savedValue = checkbox.checked;
+                    status.className = 'quota-policy-status ' + (savedValue ? 'free' : 'limited');
+                    status.textContent = savedValue
+                        ? 'حالت فعلی: رزرو آزاد برای تمام کاربران.'
+                        : 'حالت فعلی: فقط کاربران دارای سهمیه ثبت‌شده مجاز به رزرو هستند.';
+
+                    notice.className = 'quota-policy-notice success';
+                    notice.textContent = result.message || result.Message || 'تنظیمات با موفقیت ذخیره شد.';
+                } catch (error) {
+                    checkbox.checked = savedValue;
+                    notice.className = 'quota-policy-notice error';
+                    notice.textContent = error.message || 'ارتباط با سرور برقرار نشد.';
+                } finally {
+                    button.disabled = false;
+                }
+            });
+        })();
+    </script>
+}

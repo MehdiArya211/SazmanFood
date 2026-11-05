@@ -173,21 +173,75 @@ namespace BLL
 
 
 
-        public UserSessionDTO LoginWithFaceZP(long userId)
+        public UserSessionDTO LoginWithFaceZP(long enrollId)
         {
-            var filter = PredicateBuilder.New<User>(true);
+            return LoginWithFaceZP(enrollId.ToString());
+        }
 
-            filter.And(x => x.Username == userId.ToString());
+        public UserSessionDTO LoginWithFaceZP(string personnelCode)
+        {
+            personnelCode = personnelCode?.Trim().ToEnglishNumber();
+            if (string.IsNullOrWhiteSpace(personnelCode))
+                return null;
 
-            var user = UOW.Users.GetOneDTO<UserSessionDTO>(UserSessionDTO.Selector, filter);
-            try
+            var user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                UserSessionDTO.Selector,
+                x => x.Username == personnelCode &&
+                     x.IsEnabled && x.IsDeleted == false);
+
+            if (user == null)
+                return null;
+
+            // کد عددی 001234 و 1234 به یک شخص اشاره می‌کنند،
+            // ولی حسابی با PersonCode متناقض نباید پذیرفته شود.
+            if (user.PersonCode.HasValue &&
+                int.TryParse(personnelCode, out var numericCode) &&
+                user.PersonCode.Value != numericCode)
+                return null;
+
+            SetAuthenticatedUser(user);
+            return user;
+        }
+
+        public UserSessionDTO LoginWithVerifiedFacePersonnel(
+            long personId, string personCode)
+        {
+            if (personId <= 0 || string.IsNullOrWhiteSpace(personCode))
+                return null;
+
+            personCode = personCode.Trim().ToEnglishNumber();
+            var user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                UserSessionDTO.Selector,
+                x => x.PersonId == personId && x.IsEnabled && x.IsDeleted == false);
+
+            if (user == null)
             {
-                SetAuthenticatedUser(user);
+                user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                    UserSessionDTO.Selector,
+                    x => x.Username == personCode && x.IsEnabled && x.IsDeleted == false);
             }
-            catch (Exception ex)
+
+            if (user == null && int.TryParse(personCode, out var parsedCode))
             {
-                Console.WriteLine(ex.Message.ToString());
+                user = UOW.Users.GetOneDTO<UserSessionDTO>(
+                    UserSessionDTO.Selector,
+                    x => x.PersonCode == parsedCode &&
+                         x.IsEnabled && x.IsDeleted == false);
             }
+
+            if (user == null)
+                return null;
+
+            // تطابق صرفاً رشته‌ای کافی نیست؛ شناسه‌های هویتی
+            // شناخته‌شده نباید به پرسنل دیگری تعلق داشته باشند.
+            if (user.PersonId.HasValue && user.PersonId.Value != personId)
+                return null;
+            if (user.PersonCode.HasValue &&
+                int.TryParse(personCode, out var expectedPersonCode) &&
+                user.PersonCode.Value != expectedPersonCode)
+                return null;
+
+            SetAuthenticatedUser(user);
             return user;
         }
 

@@ -13,6 +13,13 @@
         new HashSet<string>();
     var hasReservationQuota =
         ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
+    var freeReservationEnabled =
+        ViewBag.FreeReservationEnabled is bool freeMode && freeMode;
+    var reservationDeadlineEnabled =
+        ViewBag.ReservationDeadlineEnabled is bool deadlineMode && deadlineMode;
+    var closedReservationSlotsCount =
+        ViewBag.ClosedReservationSlotsCount is int closedCount ? closedCount : 0;
+    var weekOffset = ViewBag.WeekOffset is int selectedWeek ? selectedWeek : 0;
 
     DateTime weekStartDate = ViewBag.WeekStartDate != null
         ? (DateTime)ViewBag.WeekStartDate
@@ -52,6 +59,34 @@
             padding: 22px 24px;
             background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
             border-bottom: 1px solid #edf1f5;
+        }
+
+        .reserve-week-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+
+        .reserve-week-navigation {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid #d7e2ee;
+            background: #fff;
+            border-radius: 8px;
+            color: #34657e;
+            padding: 8px 11px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .reserve-week-navigation:hover,
+        .reserve-week-navigation:focus {
+            text-decoration: none;
+            background: #eaf4fb;
+            color: #175578;
         }
 
         .reserve-head-main {
@@ -544,6 +579,28 @@
         }
     </style>
 }
+@if (freeReservationEnabled)
+{
+    <div class="alert alert-info text-center" role="status" style="font-size:14px;font-weight:700;">
+        <i class="material-icons" aria-hidden="true">info</i>
+        حالت رزرو آزاد فعال است؛ رزرو طبق برنامه غذایی موجود و بدون نیاز به سهمیه فردی انجام می‌شود.
+    </div>
+}
+@if (reservationDeadlineEnabled)
+{
+    <div class="alert alert-info text-center" role="status"
+         style="font-size:13px;font-weight:700;">
+        <i class="material-icons" aria-hidden="true">schedule</i>
+        محدودیت مهلت رزرو فعال است.
+        @if (closedReservationSlotsCount > 0)
+        {
+            <span>
+                مهلت رزرو @closedReservationSlotsCount وعده از این هفته به پایان رسیده است.
+                رزروهای ثبت‌شده قبلی این روزها حذف نمی‌شوند و ژتون آن‌ها طبق شرایط چاپ قابل دریافت است.
+            </span>
+        }
+    </div>
+}
 @if (!string.IsNullOrWhiteSpace(ViewBag.QuotaError as string))
 {
     <div class="alert alert-warning text-center" role="alert" style="font-size:16px;font-weight:bold;">
@@ -561,7 +618,11 @@
     <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
-<form method="post" class="reserve-form">
+<form method="post"
+      action="@Url.Action("Index", "Reserve", new { area = "ReserveManagment" })"
+      class="reserve-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="week" value="@weekOffset" />
     <div class="reserve-page">
     <div class="container reserve-container">
         <div class="reserve-card">
@@ -579,16 +640,32 @@
                     </div>
                 </div>
 
-                <div class="reserve-week">
-                    <i class="material-icons">date_range</i>
-                    <span>@Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))</span>
+                <div class="reserve-week-actions">
+                    <div class="reserve-week">
+                        <i class="material-icons">date_range</i>
+                        <span>@Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))</span>
+                    </div>
+                    @if (weekOffset == 0)
+                    {
+                        <a class="reserve-week-navigation"
+                           href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = 1 })">
+                            هفته آینده <i class="material-icons" aria-hidden="true">chevron_left</i>
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="reserve-week-navigation"
+                           href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = 0 })">
+                            <i class="material-icons" aria-hidden="true">chevron_right</i> هفته جاری
+                        </a>
+                    }
                 </div>
             </div>
 
             <div class="reserve-guide">
                 <div class="reserve-guide-item">
                     <span class="reserve-guide-number">۱</span>
-                    <span>روز و وعده‌ای که برای شما سهمیه دارد نمایش داده می‌شود.</span>
+                    <span>@(freeReservationEnabled ? "روز و وعده‌های دارای برنامه غذایی نمایش داده می‌شوند." : "روز و وعده‌ای که برای شما سهمیه دارد نمایش داده می‌شود.")</span>
                 </div>
                 <div class="reserve-guide-item">
                     <span class="reserve-guide-number">۲</span>
@@ -755,7 +832,9 @@
                     else
                     {
                         <button type="button" class="btn btn-default btn-lg" disabled>
-                            سهمیه‌ای برای رزرو وجود ندارد
+                            @(reservationDeadlineEnabled && closedReservationSlotsCount > 0
+                                ? "مهلت رزرو به پایان رسیده است"
+                                : "سهمیه‌ای برای رزرو وجود ندارد")
                         </button>
                     }
                 </div>
@@ -848,7 +927,12 @@
                     $.ajax({
                         url: '@Url.Action("DeleteDay", "Reserve")',
                         type: 'POST',
-                        data: { dayId: dayId },
+                        data: {
+                            dayId: dayId,
+                            week: @weekOffset,
+                            __RequestVerificationToken:
+                                $('input[name="__RequestVerificationToken"]').first().val()
+                        },
                         success: function (response) {
                             if (response.success) {
                                 swal({

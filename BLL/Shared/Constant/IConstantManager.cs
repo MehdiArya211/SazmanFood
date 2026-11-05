@@ -71,5 +71,23 @@ namespace BLL.Interface
         /// <returns></returns>
         int? GetNumberValue(ConstantType Type);
 
+        /// <summary>
+        /// آیا رزرو غذا برای همه کاربران فعال است؟
+        /// در نبود رکورد تنظیمات، پاسخ false است.
+        /// </summary>
+        bool IsFreeFoodReservationEnabled();
+
+        /// <summary>
+        /// روشن یا خاموش کردن حالت رزرو آزاد.
+        /// تنها کنترلر مدیریت مجاز به فراخوانی تغییر وضعیت است.
+        /// </summary>
+        BaseResult SetFreeFoodReservationEnabled(bool enabled);
+
+        /// <summary>خواندن محدودیت‌های چاپ و رزرو؛ در نبود تنظیمات هر دو غیرفعال‌اند.</summary>
+        FoodTimingPolicyDTO GetFoodTimingPolicy();
+
+        /// <summary>اعتبارسنجی و ثبت یک‌جای محدودیت‌های زمانی.</summary>
+        BaseResult SaveFoodTimingPolicy(FoodTimingPolicyDTO policy);
+
     }
 }

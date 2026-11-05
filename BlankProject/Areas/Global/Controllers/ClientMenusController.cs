@@ -1,4 +1,5 @@
 ﻿using BLL.Interface;
+using Domain.Constants;
 using DTO.Menu;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,20 @@ namespace Food.Areas.Global.Controllers
 
 
         //[ResponseCache(VaryByHeader = "User-Agent" , Duration = 60)]
+        private static bool HasVisibleMenu(
+            IEnumerable<MenuSessionDTO> items,
+            string area,
+            string controller)
+        {
+            if (items == null)
+                return false;
+
+            return items.Any(item =>
+                (string.Equals(item.Area, area, StringComparison.OrdinalIgnoreCase) &&
+                 string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase)) ||
+                HasVisibleMenu(item.SubMenus, area, controller));
+        }
+
         public IActionResult LoadMenu(int UserId, string CController, string CAction)
         {
             try
@@ -35,6 +50,16 @@ namespace Food.Areas.Global.Controllers
                     Menus = authManager.ReshapeMenuData(User.Menus);
                 ViewBag.Controller = CController;
                 ViewBag.Action = CAction;
+                ViewBag.CanControlQuota = User?.RoleId == RoleConstant.Admin && User.IsEnabled;
+
+                // منوهای رزرو و چاپ برای همه نقش‌های واردشده نمایش داده شوند.
+                // اگر قبلاً در نقش تعریف شده‌اند، لینک تکراری اضافه نکنیم.
+                ViewBag.AddReserveShortcut =
+                    !HasVisibleMenu(Menus, "reservemanagment", "reserve");
+                ViewBag.AddPrintShortcut =
+                    !HasVisibleMenu(Menus, "showreservemanagment", "showreserve");
+
+                ViewData["IsRootMenu"] = true;
                 return PartialView("_Menus", Menus);
             }
             catch

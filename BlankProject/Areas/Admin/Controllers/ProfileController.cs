@@ -19,7 +19,9 @@ namespace Food.Areas.Admin.Controllers
 
     [Area("Admin")]
     //[UserAuthorize(Area: "admin", Controller: "profile", Action: "edit")]
-    [UserAuthorize(IsPublic: true, CheckPasswordChange: false)]
+    // فقط صفحه تغییر رمز از الزام تغییر رمز اولیه مستثنی است.
+    // بقیه بخش‌های پروفایل باید همان قانون دسترسی را رعایت کنند.
+    [UserAuthorize(IsPublic: true)]
     public class ProfileController : Controller
     {
         private readonly IUserManager userManager;
@@ -117,6 +119,16 @@ namespace Food.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult ChangePassword(UserProfileChangePasswordDTO model, string Captcha)
         {
+            // شناسه صاحب حساب فقط از نشست احراز هویت‌شده خوانده می‌شود؛
+            // کاربر نباید بتواند شناسه حساب دیگری را از فرم ارسال کند.
+            var currentUser = session.GetUser();
+            if (currentUser == null)
+                return Unauthorized(new { Status = false, Message = "نشست کاربری منقضی شده است." });
+
+            if (model == null)
+                return BadRequest(new { Status = false, Message = "اطلاعات تغییر رمز معتبر نیست." });
+
+            model.Id = currentUser.Id;
             var captcha = HttpContext.Session.GetString("Captcha");
             if (string.IsNullOrEmpty(captcha) || captcha != Captcha)
             {
