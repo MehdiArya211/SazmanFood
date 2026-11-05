@@ -174,7 +174,7 @@ namespace Food.Areas.ReserveManagment.Controllers
 
             var model = new FoodPlanReserveDTO
             {
-                Days = _foodPlanDayManager.GetAllDay().Model,
+                Days = (List<Days>)_foodPlanDayManager.GetAllDay().Model,
                 Meals = _mealManager.GetAll().ToList(),
                 MainFoods = mainFoodsDict,
                 Desserts = dessertDict,
