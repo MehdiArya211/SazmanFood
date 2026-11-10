@@ -34,11 +34,11 @@ namespace BLL.ReserveManagment
             _foodReserveDetailManager = foodReserveDetailManager;
             _printLogger = printLogger;
 
-            // اولویت با تنظیمات برنامه است؛ نام قدیمی فقط برای سازگاری حفظ شده.
-            var name = printerOptions?.Value?.FoodTokenPrinterName;
-            _configuredPrinterName = string.IsNullOrWhiteSpace(name)
-                ? "RONGTA 58mm Series Printer(2)"
-                : name.Trim();
+            // هرگز بدون پیکربندی صریح به یک نام چاپگر قدیمی و احتمالاً
+            // متعلق به پورت یا دستگاه دیگر فرمان چاپ نفرست.
+            _configuredPrinterName =
+                printerOptions?.Value?.FoodTokenPrinterName?.Trim()
+                ?? string.Empty;
         }
 
         public BaseResult AddToReserveAndReserveDetail(FoodReserveDTO model)
@@ -339,6 +339,16 @@ namespace BLL.ReserveManagment
             var hostName = Environment.MachineName;
             var hostUser = Environment.UserName;
 
+            if (string.IsNullOrWhiteSpace(printerName))
+            {
+                _printLogger.LogError(
+                    "چاپ سرور به علت تنظیم نشدن Printer:FoodTokenPrinterName رد شد. Server: {Server}, ProcessUser: {ProcessUser}, UserId: {UserId}",
+                    hostName, hostUser, userId);
+
+                return new BaseResult(false,
+                    "پرینتر سرور در تنظیمات برنامه مشخص نشده است. مدیر باید Printer:FoodTokenPrinterName را برابر نام دقیق چاپگر نصب‌شده روی سرور تنظیم کند؛ اگر پرینتر به همین رایانه شما متصل است، از «چاپ با پرینتر این رایانه» استفاده کنید.");
+            }
+
             _printLogger.LogInformation(
                 "شروع ارسال ژتون به چاپگر سرور. Server: {Server}, ProcessUser: {ProcessUser}, Printer: {Printer}, UserId: {UserId}, DetailCount: {DetailCount}",
                 hostName, hostUser, printerName, userId, foodReserveDetaileIds.Count);
@@ -357,6 +367,22 @@ namespace BLL.ReserveManagment
                     ex,
                     "چاپگر سرور آماده نیست. Server: {Server}, ProcessUser: {ProcessUser}, Printer: {Printer}",
                     hostName, hostUser, printerName);
+
+                // فهرست قابل مشاهده از داخل خود فرآیند وب به تشخیص
+                // اختلاف نصب پرینتر برای Administrator و IIS کمک می‌کند.
+                try
+                {
+                    var installedNames = PrinterSettings.InstalledPrinters
+                        .Cast<string>().ToArray();
+                    _printLogger.LogWarning(
+                        "پرینترهای قابل مشاهده برای IIS. Server: {Server}, ProcessUser: {ProcessUser}, InstalledPrinters: {InstalledPrinters}",
+                        hostName, hostUser, string.Join(" | ", installedNames));
+                }
+                catch (Exception enumerateException)
+                {
+                    _printLogger.LogWarning(enumerateException,
+                        "خواندن فهرست چاپگرهای سرور ناموفق بود.");
+                }
                 return new BaseResult(false, ex.Message);
             }
 
@@ -818,6 +844,32 @@ namespace BLL.ReserveManagment
                     pd.PrinterSettings.PrintToFile = false;
                     pd.PrintController = new StandardPrintController();
                     pd.DocumentName = $"FoodTicket-{foodReserveDetaileId}";
+
+                    // اندازه کاغذ از درایور تنظیم‌شده روی سرور خوانده می‌شود.
+                    // اگر درایور روی A4 باشد، خروجی حرارتی ممکن است
+                    // بریده، بسیار بلند یا به مقصد اشتباه ارسال شود.
+                    try
+                    {
+                        var paper = pd.DefaultPageSettings.PaperSize;
+                        if (paper != null)
+                        {
+                            _printLogger.LogInformation(
+                                "تنظیم کاغذ ژتون. Printer: {Printer}, PaperName: {PaperName}, WidthHundredthsInch: {PaperWidth}, HeightHundredthsInch: {PaperHeight}",
+                                printerName, paper.PaperName, paper.Width, paper.Height);
+
+                            if (paper.Width > 330)
+                            {
+                                _printLogger.LogWarning(
+                                    "عرض کاغذ چاپگر برای رسید ۵۸ میلی‌متری بزرگ است. Printer: {Printer}, PaperWidthHundredthsInch: {Width}. تنظیم درایور و Printing Preferences را بررسی کنید.",
+                                    printerName, paper.Width);
+                            }
+                        }
+                    }
+                    catch (Exception paperException)
+                    {
+                        _printLogger.LogWarning(paperException,
+                            "خواندن اندازه کاغذ از درایور پرینتر انجام نشد.");
+                    }
 
                     var printPageExecuted = false;
                     pd.PrintPage += (s, e) =>

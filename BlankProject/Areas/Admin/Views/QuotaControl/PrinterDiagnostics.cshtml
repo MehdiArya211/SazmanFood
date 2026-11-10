@@ -1,0 +1,139 @@
+@model DTO.Base.PrinterDiagnosticsDTO
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "عیب‌یابی چاپ ژتون غذا";
+}
+
+@section styles {
+    <style>
+        .printer-diagnostics { direction: rtl; max-width: 1000px; margin: 0 auto; padding: 15px; }
+        .printer-diagnostics-card { padding: 23px; background: #fff; border-radius: 15px; box-shadow: 0 5px 24px rgba(27,44,63,.07); margin-bottom: 17px; }
+        .printer-diagnostics h2 { font-size: 23px; color: #23425b; font-weight: 800; }
+        .printer-diagnostics h3 { font-size: 17px; color: #2c526c; font-weight: 700; margin-bottom: 15px; }
+        .printer-diagnostics p { line-height: 2; }
+        .printer-diagnostics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 11px; }
+        .printer-diagnostics-cell { border-radius: 9px; padding: 12px; border: 1px solid #e2e9ef; background: #f8fafc; }
+        .printer-diagnostics-cell strong { display: block; font-size: 12px; color: #697d8b; margin-bottom: 6px; }
+        .printer-diagnostics-cell span { overflow-wrap: anywhere; font-weight: 700; color: #304557; }
+        .printer-diagnostics-warning { color: #7a4d05; background: #fff4d9; padding: 15px; border-radius: 9px; margin: 15px 0; line-height: 2; }
+        .printer-diagnostics-info { color: #2d5d7d; background: #ecf6fe; padding: 15px; border-radius: 9px; margin: 15px 0; line-height: 2; }
+        .printer-diagnostics-code { direction: ltr; text-align: left; background: #1d2c38; border-radius: 9px; color: #ecf1f5; padding: 18px; overflow-x: auto; font-size: 12px; white-space: pre; }
+        .printer-diagnostics-link { display: inline-block; margin: 9px 0; padding: 8px 13px; border: 1px solid #b8d6e7; border-radius: 8px; }
+        .printer-diagnostics ul { line-height: 2.2; padding-right: 24px; }
+    </style>
+}
+
+<div class="printer-diagnostics">
+    <div class="printer-diagnostics-card">
+        <h2>عیب‌یابی چاپ ژتون غذا</h2>
+        <p>
+            این صفحه شرایط چاپگر را <strong>از دید خود برنامه روی سرور IIS</strong>
+            نشان می‌دهد، نه از دید Administrator یا رایانه‌ای که مرورگر را باز کرده است.
+        </p>
+        <div class="printer-diagnostics-grid">
+            <div class="printer-diagnostics-cell">
+                <strong>سیستم اجرای چاپ</strong>
+                <span>@Model.ServerName</span>
+            </div>
+            <div class="printer-diagnostics-cell">
+                <strong>حساب اجرای برنامه</strong>
+                <span dir="ltr">@Model.ProcessUser</span>
+            </div>
+            <div class="printer-diagnostics-cell">
+                <strong>پرینتر انتخاب‌شده در تنظیمات</strong>
+                <span>@(Model.PrinterConfigured ? Model.ConfiguredPrinterName : "تنظیم نشده")</span>
+            </div>
+            <div class="printer-diagnostics-cell">
+                <strong>در دسترس بودن چاپگر برای برنامه</strong>
+                <span>@(Model.PrinterVisible && Model.PrinterValid ? "نام پرینتر معتبر و قابل مشاهده است" : "نیازمند بررسی")</span>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="printer-diagnostics-warning" role="alert">
+                <strong>ایراد شناسایی‌شده:</strong> @Model.Error
+            </div>
+        }
+        else
+        {
+            <div class="printer-diagnostics-info" role="status">
+                پرینتر از دید فرآیند وب شناخته شده است؛ اما این وضعیت فقط نشان‌دهنده
+                قابل‌دسترسی بودن درایور است و <strong>خروج فیزیکی کاغذ را تأیید نمی‌کند.</strong>
+                وضعیت پورت، Print Spooler، صف چاپ و دستگاه باید جداگانه بررسی شود.
+            </div>
+        }
+
+        @if (Model.PaperWidthHundredthsInch.HasValue)
+        {
+            <p>
+                <strong>کاغذ پیش‌فرض درایور:</strong>
+                @Model.PaperName،
+                عرض @Model.PaperWidthHundredthsInch (واحد ۱/۱۰۰ اینچ)،
+                ارتفاع @Model.PaperHeightHundredthsInch.
+                برای ژتون ۵۸ میلی‌متری عرض معمول حدود ۲۲۸ است.
+            </p>
+            @if (Model.PaperWidthHundredthsInch.Value > 330)
+            {
+                <div class="printer-diagnostics-warning">
+                    کاغذ پیش‌فرض بیش از اندازه عریض است. در Printing Preferences
+                    چاپگر روی سرور، اندازه رول ۵۸ میلی‌متری را بررسی کنید.
+                </div>
+            }
+        }
+
+        <a class="printer-diagnostics-link" href="@Url.Action("Index", "QuotaControl", new { area = "Admin" })">
+            بازگشت به تنظیمات مدیریت
+        </a>
+        <a class="printer-diagnostics-link" href="@Url.Action("PrinterDiagnostics", "QuotaControl", new { area = "Admin" })">
+            بررسی دوباره وضعیت چاپگر
+        </a>
+    </div>
+
+    <div class="printer-diagnostics-card">
+        <h3>چاپگرهایی که خود برنامه می‌بیند</h3>
+        @if (Model.InstalledPrinters.Count == 0)
+        {
+            <div class="printer-diagnostics-warning">
+                هیچ چاپگری برای حساب اجرای IIS قابل مشاهده نیست.
+                چاپگر را روی سرور با دسترسی سرویس مربوطه نصب/اشتراک‌گذاری کنید.
+            </div>
+        }
+        else
+        {
+            <ul>
+                @foreach (var printer in Model.InstalledPrinters)
+                {
+                    <li>
+                        @printer
+                        @if (string.Equals(printer, Model.ConfiguredPrinterName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <strong>— چاپگر انتخاب‌شده</strong>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    <div class="printer-diagnostics-card">
+        <h3>بررسی صف چاپ و پورت روی سرور ویندوز</h3>
+        <p>
+            این دستورها را در PowerShell <strong>روی سیستم بالا</strong> اجرا کنید،
+            نه الزاماً روی کامپیوتر شخصی خودتان. نام دقیق چاپگر را از خروجی بالا بردارید.
+        </p>
+        <pre class="printer-diagnostics-code">Get-Service Spooler
+Get-Printer | Select-Object Name,DriverName,PortName,PrinterStatus,Shared
+Get-PrinterPort | Select-Object Name,PrinterHostAddress,PortNumber
+Get-PrintJob -PrinterName "EXACT PRINTER NAME" -ErrorAction SilentlyContinue |
+    Select-Object ID,DocumentName,JobStatus,Size,SubmittedTime
+Get-WinEvent -LogName 'Microsoft-Windows-PrintService/Operational' -MaxEvents 20 |
+    Select-Object TimeCreated,Id,Message</pre>
+        <div class="printer-diagnostics-info">
+            <strong>تشخیص:</strong> اگر کار در صف مانده باشد، پورت، درایور، اتصال و وضعیت Spooler
+            باید بررسی شوند. اگر صف خالی است و کاغذ خارج نشده، تست‌پیج ویندوز و
+            پورت چاپگر را بررسی کنید؛ صف خالی به‌تنهایی اثبات چاپ فیزیکی نیست.
+            برای پرینتر USB متصل به رایانه کاربر، روش «چاپ با پرینتر این رایانه» را انتخاب کنید.
+        </div>
+    </div>
+</div>
