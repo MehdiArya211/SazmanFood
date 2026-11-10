@@ -1,6 +1,8 @@
 using BLL.Interface;
 using Domain.Constants;
 using DTO.Base;
+using Microsoft.Extensions.Options;
+using System.Drawing.Printing;
 using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Services.SessionServices;
@@ -16,13 +18,16 @@ public class QuotaControlController : Controller
 {
     private readonly IConstantManager _constantManager;
     private readonly ILogger<QuotaControlController> _logger;
+    private readonly PrinterOptions _printerOptions;
 
     public QuotaControlController(
         IConstantManager constantManager,
-        ILogger<QuotaControlController> logger)
+        ILogger<QuotaControlController> logger,
+        IOptions<PrinterOptions> printerOptions)
     {
         _constantManager = constantManager;
         _logger = logger;
+        _printerOptions = printerOptions?.Value ?? new PrinterOptions();
     }
 
     [HttpGet]
@@ -138,4 +143,81 @@ public class QuotaControlController : Controller
             Message = "تنظیمات ساعت چاپ ژتون و مهلت رزرو غذا با موفقیت ذخیره شد."
         });
     }
+    /// <summary>
+    /// تشخیص محل اجرای چاپ و قابل مشاهده بودن چاپگر از داخل حساب IIS.
+    /// فقط به مدیر نمایش داده می‌شود؛ این تست چاپ فیزیکی نیست.
+    /// </summary>
+    [HttpGet]
+    public IActionResult PrinterDiagnostics()
+    {
+        var user = HttpContext.Session.GetUser();
+        if (user == null || user.RoleId != RoleConstant.Admin || !user.IsEnabled)
+            return Forbid();
+
+        var name = _printerOptions.FoodTokenPrinterName?.Trim() ?? string.Empty;
+        var info = new PrinterDiagnosticsDTO
+        {
+            ServerName = Environment.MachineName,
+            ProcessUser = Environment.UserDomainName + "\\" + Environment.UserName,
+            ConfiguredPrinterName = name,
+            PrinterConfigured = name.Length > 0,
+            IsWindows = OperatingSystem.IsWindows()
+        };
+
+        if (!info.IsWindows)
+        {
+            info.Error = "چاپ مستقیم با System.Drawing.Printing روی این سیستم‌عامل پشتیبانی نمی‌شود.";
+            return View(info);
+        }
+
+        try
+        {
+            info.InstalledPrinters = PrinterSettings.InstalledPrinters
+                .Cast<string>()
+                .OrderBy(x => x)
+                .ToList();
+
+            info.PrinterVisible = name.Length > 0 && info.InstalledPrinters.Any(
+                p => string.Equals(p, name, StringComparison.OrdinalIgnoreCase));
+
+            if (!info.PrinterConfigured)
+            {
+                info.Error = "نام پرینتر سرور در Printer:FoodTokenPrinterName مشخص نشده است.";
+            }
+            else if (!info.PrinterVisible)
+            {
+                info.Error = "پرینتر تنظیم‌شده برای حساب اجرای وب قابل مشاهده نیست؛ نصب چاپگر برای کاربر Administrator کافی نیست.";
+            }
+            else
+            {
+                using var printDocument = new PrintDocument();
+                printDocument.PrinterSettings.PrinterName = name;
+                info.PrinterValid = printDocument.PrinterSettings.IsValid;
+                if (!info.PrinterValid)
+                {
+                    info.Error = "درایور یا چاپگر از دید فرآیند IIS معتبر نیست (IsValid=false).";
+                }
+                else
+                {
+                    var paper = printDocument.DefaultPageSettings.PaperSize;
+                    if (paper != null)
+                    {
+                        info.PaperName = paper.PaperName;
+                        info.PaperWidthHundredthsInch = paper.Width;
+                        info.PaperHeightHundredthsInch = paper.Height;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            info.Error = "خواندن تنظیمات چاپگر در فرآیند وب ناموفق بود.";
+            _logger.LogError(ex,
+                "خطا در عیب‌یابی چاپگر. Server: {Server}, ProcessUser: {ProcessUser}, ConfiguredPrinter: {Printer}",
+                info.ServerName, info.ProcessUser, name);
+        }
+
+        return View(info);
+    }
+
 }
