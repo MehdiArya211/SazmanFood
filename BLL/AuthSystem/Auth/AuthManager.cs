@@ -142,26 +142,6 @@ namespace BLL
                 };
             #endregion
 
-            #region بررسی دوره تغییر کلمه عبور توسط کاربر
-            //if (user.PasswordIsChanged)
-            //{
-            //    var changePassCycle = UOW.Constants.GetChangePasswordCycle() ?? 60;
-            //    if (user.ChangePasswordCycle != null)
-            //    {
-            //        var cycle = changePassCycle;
-            //        if (user.ChangePasswordCycle != null && user.ChangePasswordCycle < changePassCycle)
-            //            cycle = (int)user.ChangePasswordCycle;
-
-            //        var LastChangePassword = UOW.UserLogs.FirstOrDefault(
-            //            x => x.IsSuccess && x.MenuType == MenuType.Profile &&
-            //                 x.ActionType == ActionType.ChangePassword &&
-            //                 x.TargetId == user.Id);
-
-            //        if (LastChangePassword == null || LastChangePassword.CreateDate.AddDays(cycle) < DateTime.Now)
-            //            user.PasswordIsChanged = false;
-            //    }
-            //}
-            #endregion
 
             // ✅ ست کردن سشن
             SetAuthenticatedUser(user);
