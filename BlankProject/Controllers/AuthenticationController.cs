@@ -216,7 +216,9 @@ public class AuthenticationController : Controller
             User == null &&
             string.Equals(Mobile, Password, StringComparison.Ordinal) &&
             Mobile.Length <= 20 &&
-            Mobile.All(ch => ch >= '0' && ch <= '9');
+            Mobile.All(ch => ch >= '0' && ch <= '9') &&
+            long.TryParse(Mobile, out long enrollmentNumber) &&
+            enrollmentNumber > 0;
 
         if (firstTimePersonnelCode && !UserManager.ExistsByUsername(Mobile))
         {
@@ -652,6 +654,22 @@ public class AuthenticationController : Controller
                     "در حال حاضر ایجاد حساب از طریق سرویس پرسنلی امکان‌پذیر نیست.";
                 return RedirectToAction("IndexZP");
             }
+        }
+
+        // حساب‌هایی که از قبل به فرد متصل‌اند نباید هنگام ورود اولیه
+        // به صورت ناخواسته زیر نام کاربری جدید به تغییر رمز هدایت شوند.
+        if (isPendingInitialLogin && user != null &&
+            (user.PersonId != pendingPersonId ||
+             !string.Equals(user.Username, pendingPersonnelCode,
+                 StringComparison.Ordinal)))
+        {
+            HttpContext.Session.RemoveUser();
+            ClearPendingPersonnelLogin();
+            _logger.LogWarning(
+                "حساب بازیابی‌شده از سرویس پرسنل با شناسه یا نام کاربری ورود اولیه مطابقت ندارد.");
+            TempData["FaceLoginMessage"] =
+                "این کد پرسنلی به حساب دیگری متصل است. برای بررسی با مدیر تماس بگیرید.";
+            return RedirectToAction("IndexZP");
         }
 
         if (user == null || !user.IsEnabled)
