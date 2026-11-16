@@ -319,6 +319,106 @@ namespace BLL.ReserveManagment
         }
 
 
+        /// <summary>
+        /// QR همان ژتون قدیمی را برای چاپ روی دستگاه کاربر آماده می‌کند.
+        /// تنها برای رزروهای متعلق به کاربر و سهمیه قدیمی موجود تولید می‌شود.
+        /// </summary>
+        public IReadOnlyDictionary<long, string> GetLegacyDeliveryQrImages(
+            IReadOnlyCollection<long> detailIds, long userId, string siteBaseUrl)
+        {
+            var images = new Dictionary<long, string>();
+            var user = UOW.Users.FirstOrDefault(x =>
+                x.Id == userId && !x.IsDeleted && x.IsEnabled);
+            if (user == null || detailIds == null || detailIds.Count == 0 ||
+                string.IsNullOrWhiteSpace(siteBaseUrl))
+                return images;
+
+            var personalCode = user.PersonCode?.ToString() ?? user.Username;
+            foreach (var detailId in detailIds.Distinct())
+            {
+                try
+                {
+                    var detail = UOW.FoodReserveDetail.Get(
+                        filter: x => x.Id == detailId,
+                        includeExpressions: q => q.Include(x => x.Day))
+                        .FirstOrDefault();
+                    if (detail?.Day == null)
+                        continue;
+
+                    var reserve = UOW.FoodReserve.FirstOrDefault(x =>
+                        x.Id == detail.FoodReserveId && x.UserId == userId);
+                    if (reserve == null)
+                        continue;
+
+                    var reserveDate = reserve.WeekStartDate
+                        .AddDays(detail.Day.Code - 1).Date;
+                    var nextDate = reserveDate.AddDays(1);
+                    var quotaToken = UOW.QoutaPerson.Get(
+                        x => x.PersonalCode == personalCode &&
+                             !x.IsDeleted &&
+                             x.QoutaAllocation != null &&
+                             !x.QoutaAllocation.IsDeleted &&
+                             x.QoutaAllocation.QoutaAllocationDate >= reserveDate &&
+                             x.QoutaAllocation.QoutaAllocationDate < nextDate &&
+                             x.QoutaAllocation.MealId == detail.MealId,
+                        null, null, null,
+                        x => x.Include(i => i.QoutaAllocation))
+                        .SingleOrDefault();
+                    if (quotaToken == null)
+                        continue;
+
+                    var changed = false;
+                    if (string.IsNullOrWhiteSpace(quotaToken.DeliveryCode))
+                    {
+                        string deliveryCode;
+                        do
+                        {
+                            deliveryCode = Random.Shared.Next(100000, 1000000)
+                                .ToString();
+                        }
+                        while (UOW.QoutaPerson.Any(x =>
+                            x.DeliveryCode == deliveryCode && !x.IsDeleted));
+                        quotaToken.DeliveryCode = deliveryCode;
+                        changed = true;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(quotaToken.DeliveryHash))
+                    {
+                        quotaToken.DeliveryHash = Guid.NewGuid().ToString("N");
+                        changed = true;
+                    }
+
+                    if (changed)
+                    {
+                        UOW.QoutaPerson.Update(quotaToken);
+                        if (!UOW.Commit())
+                            throw new InvalidOperationException(
+                                "ثبت اطلاعات QR ژتون انجام نشد.");
+                    }
+
+                    var scanUrl = siteBaseUrl.TrimEnd('/') +
+                        "/ReserveManagment/TokenScan/Use" +
+                        $"?code={Uri.EscapeDataString(quotaToken.DeliveryCode)}" +
+                        $"&key={Uri.EscapeDataString(quotaToken.DeliveryHash)}" +
+                        $"&mealId={detail.MealId}";
+
+                    using var qrGenerator = new QRCodeGenerator();
+                    using var qrData = qrGenerator.CreateQrCode(
+                        scanUrl, QRCodeGenerator.ECCLevel.Q);
+                    using var qrCode = new PngByteQRCode(qrData);
+                    images[detailId] = Convert.ToBase64String(qrCode.GetGraphic(5));
+                }
+                catch (Exception ex)
+                {
+                    _printLogger.LogWarning(ex,
+                        "آماده‌سازی QR ژتون برای چاپ محلی ناموفق بود. DetailId: {DetailId}, UserId: {UserId}",
+                        detailId, userId);
+                }
+            }
+
+            return images;
+        }
+
         private static readonly ConcurrentDictionary<long, byte> _printedFoodReserveDetailIds = new();
 
         public async Task<BaseResult> PrintFoodReserveAsync(

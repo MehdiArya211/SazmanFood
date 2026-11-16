@@ -188,6 +188,9 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             }
 
             ViewBag.PrintUserName = user.FullName;
+            var siteBaseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+            ViewBag.DeliveryQrImages = _foodReserveManager.GetLegacyDeliveryQrImages(
+                ids, user.Id, siteBaseUrl);
             _logger.LogInformation(
                 "پیش‌نمایش چاپ ژتون در مرورگر ایجاد شد. UserId: {UserId}, DetailIds: {DetailIds}",
                 user.Id,

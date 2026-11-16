@@ -1,11 +1,14 @@
 @model List<DTO.Entities.FoodReservation.WeeklyFoodReserveDTO>
 @using System.Globalization
+@using System.Collections.Generic
 
 @{
     Layout = null;
     ViewData["Title"] = "چاپ رسید رزرو غذا";
     var persianCalendar = new PersianCalendar();
     var printUserName = ViewBag.PrintUserName as string ?? "-";
+    var deliveryQrImages = ViewBag.DeliveryQrImages as IReadOnlyDictionary<long, string>
+        ?? new Dictionary<long, string>();
 }
 
 <!DOCTYPE html>
@@ -85,6 +88,12 @@
             text-align: center;
             margin-top: 6px;
         }
+        .ticket .delivery-qr {
+            display: block;
+            width: 32mm;
+            height: 32mm;
+            margin: 5px auto 0;
+        }
         @@media print {
             @@page { margin: 0; }
             html, body {
@@ -116,8 +125,8 @@
     <div class="print-toolbar">
         <strong>پیش‌نمایش رسید غذا</strong>
         <p>
-            برای چاپ از پرینتر متصل به همین رایانه، چاپگر RONGTA یا پرینتر حرارتی موردنظر را در پنجره چاپ انتخاب کنید.
-            چاپگر و اندازه کاغذ باید روی ۵۸ میلی‌متر تنظیم شده باشند.
+            فاکتور با چاپگر همین دستگاه چاپ می‌شود. اگر پنجره چاپ باز شد، چاپگر متصل به این دستگاه را انتخاب کنید.
+            اندازه کاغذ چاپگر حرارتی را روی ۵۸ میلی‌متر تنظیم کنید.
         </p>
         <button type="button" onclick="window.print()">
             چاپ رسید
@@ -153,13 +162,22 @@
                     <div class="row">همراه: <span>@item.SideDish</span></div>
                 }
                 <div class="rule"></div>
-                <div class="foot">این رسید، جایگزین QR تأیید تحویل غذا نیست.</div>
+                @if (deliveryQrImages.TryGetValue(item.FoodReserveDetaileId, out var qrImage))
+                {
+                    <img class="delivery-qr" src="data:image/png;base64,@qrImage"
+                         alt="QR تحویل غذا" />
+                    <div class="foot">برای تحویل غذا اسکن شود</div>
+                }
+                else
+                {
+                    <div class="foot">رسید رزرو غذا</div>
+                }
             </article>
         }
     </div>
     <script>
         window.addEventListener('load', function () {
-            // پنجره چاپ به کاربر امکان انتخاب چاپگر واقعی همین رایانه را می‌دهد.
+            // مرورگر روی همان دستگاهی که کاربر وارد شده است چاپ را شروع می‌کند.
             window.print();
         });
     </script>

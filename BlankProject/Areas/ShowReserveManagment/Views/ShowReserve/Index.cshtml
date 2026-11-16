@@ -228,23 +228,6 @@
             cursor: not-allowed;
         }
 
-        .print-server-button {
-            display: block;
-            margin: 8px auto 0;
-            padding: 5px 10px;
-            border: 0;
-            border-bottom: 1px dashed #71808d;
-            background: transparent;
-            color: #586a79;
-            font-size: 11px;
-            cursor: pointer;
-        }
-
-        .print-server-button:disabled {
-            opacity: .6;
-            cursor: wait;
-        }
-
         .print-message {
             display: none;
             margin-bottom: 16px;
@@ -308,7 +291,6 @@
 }
 
 <div class="food-print-page">
-    @Html.AntiForgeryToken()
     <div class="food-print-container">
         <div class="food-print-header">
             <h1>برنامه غذایی هفتگی</h1>
@@ -408,7 +390,7 @@
                 box.textContent =
                     message ||
                     (isSuccess
-                        ? 'درخواست چاپ به صف ارسال شد؛ وضعیت کاغذ قابل تأیید نیست.'
+                        ? 'پنجره چاپ روی همین دستگاه باز شد.'
                         : 'چاپ ژتون انجام نشد.');
             }
 
@@ -435,101 +417,10 @@
                 }
 
                 showPrintMessage(
-                    'پیش‌نمایش چاپ باز شد. در پنجره چاپ، پرینتر متصل به همین رایانه را انتخاب کنید. چاپ فیزیکی هنوز تأیید نشده است.',
+                    'چاپ روی همین دستگاه آغاز شد. در صورت نمایش پنجره چاپ، چاپگر متصل به این دستگاه را انتخاب کنید.',
                     true,
                     true
                 );
-            }
-
-            async function printTickets(ids, button) {
-                if (!ids || !ids.length) {
-                    showPrintMessage(
-                        'شناسه ژتون برای چاپ معتبر نیست.',
-                        false
-                    );
-                    return;
-                }
-
-                const originalText =
-                    button.textContent;
-
-                button.disabled = true;
-                button.textContent =
-                    '⏳ در حال چاپ...';
-
-                try {
-                    const csrfToken = document.querySelector(
-                        'input[name="__RequestVerificationToken"]'
-                    )?.value;
-                    if (!csrfToken) {
-                        throw new Error('توکن امنیتی درخواست چاپ در صفحه یافت نشد.');
-                    }
-
-                    const postData = new URLSearchParams();
-                    postData.set('foodReserveDetaileIds', ids.join(','));
-                    postData.set('__RequestVerificationToken', csrfToken);
-
-                    const response =
-                        await fetch('/ShowReserveManagment/ShowReserve/PrintMeal', {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: postData.toString(),
-                            cache: 'no-store'
-                        });
-
-                    let result = null;
-
-                    try {
-                        result =
-                            await response.json();
-                    } catch {
-                        result = null;
-                    }
-
-                    const isSuccess =
-                        response.ok &&
-                        result &&
-                        (
-                            result.status === true ||
-                            result.Status === true
-                        );
-
-                    const message =
-                        result
-                            ? (
-                                result.message ||
-                                result.Message
-                              )
-                            : null;
-
-                    showPrintMessage(
-                        message ||
-                        (response.ok
-                            ? 'پاسخ چاپ از سرور معتبر نبود.'
-                            : 'ارتباط با سرویس چاپ با خطا همراه بود.'),
-                        isSuccess,
-                        isSuccess
-                    );
-                } catch (error) {
-                    console.error(
-                        'Food ticket print error:',
-                        error
-                    );
-
-                    showPrintMessage(
-                        error?.message ||
-                            'ارسال درخواست چاپ با خطا همراه بود.',
-                        false
-                    );
-                } finally {
-                    button.disabled = false;
-                    button.textContent =
-                        originalText;
-                }
             }
 
             function renderWeeklyFood(data) {
@@ -681,23 +572,12 @@
                         printButton.className = 'print-button';
 
                         if (canPrint && foodReserveIds.length > 0) {
-                            printButton.textContent = '🖨️ چاپ با پرینتر این رایانه';
+                            printButton.textContent = '🖨️ چاپ فاکتور با پرینتر همین دستگاه';
+                            printButton.title = 'فاکتور فقط به چاپگر همین دستگاه فرستاده می‌شود.';
                             printButton.addEventListener('click', function () {
                                 openLocalPrintPreview(foodReserveIds);
                             });
-
-                            const serverButton = document.createElement('button');
-                            serverButton.type = 'button';
-                            serverButton.className = 'print-server-button';
-                            serverButton.textContent = 'ارسال به پرینتر سرور';
-                            serverButton.title =
-                                'فقط در صورتی که پرینتر روی رایانه سرور نصب شده است؛ تحویل به صف چاپ به معنی خروج کاغذ نیست.';
-                            serverButton.addEventListener('click', function () {
-                                printTickets(foodReserveIds, serverButton);
-                            });
-
                             printSection.appendChild(printButton);
-                            printSection.appendChild(serverButton);
                         } else {
                             printButton.textContent =
                                 printRestrictionEnabled && status === 'past'
