@@ -206,10 +206,9 @@ public class AuthenticationController : Controller
         var res = AuthManager.Login(Mobile, Password);
         var User = res.Model as UserSessionDTO;
 
-        // برای فردی که حساب سامانه ندارد، کد پرسنلی در هر دو فیلد
-        // فقط «درخواست فعال‌سازی ورود اولیه» است؛ نه اثبات هویت.
-        // پس از تأیید سرویس پرسنل باید هویت با رویداد امضاشده ZP
-        // بررسی شود و سپس حساب ایجاد و به تغییر رمز هدایت گردد.
+        // برای فردی که حساب سامانه ندارد، فقط برابر بودن رمز و نام کاربری
+        // با کد پرسنلی رسمی، درخواست اولین ورود را آغاز می‌کند. حساب فقط
+        // پس از تطبیق دقیق کد با سرویس رسمی پرسنل ساخته می‌شود.
         bool firstTimePersonnelCode =
             MenuId == null &&
             !res.Status &&
@@ -235,33 +234,63 @@ public class AuthenticationController : Controller
                     throw new InvalidOperationException("توکن معتبر سرویس پرسنل موجود نیست.");
 
                 var person = WebApiManager.GetPersonalByPersonCode(Mobile, accessToken);
-                if (person != null &&
-                    person.Id > 0 &&
-                    string.Equals(
+                if (person == null ||
+                    person.Id <= 0 ||
+                    !string.Equals(
                         person.personalCode?.Trim().ToEnglishNumber().ToPersianCharacter(),
                         Mobile,
                         StringComparison.Ordinal))
                 {
-                    HttpContext.Session.SetString(PendingPersonnelCodeKey, Mobile);
-                    HttpContext.Session.SetString(PendingPersonnelIdKey,
-                        person.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                    HttpContext.Session.SetString(PendingPersonnelTimeKey,
-                        DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(
-                            System.Globalization.CultureInfo.InvariantCulture));
+                    res.Message = "کد پرسنلی در سرویس رسمی پرسنل یافت یا تأیید نشد.";
+                }
+                else
+                {
+                    var fullName = !string.IsNullOrWhiteSpace(person.FullName)
+                        ? person.FullName
+                        : $"{person.FirstName} {person.LastName}".Trim();
 
-                    _logger.LogInformation(
-                        "درخواست ورود اولیه تأیید شده در سرویس پرسنل و در انتظار تأیید چهره است.");
-                    TempData["FaceLoginMessage"] =
-                        "کد پرسنلی در سرویس بررسی شد. برای تکمیل اولین ورود و تنظیم رمز جدید، چهره خود را با دستگاه تأیید کنید.";
-                    return RedirectToAction(nameof(IndexZP));
+                    var provisioningResult =
+                        _reservationUserProvisioning.EnsureReservationUser(
+                            person.Id,
+                            Mobile,
+                            fullName,
+                            person.MelliCode,
+                            null,
+                            0,
+                            person.UnitCode);
+
+                    if (!provisioningResult.Status)
+                    {
+                        res.Message = provisioningResult.Message;
+                    }
+                    else
+                    {
+                        // حساب اولیه با رمز هش‌شده کد پرسنلی ساخته شده است.
+                        // ورود عادی، نشست و توکن را می‌سازد و پایین‌تر کاربر
+                        // به اجبار به صفحه تغییر رمز منتقل می‌شود.
+                        res = AuthManager.Login(Mobile, Password);
+                        User = res.Model as UserSessionDTO;
+
+                        if (res.Status && User != null)
+                        {
+                            _logger.LogInformation(
+                                "ورود اولیه پس از تأیید کد پرسنلی و ایجاد/بازیابی حساب انجام شد. UserId: {UserId}",
+                                User.Id);
+                        }
+                        else
+                        {
+                            res.Message =
+                                "حساب پرسنلی پیدا شد، اما این کد به‌عنوان رمز اولیه قابل استفاده نیست. برای بررسی با مدیر سامانه تماس بگیرید.";
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "استعلام کد پرسنلی برای درخواست اولین ورود ناموفق بود.");
+                    "استعلام یا آماده‌سازی حساب برای ورود اولیه با کد پرسنلی ناموفق بود.");
                 res.Message =
-                    "ارتباط با سرویس پرسنل برقرار نشد. لطفاً دوباره تلاش کنید.";
+                    "در حال حاضر بررسی کد پرسنلی در سرویس رسمی امکان‌پذیر نیست. لطفاً دوباره تلاش کنید.";
             }
         }
 
