@@ -398,8 +398,10 @@ public class AuthenticationController : Controller
         ViewBag.ApiBaseUrl = hubBaseUrl;
         ViewBag.KioskId = configuredKioskId;
         ViewBag.FaceChallenge = challenge;
+        // ZP فعلی از قرارداد Register(kioskId) استفاده می‌کند. نبودن کلید
+        // در تنظیمات محیط انتشار نباید قرارداد متفاوتی را فعال کند.
         ViewBag.AllowLegacyFaceLogin =
-            _configuration.GetValue<bool>("FaceLogin:AllowLegacyZpEvents");
+            _configuration.GetValue<bool?>("FaceLogin:AllowLegacyZpEvents") ?? true;
 
         _logger.LogInformation(
             "صفحه انتظار چهره ایجاد شد. KioskId: {KioskId}",
@@ -582,7 +584,7 @@ public class AuthenticationController : Controller
         // صفحه، Anti-forgery، و تطبیق KioskId پیکربندی‌شده محدود می‌ماند.
         var verifiedFace = ConsumeVerifiedFaceEvent(kioskId, enrollId);
         if (!verifiedFace &&
-            _configuration.GetValue<bool>("FaceLogin:AllowLegacyZpEvents"))
+            (_configuration.GetValue<bool?>("FaceLogin:AllowLegacyZpEvents") ?? true))
         {
             verifiedFace = ConsumeLegacyFaceChallenge(kioskId);
         }
