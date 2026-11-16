@@ -9,6 +9,7 @@
             return;
         }
 
+        errorBox.style.display = 'flex';
         errorBox.replaceChildren();
 
         const icon = document.createElement("i");
