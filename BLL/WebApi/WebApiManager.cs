@@ -70,9 +70,18 @@ namespace BLL
 		public PersonalInfDTO GetPersonalByPersonCode(string PersonCode, string token)
 		{
 			_client.SetBearerToken(token);
-			var result = _client.GetStringAsync(_apiPersonalUrl + "/GetPersonalByPersonalCode/" + PersonCode).Result;
-			var person = JsonConvert.DeserializeObject<PersonalInfDTO>(result);
-			return person;
+			var url = _apiPersonalUrl + "/GetPersonalByPersonalCode/" + PersonCode;
+			using var response = _client.GetAsync(url).GetAwaiter().GetResult();
+
+			if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+				return null;
+
+			response.EnsureSuccessStatusCode();
+			var result = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			if (string.IsNullOrWhiteSpace(result))
+				return null;
+
+			return JsonConvert.DeserializeObject<PersonalInfDTO>(result);
 		}
 
 		public OrganInfDTO GetOrganInfoByOrganId(int Id, string token)
