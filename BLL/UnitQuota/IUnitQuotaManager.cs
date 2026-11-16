@@ -82,6 +82,14 @@ namespace BLL.Interface
         /// <summary>
         /// تاریخ و وعده‌های قابل رزرو کاربر را بر اساس سهمیه جدید یگان برمی‌گرداند.
         /// </summary>
+        /// <summary>
+        /// ایجاد حساب اولیه پرسنل سهمیه‌های ثبت‌شده قبلی فقط با دستور مدیر.
+        /// حساب موجود و کلمه عبور آن تغییر نمی‌کند.
+        /// </summary>
+        ReservationUserProvisioningBatchDTO ProvisionUsersFromExistingQuotas(
+            long afterId,
+            int pageSize = 100);
+
         IReadOnlyCollection<(DateTime Date, long MealId)> GetReservableSlots(
             long? personId,
             string personCode,
