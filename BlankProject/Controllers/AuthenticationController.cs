@@ -240,7 +240,7 @@ public class AuthenticationController : Controller
                         Mobile,
                         StringComparison.Ordinal))
                 {
-                    res.Message = "کد پرسنلی در سرویس رسمی پرسنل یافت یا تأیید نشد.";
+                    res.Message = "کد پرسنلی در سامانه یافت نشد. لطفاً کد را بررسی کنید.";
                 }
                 else
                 {
@@ -289,7 +289,7 @@ public class AuthenticationController : Controller
                 _logger.LogError(ex,
                     "استعلام یا آماده‌سازی حساب برای ورود اولیه با کد پرسنلی ناموفق بود.");
                 res.Message =
-                    "در حال حاضر بررسی کد پرسنلی در سرویس رسمی امکان‌پذیر نیست. لطفاً دوباره تلاش کنید.";
+                    "امکان بررسی اطلاعات در حال حاضر نیست. دوباره تلاش کنید.";
             }
         }
 
