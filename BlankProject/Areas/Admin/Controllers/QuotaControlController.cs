@@ -17,15 +17,18 @@ namespace Food.Areas.Admin.Controllers;
 public class QuotaControlController : Controller
 {
     private readonly IConstantManager _constantManager;
+    private readonly IUnitQuotaManager _unitQuotaManager;
     private readonly ILogger<QuotaControlController> _logger;
     private readonly PrinterOptions _printerOptions;
 
     public QuotaControlController(
         IConstantManager constantManager,
+        IUnitQuotaManager unitQuotaManager,
         ILogger<QuotaControlController> logger,
         IOptions<PrinterOptions> printerOptions)
     {
         _constantManager = constantManager;
+        _unitQuotaManager = unitQuotaManager;
         _logger = logger;
         _printerOptions = printerOptions?.Value ?? new PrinterOptions();
     }
@@ -100,6 +103,55 @@ public class QuotaControlController : Controller
                 ? "رزرو آزاد فعال شد. اکنون کاربران واردشده بدون سهمیه فردی می‌توانند غذا رزرو کنند."
                 : "رزرو آزاد غیرفعال شد. از این لحظه ثبت غذا فقط طبق سهمیه فردی مجاز است."
         });
+    }
+
+    /// <summary>
+    /// فقط مدیر می‌تواند برای سهمیه‌های ثبت‌شده قبلی حساب اولیه بسازد.
+    /// هیچ کلمه عبور موجودی در این مسیر تغییر داده نمی‌شود.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ProvisionMissingUsers(long afterId = 0)
+    {
+        var user = HttpContext.Session.GetUser();
+        if (user == null || user.RoleId != RoleConstant.Admin || !user.IsEnabled)
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                Status = false,
+                Message = "فقط مدیر سامانه می‌تواند حساب اولیه پرسنل را آماده کند."
+            });
+
+        if (afterId < 0)
+            return BadRequest(new { Status = false, Message = "شناسه ادامه معتبر نیست." });
+
+        try
+        {
+            ReservationUserProvisioningBatchDTO result =
+                _unitQuotaManager.ProvisionUsersFromExistingQuotas(afterId, 100);
+
+            return Json(new
+            {
+                Status = true,
+                result.Examined,
+                result.Created,
+                result.AlreadyExists,
+                result.Failed,
+                result.LastId,
+                result.HasMore,
+                result.Errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "آماده‌سازی حساب‌های ثبت‌شده سهمیه با خطا مواجه شد. AdminUserId: {AdminUserId}, AfterId: {AfterId}",
+                user.Id, afterId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                Status = false,
+                Message = "آماده‌سازی حساب‌ها با خطا مواجه شد؛ لاگ سرور را بررسی کنید."
+            });
+        }
     }
 
     [HttpPost]
