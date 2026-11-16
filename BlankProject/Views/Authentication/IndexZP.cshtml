@@ -71,6 +71,8 @@
         window.ZP_KIOSK_ID = @kioskId;
         window.ZP_FACE_CHALLENGE =
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.FaceChallenge ?? ""));
+        window.ZP_LEGACY_FACE_LOGIN =
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllowLegacyFaceLogin ?? false));
     </script>
     <script src="~/assets/signalr/signalr2.js"></script>
     <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
