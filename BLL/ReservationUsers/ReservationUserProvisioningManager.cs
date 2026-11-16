@@ -62,6 +62,18 @@ public class ReservationUserProvisioningManager
         if (int.TryParse(personCode, out var personCodeValue))
             parsedPersonCode = personCodeValue;
 
+        var hasDeletedAccount = UOW.Users.Any(x =>
+            x.IsDeleted == true &&
+            ((personId.HasValue && x.PersonId == personId.Value) ||
+             x.Username == personCode ||
+             (parsedPersonCode.HasValue && x.PersonCode == parsedPersonCode)));
+
+        if (hasDeletedAccount)
+        {
+            return new BaseResult(false,
+                "برای این کد حساب قبلی وجود دارد. با مدیر سامانه تماس بگیرید.");
+        }
+
         var existingUser = UOW.Users.FirstOrDefault(x =>
             x.IsDeleted == false &&
             ((personId.HasValue && x.PersonId == personId.Value) ||
