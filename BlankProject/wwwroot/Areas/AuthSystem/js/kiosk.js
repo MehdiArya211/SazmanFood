@@ -50,23 +50,28 @@
     }
 
     function getHubUrls() {
-        // The existing ZP hub is HTTP on the internal network. An HTTPS login page
-        // connects to our own origin; the application server reaches ZP internally.
-        if (legacyProtocol) {
-            return [window.location.origin + "/faceZpRelayHub"];
-        }
-
         const baseUrl = String(window.API_BASE_URL || "")
             .trim()
             .replace(/\/$/, "");
 
-        if (window.location.protocol === "https:" && baseUrl.startsWith("http:")) {
-            throw new Error("تنظیم سازگاری ZP در سرور فعال نیست و اتصال HTTP از صفحه HTTPS مسدود می‌شود.");
+        if (!baseUrl) return [];
+
+        const mixedContent =
+            window.location.protocol === "https:" && baseUrl.startsWith("http:");
+
+        // On an HTTP site the browser can use the existing ZP hub directly.
+        // An HTTPS site uses the same-origin server relay for the internal HTTP hub.
+        if (legacyProtocol) {
+            return [mixedContent
+                ? window.location.origin + "/faceZpRelayHub"
+                : baseUrl + settings.hubPath];
         }
 
-        return baseUrl
-            ? [baseUrl + settings.hubPath]
-            : [];
+        if (mixedContent) {
+            throw new Error("قرارداد قدیمی ZP در تنظیمات انتشار غیرفعال است و مرورگر اتصال HTTP را از صفحه HTTPS مسدود می‌کند.");
+        }
+
+        return [baseUrl + settings.hubPath];
     }
 
     function parseEnrollId(value) {
