@@ -6,6 +6,7 @@
     };
 
     const connections = [];
+    const legacyProtocol = window.ZP_LEGACY_FACE_LOGIN === true;
     let redirected = false;
 
     function logInfo(message) {
@@ -76,9 +77,12 @@
     }
 
     function getBiometricEvent(args) {
-        // رویداد باید شناسه نشست را همراه کد پرسنلی برگرداند؛
-        // صرف دریافت enrollId از یک Hub عمومی اثبات احراز هویت نیست.
         for (const value of args) {
+            if (legacyProtocol && (typeof value === "string" || typeof value === "number")) {
+                const enrollId = parseEnrollId(value);
+                if (enrollId) return { enrollId, sessionChallenge: "" };
+            }
+
             if (!value || typeof value !== "object") continue;
 
             const enrollId = parseEnrollId(
@@ -89,7 +93,7 @@
             const sessionChallenge = String(
                 value.sessionChallenge ?? value.SessionChallenge ?? ""
             );
-            if (enrollId && sessionChallenge) {
+            if (enrollId && (legacyProtocol || sessionChallenge)) {
                 return { enrollId, sessionChallenge };
             }
         }
@@ -208,8 +212,12 @@
 
         connection.on("ReceiveAutoLogin", (...args) => {
             const event = getBiometricEvent(args);
-            const challenge = getFaceChallenge();
-            if (!event || event.sessionChallenge !== challenge) {
+            if (!event) {
+                logWarning("پیام ZP فاقد کد پرسنلی معتبر بود.");
+                return;
+            }
+
+            if (!legacyProtocol && event.sessionChallenge !== getFaceChallenge()) {
                 logWarning("پیام ZP فاقد شناسه نشست معتبر بود یا به مرورگر دیگری تعلق داشت.");
                 setStatus("داده تشخیص چهره به این نشست تعلق ندارد؛ منتظر تأیید معتبر دستگاه بمانید.");
                 return;
@@ -220,7 +228,11 @@
 
         connection.onreconnected(async () => {
             try {
-                await connection.invoke("Register", kioskId, getFaceChallenge());
+                if (legacyProtocol) {
+                    await connection.invoke("Register", kioskId);
+                } else {
+                    await connection.invoke("Register", kioskId, getFaceChallenge());
+                }
             } catch (error) {
                 logError("ثبت مجدد کیوسک ناموفق بود.", error);
             }
@@ -253,11 +265,11 @@
                 }
             );
 
-            await connection.invoke(
-                "Register",
-                kioskId,
-                getFaceChallenge()
-            );
+            if (legacyProtocol) {
+                await connection.invoke("Register", kioskId);
+            } else {
+                await connection.invoke("Register", kioskId, getFaceChallenge());
+            }
 
             connections.push(connection);
 
@@ -315,7 +327,7 @@
 
             if (!results.some(Boolean)) {
                 setStatus(
-                    "اتصال امن به ZP برقرار نشد. سرویس باید Register(kioskId, sessionChallenge) و رویداد امضاشده را پشتیبانی کند."
+                    "اتصال به سرویس ZP برقرار نشد. آدرس سرویس و ثبت دستگاه را بررسی کنید."
                 );
                 return;
             }
