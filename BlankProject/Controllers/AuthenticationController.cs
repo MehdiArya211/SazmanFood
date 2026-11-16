@@ -235,7 +235,6 @@ public class AuthenticationController : Controller
 
                 var person = WebApiManager.GetPersonalByPersonCode(Mobile, accessToken);
                 if (person == null ||
-                    person.Id <= 0 ||
                     !string.Equals(
                         person.personalCode?.Trim().ToEnglishNumber().ToPersianCharacter(),
                         Mobile,
@@ -251,7 +250,7 @@ public class AuthenticationController : Controller
 
                     var provisioningResult =
                         _reservationUserProvisioning.EnsureReservationUser(
-                            person.Id,
+                            person.Id > 0 ? person.Id : null,
                             Mobile,
                             fullName,
                             person.MelliCode,
