@@ -290,13 +290,26 @@ namespace BLL
         /// <returns></returns>
         public BaseResult ProfileChangePassword(UserProfileChangePasswordDTO model)
         {
-            var user = GetById(model.Id);
+            if (model == null || model.Id <= 0)
+                return new BaseResult(false, "اطلاعات تغییر رمز معتبر نیست.");
 
-            if (!string.IsNullOrEmpty(model.OldPassword))
-            {
-                if (user.Password != model.OldPassword.GetHash())
-                    return new BaseResult { Status = false, Message = "کلمه عبور فعلی صحیح نمی باشد." };
-            }
+            var user = GetById(model.Id);
+            if (user == null || user.IsDeleted != false || !user.IsEnabled)
+                return new BaseResult(false, "حساب کاربری معتبر یا فعال نیست.");
+
+            // ورود با رمز، ارقام فارسی و عربی را به انگلیسی تبدیل می‌کند.
+            // ساخت رمز و بررسی رمز فعلی باید دقیقاً همین قاعده را رعایت کنند.
+            model.OldPassword = model.OldPassword?.Trim().ToEnglishNumber();
+            model.Password = model.Password?.Trim().ToEnglishNumber();
+            model.RePassword = model.RePassword?.Trim().ToEnglishNumber();
+
+            if (string.IsNullOrWhiteSpace(model.OldPassword) ||
+                string.IsNullOrWhiteSpace(model.Password) ||
+                string.IsNullOrWhiteSpace(model.RePassword))
+                return new BaseResult(false, "کلمه عبور فعلی، جدید و تکرار آن الزامی هستند.");
+
+            if (user.Password != model.OldPassword.GetHash())
+                return new BaseResult(false, "کلمه عبور فعلی صحیح نمی باشد.");
 
             if (model.RePassword != model.Password)
                 return new BaseResult { Status = false, Message = "کلمه عبور جدید تکرار آن باید یکسان باشند." };

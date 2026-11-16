@@ -547,11 +547,11 @@ var user = {
                             confirmButtonText: "باشه",
                             buttonsStyling: false
                         }).then(function (isConfirm) {
-                            if (res.model = true)
+                            if (res.model === true)
                                 window.location.href = "/Admin/Dashboard";
                         });
 
-                        if (res.model = true) {
+                        if (res.model === true) {
                             setTimeout(() => {
                                 window.location.href = "/Admin/Dashboard";
                             }, 3000);
@@ -560,9 +560,17 @@ var user = {
                     else {
                         showNotification(res.message, 'danger');
                     }
-                }).fail(function () {
+                }).fail(function (xhr) {
                     changeCaptcha();
-                    showNotification('تغییر کلمه عبور با خطا همراه بوده است!', 'danger');
+                    var serverMessage = xhr && xhr.responseJSON &&
+                        (xhr.responseJSON.message || xhr.responseJSON.Message);
+                    showNotification(
+                        serverMessage ||
+                        (xhr && xhr.status === 400
+                            ? 'درخواست تغییر رمز معتبر نیست؛ صفحه را تازه‌سازی کرده و دوباره تلاش کنید.'
+                            : 'تغییر کلمه عبور با خطا همراه بوده است!'),
+                        'danger'
+                    );
                 });
             return false;
         }

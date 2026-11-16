@@ -19,11 +19,13 @@ public class UnitQuotaManager
     private readonly IHttpContextAccessor httpContextAccessor;
     private readonly ISession Session;
     private readonly IReservationUserProvisioningManager reservationUserProvisioningManager;
+    private readonly ILogger<UnitQuotaManager> _logger;
 
     public UnitQuotaManager(
         DbContexts context,
         IHttpContextAccessor httpContextAccessor,
-        IReservationUserProvisioningManager reservationUserProvisioningManager)
+        IReservationUserProvisioningManager reservationUserProvisioningManager,
+        ILogger<UnitQuotaManager> logger)
         : base(context, httpContextAccessor)
     {
         this.httpContextAccessor =
@@ -38,6 +40,111 @@ public class UnitQuotaManager
             reservationUserProvisioningManager ??
             throw new ArgumentNullException(
                 nameof(reservationUserProvisioningManager));
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// آماده‌سازی حساب‌های ورود اولیه از سهمیه‌های ثبت‌شده قبلی؛
+    /// فقط بعد از دستور مستقیم مدیر اجرا می‌شود.
+    /// این کار رمز حساب موجود را به کد پرسنلی بازنشانی نمی‌کند.
+    /// </summary>
+    public ReservationUserProvisioningBatchDTO ProvisionUsersFromExistingQuotas(
+        long afterId,
+        int pageSize = 100)
+    {
+        var user = Session?.GetUser();
+        if (user == null || user.RoleId != RoleConstant.Admin || !user.IsEnabled)
+            throw new UnauthorizedAccessException(
+                "فقط مدیر سیستم مجاز به آماده‌سازی حساب‌های اولیه است.");
+
+        if (afterId < 0)
+            throw new ArgumentOutOfRangeException(nameof(afterId));
+
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        // تنها پرسنلی که از قبل در سهمیه یگان ثبت شده‌اند، مرجع
+        // ساخت حساب محسوب می‌شوند؛ کد واردشده در فرم عمومی کافی نیست.
+        var records = UOW.UnitQuotaPerson.Get(x =>
+                x.Id > afterId && x.IsDeleted == false)
+            .OrderBy(x => x.Id)
+            .Take(pageSize + 1)
+            .ToList();
+
+        var batch = new ReservationUserProvisioningBatchDTO
+        {
+            HasMore = records.Count > pageSize
+        };
+
+        foreach (var item in records.Take(pageSize))
+        {
+            batch.LastId = item.Id;
+            batch.Examined++;
+
+            var personCode = item.PersonCode?.Trim().ToEnglishNumber();
+            if (string.IsNullOrWhiteSpace(personCode))
+            {
+                batch.Failed++;
+                if (batch.Errors.Count < 8)
+                    batch.Errors.Add($"رکورد {item.Id}: کد پرسنلی ندارد.");
+                continue;
+            }
+
+            try
+            {
+                int? parsedCode = int.TryParse(personCode, out int code)
+                    ? code
+                    : null;
+
+                var existing = UOW.Users.Any(x =>
+                    x.IsDeleted == false &&
+                    ((item.PersonId.HasValue && x.PersonId == item.PersonId) ||
+                     x.Username == personCode ||
+                     (parsedCode.HasValue && x.PersonCode == parsedCode)));
+
+                var provision = reservationUserProvisioningManager.EnsureReservationUser(
+                    item.PersonId,
+                    personCode,
+                    item.FullName,
+                    item.NationalCode,
+                    null,
+                    user.Id,
+                    item.OrgId);
+
+                if (!provision.Status)
+                {
+                    batch.Failed++;
+                    if (batch.Errors.Count < 8)
+                        batch.Errors.Add($"کد {personCode}: {provision.Message}");
+                    _logger.LogWarning(
+                        "ایجاد حساب سهمیه قبلی ناموفق بود. QuotaPersonId: {QuotaPersonId}, Reason: {Reason}",
+                        item.Id, provision.Message);
+                }
+                else if (existing)
+                {
+                    batch.AlreadyExists++;
+                }
+                else
+                {
+                    batch.Created++;
+                }
+            }
+            catch (Exception ex)
+            {
+                batch.Failed++;
+                _logger.LogError(ex,
+                    "خطای ایجاد حساب از سهمیه قبلی. QuotaPersonId: {QuotaPersonId}",
+                    item.Id);
+                if (batch.Errors.Count < 8)
+                    batch.Errors.Add($"کد {personCode}: خطا در ایجاد حساب؛ جزئیات در لاگ سرور.");
+            }
+        }
+
+        _logger.LogInformation(
+            "آماده‌سازی حساب‌های اولیه از سهمیه. AdminUserId: {AdminUserId}, Examined: {Examined}, Created: {Created}, Existing: {Existing}, Failed: {Failed}, HasMore: {HasMore}",
+            user.Id, batch.Examined, batch.Created,
+            batch.AlreadyExists, batch.Failed, batch.HasMore);
+
+        return batch;
     }
 
     #region دریافت فرم ثبت کادر

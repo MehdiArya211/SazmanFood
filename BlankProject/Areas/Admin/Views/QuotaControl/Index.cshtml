@@ -393,6 +393,37 @@
             <div id="quota-policy-notice" class="quota-policy-notice" role="status"></div>
         </div>
 
+        <div class="timing-card" id="initial-personnel-login">
+            <h3>
+                <i class="material-icons" aria-hidden="true">manage_accounts</i>
+                آماده‌سازی ورود اولیه پرسنل
+            </h3>
+            <p class="timing-intro">
+                برای پرسنلی که قبلاً در سهمیه‌های غذا ثبت شده‌اند اما هنوز
+                حساب ورود ندارند، از روی رکوردهای معتبر سهمیه یک حساب ایجاد می‌شود.
+                <strong>نام کاربری و رمز اولیه هر دو کد پرسنلی هستند</strong>
+                و با اولین ورود رمزی، تغییر رمز اجباری است.
+                رمز و اطلاعات ورود حساب‌های موجود به هیچ عنوان بازنشانی نمی‌شوند.
+            </p>
+
+            <form id="provision-users-form" method="post"
+                  action="@Url.Action("ProvisionMissingUsers", "QuotaControl", new { area = "Admin" })">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-info" id="provision-users-button" type="submit">
+                    <i class="material-icons" aria-hidden="true">person_add</i>
+                    ایجاد حساب‌های جاافتاده از سهمیه‌های قبلی
+                </button>
+            </form>
+
+            <div id="provision-users-result" class="timing-notice" role="status"
+                 aria-live="polite"></div>
+            <p class="timing-help">
+                این عملیات فقط مخصوص حساب‌های جاافتاده است و سهمیه‌ها را تغییر نمی‌دهد.
+                اشخاصی که سهمیه ثبت‌شده ندارند، باید ابتدا از طریق
+                مسیر مجاز ثبت پرسنل یا تشخیص چهره معتبر شناسایی شوند.
+            </p>
+        </div>
+
         <div id="food-timing-settings" class="timing-card">
             <h3>
                 <i class="material-icons" aria-hidden="true">schedule</i>
@@ -579,6 +610,82 @@
             const notice = document.getElementById('quota-policy-notice');
             let savedValue = @isEnabled.ToString().ToLowerInvariant();
 
+
+            const provisionForm = document.getElementById('provision-users-form');
+            const provisionButton = document.getElementById('provision-users-button');
+            const provisionNotice = document.getElementById('provision-users-result');
+
+            provisionForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                if (!window.confirm(
+                    'حساب ورود پرسنل دارای سهمیه قبلی ایجاد شود؟ ' +
+                    'رمز اولیه حساب‌های جدید کد پرسنلی است و رمز حساب‌های موجود تغییر نمی‌کند.'
+                )) return;
+
+                provisionButton.disabled = true;
+                let cursor = 0;
+                let totals = { examined: 0, created: 0, alreadyExists: 0, failed: 0 };
+                const errors = [];
+                let completed = false;
+
+                try {
+                    // پردازش مرحله‌ای برای جلوگیری از Timeout درخواست‌های طولانی.
+                    while (!completed) {
+                        provisionNotice.className = 'timing-notice success';
+                        provisionNotice.textContent =
+                            'در حال آماده‌سازی حساب‌ها... بررسی‌شده: ' + totals.examined +
+                            ' | جدید: ' + totals.created + ' | خطا: ' + totals.failed;
+
+                        const payload = new FormData(provisionForm);
+                        payload.set('afterId', String(cursor));
+                        const response = await fetch(provisionForm.action, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: payload
+                        });
+                        const result = await response.json();
+                        const ok = result.status === true || result.Status === true;
+                        if (!response.ok || !ok)
+                            throw new Error(result.message || result.Message ||
+                                'پاسخ ایجاد حساب نامعتبر است.');
+
+                        const examined = Number(result.examined ?? result.Examined ?? 0);
+                        const nextCursor = Number(result.lastId ?? result.LastId ?? 0);
+                        totals.examined += examined;
+                        totals.created += Number(result.created ?? result.Created ?? 0);
+                        totals.alreadyExists += Number(result.alreadyExists ?? result.AlreadyExists ?? 0);
+                        totals.failed += Number(result.failed ?? result.Failed ?? 0);
+
+                        const batchErrors = result.errors || result.Errors || [];
+                        batchErrors.forEach(error => {
+                            if (errors.length < 8) errors.push(String(error));
+                        });
+
+                        completed = !(result.hasMore ?? result.HasMore);
+                        if (!completed && (examined === 0 || nextCursor <= cursor))
+                            throw new Error('ادامه عملیات متوقف شد: شناسه رکورد بعدی معتبر نیست.');
+                        cursor = nextCursor;
+                    }
+
+                    provisionNotice.className = totals.failed > 0
+                        ? 'timing-notice error' : 'timing-notice success';
+                    provisionNotice.textContent =
+                        'عملیات پایان یافت. بررسی‌شده: ' + totals.examined +
+                        ' | حساب جدید: ' + totals.created +
+                        ' | از قبل موجود: ' + totals.alreadyExists +
+                        ' | ناموفق: ' + totals.failed +
+                        (errors.length ? ' | نمونه خطاها: ' + errors.join('؛ ') : '');
+                } catch (error) {
+                    provisionNotice.className = 'timing-notice error';
+                    provisionNotice.textContent =
+                        (error.message || 'خطای ارتباط با سرور') +
+                        ' | بررسی‌شده تا این مرحله: ' + totals.examined +
+                        '. اجرای دوباره این عملیات حساب تکراری ایجاد نمی‌کند.';
+                } finally {
+                    provisionButton.disabled = false;
+                }
+            });
 
             const timingForm = document.getElementById('food-timing-form');
             const timingSave = document.getElementById('food-timing-save');

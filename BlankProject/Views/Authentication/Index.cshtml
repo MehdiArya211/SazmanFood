@@ -26,14 +26,18 @@
             <div class="auth-eyebrow">ورود کاربران</div>
             <h2 class="auth-title">خوش آمدید</h2>
             <p class="auth-subtitle">برای ورود به سامانه، اطلاعات حساب کاربری خود را وارد کنید.</p>
+            <p class="auth-subtitle" style="font-size:12px;line-height:2;">
+                در اولین ورود، <strong>کد پرسنلی</strong> را در هر دو قسمت نام کاربری
+                و رمز عبور وارد کنید. اگر هنوز حساب ندارید، کد شما در سرویس رسمی
+                پرسنل بررسی و در صورت تأیید حساب اولیه ساخته می‌شود؛ سپس باید رمزتان
+                را تغییر دهید. در ورودهای بعدی از رمز جدید خود استفاده کنید.
+            </p>
 
-                @if (hasError)
-                {
-                    <div class="auth-alert error" role="alert" aria-live="polite">
+                <div class="auth-alert error" role="alert" aria-live="polite"
+                     style="@(hasError ? "" : "display:none;")">
                     <i class="material-icons" aria-hidden="true">error_outline</i>
                     <span>@ViewBag.Error</span>
-                    </div>
-                }
+                </div>
            
 
             <form asp-controller="Authentication"

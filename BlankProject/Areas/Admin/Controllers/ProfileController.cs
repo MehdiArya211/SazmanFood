@@ -9,6 +9,7 @@ using Services.RedisService;
 using Services.SessionServices;
 using FajrLog.Enum;
 using DTO.Base;
+using Utilities.Extentions;
 
 namespace Food.Areas.Admin.Controllers
 {
@@ -106,6 +107,7 @@ namespace Food.Areas.Admin.Controllers
 
 
         #region تغییر کلمه عبور
+        [HttpGet]
         public IActionResult ChangePassword()
         {
             var user = session.GetUser();
@@ -129,8 +131,9 @@ namespace Food.Areas.Admin.Controllers
                 return BadRequest(new { Status = false, Message = "اطلاعات تغییر رمز معتبر نیست." });
 
             model.Id = currentUser.Id;
-            var captcha = HttpContext.Session.GetString("Captcha");
-            if (string.IsNullOrEmpty(captcha) || captcha != Captcha)
+            var captcha = HttpContext.Session.GetString("Captcha")?.Trim().ToEnglishNumber();
+            Captcha = Captcha?.Trim().ToEnglishNumber();
+            if (string.IsNullOrWhiteSpace(captcha) || captcha != Captcha)
             {
                 _ = Redis.db.SetLog(Redis.ContextAccessor, ActionType.ChangePassword, MenuType.Profile, false, $"کاربر با آیدی {model.Id} : " + "کد امنیتی صحیح نیست!", model.Id, FajrActionType.changePassword).Result;
                 return Json(new { Status = false, Message = "کد امنیتی صحیح نیست!" });
