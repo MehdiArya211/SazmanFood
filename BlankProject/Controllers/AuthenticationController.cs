@@ -574,12 +574,14 @@ public class AuthenticationController : Controller
 
         var user = AuthManager.LoginWithFaceZP(personCode);
         if (isPendingInitialLogin && user != null &&
-            user.PersonId != pendingPersonId)
+            (user.PersonId != pendingPersonId ||
+             !string.Equals(user.Username, pendingPersonnelCode,
+                 StringComparison.Ordinal)))
         {
             HttpContext.Session.RemoveUser();
             ClearPendingPersonnelLogin();
             _logger.LogWarning(
-                "شناسه پرسنلی حساب موجود با استعلام سرویس پرسنل تطابق ندارد.");
+                "شناسه یا نام کاربری حساب موجود با استعلام سرویس پرسنل تطابق ندارد.");
             TempData["FaceLoginMessage"] =
                 "اطلاعات حساب موجود با هویت استعلام‌شده مطابقت ندارد. با مدیر تماس بگیرید.";
             return RedirectToAction("IndexZP");
