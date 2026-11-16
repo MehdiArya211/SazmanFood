@@ -552,17 +552,38 @@ public class AuthenticationController : Controller
         // فرد شناسایی‌شده باید دقیقاً همان فرد استعلام‌شده باشد.
         bool isPendingInitialLogin = GetPendingPersonnelLogin(
             out string pendingPersonnelCode, out long pendingPersonId);
-        if (isPendingInitialLogin &&
-            !string.Equals(pendingPersonnelCode, personCode, StringComparison.Ordinal))
+        if (isPendingInitialLogin)
         {
-            _logger.LogWarning("چهره تشخیص‌داده‌شده با درخواست ورود اولیه مطابقت ندارد.");
-            ClearPendingPersonnelLogin();
-            TempData["FaceLoginMessage"] =
-                "چهره شناسایی‌شده با کد پرسنلی درخواست‌کننده مطابقت ندارد.";
-            return RedirectToAction("IndexZP");
+            // کدهای دارای صفر ابتدای رشته ممکن است در خود دستگاه
+            // به صورت عدد صحیح ارسال شوند. تنها مقایسه امن: عدد
+            // شناسایی‌شده با مقدار عددی همان کد رسمی در نشست.
+            if (!long.TryParse(pendingPersonnelCode, out long expectedEnrollId) ||
+                expectedEnrollId != enrollId)
+            {
+                _logger.LogWarning(
+                    "چهره تشخیص‌داده‌شده با درخواست ورود اولیه مطابقت ندارد.");
+                ClearPendingPersonnelLogin();
+                TempData["FaceLoginMessage"] =
+                    "چهره شناسایی‌شده با کد پرسنلی درخواست‌کننده مطابقت ندارد.";
+                return RedirectToAction("IndexZP");
+            }
+
+            // استعلام مجدد با کد رسمی ثبت‌شده در سرویس پرسنل.
+            personCode = pendingPersonnelCode;
         }
 
         var user = AuthManager.LoginWithFaceZP(personCode);
+        if (isPendingInitialLogin && user != null &&
+            user.PersonId != pendingPersonId)
+        {
+            HttpContext.Session.RemoveUser();
+            ClearPendingPersonnelLogin();
+            _logger.LogWarning(
+                "شناسه پرسنلی حساب موجود با استعلام سرویس پرسنل تطابق ندارد.");
+            TempData["FaceLoginMessage"] =
+                "اطلاعات حساب موجود با هویت استعلام‌شده مطابقت ندارد. با مدیر تماس بگیرید.";
+            return RedirectToAction("IndexZP");
+        }
 
         if (user == null && verifiedFace)
         {
