@@ -112,6 +112,14 @@ public class AuthenticationController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(string Mobile, string Password, string Captcha, string RetUrl, long? MenuId)
     {
+        Mobile = Mobile?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
+        Password = Password?.Trim().ToEnglishNumber();
+
+        if (string.IsNullOrWhiteSpace(Mobile) || string.IsNullOrWhiteSpace(Password))
+        {
+            ViewBag.Error = "نام کاربری و کلمه عبور الزامی هستند.";
+            return View("Index");
+        }
 
         FajrActionType fajrActionType = MenuId == null ? FajrActionType.logIn : FajrActionType.logInSecurePage;
 
@@ -148,9 +156,6 @@ public class AuthenticationController : Controller
         #endregion
 
         #region عملیات لاگین
-        Mobile = Mobile?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
-        Password = Password?.Trim().ToEnglishNumber();
-
         // هر ورود با رمز، مجوز استثنای ورود چهره قبلی را حذف می‌کند.
         HttpContext.Session.Remove("VerifiedFaceLogin");
 
@@ -163,7 +168,7 @@ public class AuthenticationController : Controller
         if (!res.Status && User == null)
         {
             res.Message =
-                "حساب کاربری یا کلمه عبور معتبر نیست. برای ثبت اولیه حساب، از دستگاه تشخیص چهره استفاده کنید.";
+                "نام کاربری یا کلمه عبور معتبر نیست. در اولین ورود، اگر حساب اولیه شما از طریق سهمیه یا احراز چهره ثبت شده، هر دو فیلد کد پرسنلی هستند؛ در غیر این صورت مدیر سامانه باید حساب شما را فعال کند.";
         }
 
         if (!res.Status || User == null)
