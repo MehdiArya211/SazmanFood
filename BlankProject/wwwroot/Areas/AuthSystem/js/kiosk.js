@@ -8,6 +8,7 @@
     const connections = [];
     const legacyProtocol = window.ZP_LEGACY_FACE_LOGIN === true;
     let redirected = false;
+    let connectionFailure = "";
 
     function logInfo(message) {
         console.info("[ورود بیومتریک] " + message);
@@ -58,6 +59,10 @@
         const baseUrl = String(window.API_BASE_URL || "")
             .trim()
             .replace(/\/$/, "");
+
+        if (window.location.protocol === "https:" && baseUrl.startsWith("http:")) {
+            throw new Error("تنظیم سازگاری ZP در سرور فعال نیست و اتصال HTTP از صفحه HTTPS مسدود می‌شود.");
+        }
 
         return baseUrl
             ? [baseUrl + settings.hubPath]
@@ -304,6 +309,19 @@
                 }
             );
 
+            const detail = String(error?.message || "");
+            if (detail.includes("سرور برنامه به آدرس سرویس ZP")) {
+                connectionFailure = "سرور برنامه به سرویس ZP دسترسی ندارد؛ شبکه و پورت ZP را روی سرور بررسی کنید.";
+            } else if (detail.includes("ثبت شناسه دستگاه")) {
+                connectionFailure = "اتصال به ZP برقرار شد، اما شناسه دستگاه در سرویس ثبت نشد.";
+            } else if (detail.includes("آدرس سرویس ZP در تنظیمات")) {
+                connectionFailure = "آدرس سرویس ZP در تنظیمات سرور معتبر نیست.";
+            } else {
+                connectionFailure = legacyProtocol
+                    ? "اتصال به Hub برنامه یا سرویس ZP برقرار نشد؛ جزئیات در Console مرورگر و لاگ سرور ثبت شده است."
+                    : "اتصال به سرویس ZP برقرار نشد؛ تنظیمات انتشار را بررسی کنید.";
+            }
+
             try {
                 await connection.stop();
             } catch {
@@ -339,7 +357,7 @@
 
             if (!results.some(Boolean)) {
                 setStatus(
-                    "اتصال به سرویس ZP برقرار نشد. آدرس سرویس و ثبت دستگاه را بررسی کنید."
+                    connectionFailure || "اتصال به سرویس ZP برقرار نشد. آدرس سرویس و ثبت دستگاه را بررسی کنید."
                 );
                 return;
             }
