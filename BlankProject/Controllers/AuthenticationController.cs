@@ -398,6 +398,8 @@ public class AuthenticationController : Controller
         ViewBag.ApiBaseUrl = hubBaseUrl;
         ViewBag.KioskId = configuredKioskId;
         ViewBag.FaceChallenge = challenge;
+        ViewBag.AllowLegacyFaceLogin =
+            _configuration.GetValue<bool>("FaceLogin:AllowLegacyZpEvents");
 
         _logger.LogInformation(
             "صفحه انتظار چهره ایجاد شد. KioskId: {KioskId}",
@@ -527,6 +529,25 @@ public class AuthenticationController : Controller
         }
     }
 
+    private bool ConsumeLegacyFaceChallenge(int kioskId)
+    {
+        var challenge = HttpContext.Session.GetString(FaceChallengeSessionKey);
+        if (string.IsNullOrWhiteSpace(challenge))
+            return false;
+
+        var challengeKey = $"FacePending:{challenge}";
+        lock (FaceProofSync)
+        {
+            if (!_faceEventCache.TryGetValue(challengeKey, out int pendingKiosk) ||
+                pendingKiosk != kioskId)
+                return false;
+
+            _faceEventCache.Remove(challengeKey);
+            HttpContext.Session.Remove(FaceChallengeSessionKey);
+            return true;
+        }
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> FinalizeFaceLogin(int kioskId, long enrollId)
@@ -556,13 +577,20 @@ public class AuthenticationController : Controller
             return RedirectToAction("IndexZP");
         }
 
-        // به هیچ عنوان امکان ورود بدون امضای معتبر و نشست انتظار وجود ندارد.
-        // مقدار RequireSignedEvents=false نیز نباید این الزام را دور بزند.
+        // قرارداد قدیمی ZP فقط Register(kioskId) و کد پرسنلی را ارسال می‌کند.
+        // این مسیر تنها با تنظیم صریح سازگاری فعال است و همچنان به نشست همان
+        // صفحه، Anti-forgery، و تطبیق KioskId پیکربندی‌شده محدود می‌ماند.
         var verifiedFace = ConsumeVerifiedFaceEvent(kioskId, enrollId);
+        if (!verifiedFace &&
+            _configuration.GetValue<bool>("FaceLogin:AllowLegacyZpEvents"))
+        {
+            verifiedFace = ConsumeLegacyFaceChallenge(kioskId);
+        }
+
         if (!verifiedFace)
         {
             _logger.LogWarning(
-                "ورود چهره بدون اثبات معتبر و وابسته به نشست رد شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
+                "ورود چهره بدون اثبات معتبر یا نشست فعال رد شد. KioskId: {KioskId}, EnrollId: {EnrollId}",
                 kioskId, enrollId);
             TempData["FaceLoginMessage"] =
                 "تأیید تشخیص چهره برای این نشست دریافت نشده یا منقضی شده است. دوباره روبه‌روی دستگاه قرار بگیرید.";
