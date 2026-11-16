@@ -90,9 +90,11 @@ public sealed class FaceZpRelayHub : Hub
             throw new HubException("ثبت اتصال دستگاه ZP ناموفق بود.");
         }
 
+        var stage = "Connect";
         try
         {
             await zpConnection.StartAsync(Context.ConnectionAborted);
+            stage = "Register";
             await zpConnection.InvokeAsync("Register", kioskId);
             _logger.LogInformation(
                 "کیوسک {KioskId} از سرور به ZP متصل شد. BrowserConnectionId: {ConnectionId}",
@@ -102,8 +104,12 @@ public sealed class FaceZpRelayHub : Hub
         {
             ZpConnections.TryRemove(browserConnectionId, out _);
             await zpConnection.DisposeAsync();
-            _logger.LogError(ex, "اتصال یا ثبت کیوسک {KioskId} در ZP ناموفق بود.", kioskId);
-            throw new HubException("سرور برنامه نتوانست به سرویس ZP متصل شود یا دستگاه را ثبت کند.");
+            _logger.LogError(ex,
+                "اتصال ZP در مرحله {Stage} ناموفق بود. KioskId: {KioskId}, HubUrl: {HubUrl}",
+                stage, kioskId, hubUri);
+            throw new HubException(stage == "Connect"
+                ? "سرور برنامه به آدرس سرویس ZP دسترسی ندارد؛ مسیر شبکه و پورت را بررسی کنید."
+                : "ارتباط با ZP برقرار شد، اما ثبت شناسه دستگاه در سرویس رد شد.");
         }
     }
 
