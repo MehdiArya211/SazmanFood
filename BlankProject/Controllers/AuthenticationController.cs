@@ -162,105 +162,13 @@ public class AuthenticationController : Controller
         var res = AuthManager.Login(Mobile, Password);
         var User = res.Model as UserSessionDTO;
 
-        // برای حسابی که هنوز در سامانه ایجاد نشده، استعلام از سرویس رسمی
-        // پرسنل فقط هنگام ورود اولیه با کد پرسنلی در هر دو فیلد انجام می‌شود.
-        // هرگز رمز حساب موجود، نقش حساب موجود یا نشست آن را بازنویسی نکن.
-        bool personnelServiceFailed = false;
-        bool isFirstLoginAttempt =
-            MenuId == null &&
-            _configuration.GetValue<bool>("Authentication:AllowPersonnelCodeFirstLogin") &&
-            string.Equals(Mobile, Password, StringComparison.Ordinal) &&
-            Mobile.Length >= 1 && Mobile.Length <= 20 &&
-            Mobile.All(c => c >= '0' && c <= '9');
-
-        if ((!res.Status || User == null) &&
-            isFirstLoginAttempt &&
-            User == null &&
-            !UserManager.ExistsByUsername(Mobile))
+        // ورود با رمز، به هیچ عنوان حساب جدید از روی کد پرسنلی نمی‌سازد.
+        // کد پرسنلی یک راز نیست و ثبت حساب بدون احراز هویت چهره می‌تواند
+        // به تصاحب حساب فرد دیگری منجر شود.
+        if (!res.Status && User == null)
         {
-            try
-            {
-                var apiToken = await ApiTokenClient.GetApiToken(
-                    CustomSettings.Instance.ClientId,
-                    CustomSettings.Instance.Scope,
-                    CustomSettings.Instance.ClientSecret,
-                    CustomSettings.Instance.ROPC_UserName,
-                    CustomSettings.Instance.ROPC_Password);
-
-                if (string.IsNullOrWhiteSpace(apiToken))
-                    throw new InvalidOperationException(
-                        "دریافت توکن سرویس پرسنل ناموفق بود.");
-
-                var personnel = WebApiManager.GetPersonalByPersonCode(Mobile, apiToken);
-                var verifiedCode = personnel?.personalCode?
-                    .Trim().ToEnglishNumber().ToPersianCharacter();
-
-                // پاسخ سرویس باید دقیقاً مربوط به همین کد باشد.
-                // هیچ رکوردی صرفاً با نبود خطای HTTP معتبر فرض نمی‌شود.
-                if (personnel != null &&
-                    personnel.Id > 0 &&
-                    string.Equals(verifiedCode, Mobile, StringComparison.Ordinal))
-                {
-                    var fullName = !string.IsNullOrWhiteSpace(personnel.FullName)
-                        ? personnel.FullName
-                        : $"{personnel.FirstName} {personnel.LastName}".Trim();
-
-                    var provisionResult = _reservationUserProvisioning.EnsureReservationUser(
-                        personnel.Id,
-                        Mobile,
-                        fullName,
-                        personnel.MelliCode,
-                        null,
-                        0,
-                        personnel.UnitCode);
-
-                    if (provisionResult.Status)
-                    {
-                        // همان مسیر احراز هویت عادی باید رمز اولیه و فعال
-                        // بودن حساب را بررسی و نشست را ایجاد کند.
-                        res = AuthManager.Login(Mobile, Password);
-                        User = res.Model as UserSessionDTO;
-
-                        if (res.Status && User != null)
-                        {
-                            _logger.LogInformation(
-                                "حساب ورود اولیه پس از تأیید سرویس پرسنل آماده و احراز شد. UserId: {UserId}",
-                                User.Id);
-                        }
-                        else
-                        {
-                            _logger.LogWarning(
-                                "حساب پرسنلی تأیید شد، اما ورود با رمز اولیه موفق نبود؛ احتمال وجود حساب با نام کاربری یا رمز متفاوت.");
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning(
-                            "ایجاد حساب پس از تأیید سرویس پرسنل رد شد. Reason: {Reason}",
-                            provisionResult.Message);
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "استعلام ورود اولیه، تطابق معتبر کد پرسنلی را تأیید نکرد.");
-                }
-            }
-            catch (Exception ex)
-            {
-                personnelServiceFailed = true;
-                _logger.LogError(ex,
-                    "استعلام یا ثبت حساب در اولین ورود با کد پرسنلی ناموفق بود.");
-            }
-        }
-
-        if (!res.Status || User == null)
-        {
-            // نبود حساب، کد پرسنلی نامعتبر و رمز اشتباه نباید در پاسخ
-            // عمومی امکان تشخیص حساب شخص دیگری را ایجاد کنند.
-            res.Message = personnelServiceFailed
-                ? "بررسی اطلاعات پرسنلی در حال حاضر امکان‌پذیر نیست. لطفاً دوباره تلاش کنید."
-                : "نام کاربری یا کلمه عبور معتبر نیست. در اولین ورود، هر دو فیلد باید کد پرسنلی معتبر شما باشند.";
+            res.Message =
+                "نام کاربری یا کلمه عبور معتبر نیست. در اولین ورود، اگر حساب اولیه شما از طریق سهمیه یا احراز چهره ثبت شده، هر دو فیلد کد پرسنلی هستند؛ در غیر این صورت مدیر سامانه باید حساب شما را فعال کند.";
         }
 
         if (!res.Status || User == null)
