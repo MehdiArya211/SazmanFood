@@ -104,8 +104,9 @@ namespace BLL
             Username = Username?.Trim().ToLower().ToEnglishNumber().ToPersianCharacter();
             string HashPassword = Password?.GetHash();
 
-            if (string.IsNullOrEmpty(Username) && string.IsNullOrEmpty(Password) && UserId == null)
-                return new BaseResult { Status = false, Message = "نام کاربری و کلمه عبور را وارد کنید" };
+            if (UserId == null &&
+                (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password)))
+                return new BaseResult(false, "نام کاربری و کلمه عبور را وارد کنید.");
 
             #region گرفتن اطلاعات کاربر و اعتبار سنجی
             var filter = PredicateBuilder.New<User>(true);
@@ -118,7 +119,9 @@ namespace BLL
             else
             {
                 // ✅ ورود با یوزرنیم و پسورد
-                filter.And(x => x.Username == Username && x.Password == HashPassword);
+                filter.And(x => x.Username == Username &&
+                                x.Password == HashPassword &&
+                                x.IsDeleted == false);
                // filter.And(x => x.Username == Username );
             }
 
@@ -128,7 +131,7 @@ namespace BLL
                 return new BaseResult
                 {
                     Status = false,
-                    Message = "حساب کاربری شما یافت نشد!"
+                    Message = "نام کاربری یا کلمه عبور صحیح نیست."
                 };
             if (!user.IsEnabled)
                 return new BaseResult
