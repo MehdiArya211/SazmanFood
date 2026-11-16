@@ -423,6 +423,7 @@ options.AddPolicy("AllowAllOrigins",
             pattern: "{controller=Authentication}/{action=IndexZP}");
 
         app.MapHub<AuthHub>("/authHub");
+        app.MapHub<FaceZpRelayHub>("/faceZpRelayHub");
 
 
         //#region استیمول سافت
