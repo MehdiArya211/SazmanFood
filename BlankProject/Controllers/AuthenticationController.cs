@@ -36,6 +36,50 @@ public class AuthenticationController : Controller
     private readonly IReservationUserProvisioningManager _reservationUserProvisioning;
     private static readonly object FaceProofSync = new();
     private const string FaceChallengeSessionKey = "FaceLoginChallenge";
+    private const string PendingPersonnelCodeKey = "InitialPersonnelLogin:Code";
+    private const string PendingPersonnelIdKey = "InitialPersonnelLogin:PersonId";
+    private const string PendingPersonnelTimeKey = "InitialPersonnelLogin:Timestamp";
+    private static readonly TimeSpan InitialPersonnelLoginLifetime = TimeSpan.FromMinutes(5);
+
+    private void ClearPendingPersonnelLogin()
+    {
+        HttpContext.Session.Remove(PendingPersonnelCodeKey);
+        HttpContext.Session.Remove(PendingPersonnelIdKey);
+        HttpContext.Session.Remove(PendingPersonnelTimeKey);
+    }
+
+    private bool GetPendingPersonnelLogin(out string personnelCode, out long personId)
+    {
+        personnelCode = HttpContext.Session.GetString(PendingPersonnelCodeKey);
+        personId = 0;
+        var idValue = HttpContext.Session.GetString(PendingPersonnelIdKey);
+        var timeValue = HttpContext.Session.GetString(PendingPersonnelTimeKey);
+        if (string.IsNullOrWhiteSpace(personnelCode) ||
+            !long.TryParse(idValue, out personId) || personId <= 0 ||
+            !long.TryParse(timeValue, out long issuedUnixSeconds))
+        {
+            ClearPendingPersonnelLogin();
+            return false;
+        }
+
+        try
+        {
+            var issued = DateTimeOffset.FromUnixTimeSeconds(issuedUnixSeconds);
+            if (issued > DateTimeOffset.UtcNow ||
+                DateTimeOffset.UtcNow - issued > InitialPersonnelLoginLifetime)
+            {
+                ClearPendingPersonnelLogin();
+                return false;
+            }
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            ClearPendingPersonnelLogin();
+            return false;
+        }
+
+        return true;
+    }
 
     private sealed record VerifiedFaceProof(int KioskId, long EnrollId);
 
@@ -162,13 +206,66 @@ public class AuthenticationController : Controller
         var res = AuthManager.Login(Mobile, Password);
         var User = res.Model as UserSessionDTO;
 
-        // ورود با رمز، به هیچ عنوان حساب جدید از روی کد پرسنلی نمی‌سازد.
-        // کد پرسنلی یک راز نیست و ثبت حساب بدون احراز هویت چهره می‌تواند
-        // به تصاحب حساب فرد دیگری منجر شود.
-        if (!res.Status && User == null)
+        // برای فردی که حساب سامانه ندارد، کد پرسنلی در هر دو فیلد
+        // فقط «درخواست فعال‌سازی ورود اولیه» است؛ نه اثبات هویت.
+        // پس از تأیید سرویس پرسنل باید هویت با رویداد امضاشده ZP
+        // بررسی شود و سپس حساب ایجاد و به تغییر رمز هدایت گردد.
+        bool firstTimePersonnelCode =
+            MenuId == null &&
+            !res.Status &&
+            User == null &&
+            string.Equals(Mobile, Password, StringComparison.Ordinal) &&
+            Mobile.Length <= 20 &&
+            Mobile.All(ch => ch >= '0' && ch <= '9');
+
+        if (firstTimePersonnelCode && !UserManager.ExistsByUsername(Mobile))
         {
-            res.Message =
-                "نام کاربری یا کلمه عبور معتبر نیست. در اولین ورود، اگر حساب اولیه شما از طریق سهمیه یا احراز چهره ثبت شده، هر دو فیلد کد پرسنلی هستند؛ در غیر این صورت مدیر سامانه باید حساب شما را فعال کند.";
+            try
+            {
+                var accessToken = await ApiTokenClient.GetApiToken(
+                    CustomSettings.Instance.ClientId,
+                    CustomSettings.Instance.Scope,
+                    CustomSettings.Instance.ClientSecret,
+                    CustomSettings.Instance.ROPC_UserName,
+                    CustomSettings.Instance.ROPC_Password);
+
+                if (string.IsNullOrWhiteSpace(accessToken))
+                    throw new InvalidOperationException("توکن معتبر سرویس پرسنل موجود نیست.");
+
+                var person = WebApiManager.GetPersonalByPersonCode(Mobile, accessToken);
+                if (person != null &&
+                    person.Id > 0 &&
+                    string.Equals(
+                        person.personalCode?.Trim().ToEnglishNumber().ToPersianCharacter(),
+                        Mobile,
+                        StringComparison.Ordinal))
+                {
+                    HttpContext.Session.SetString(PendingPersonnelCodeKey, Mobile);
+                    HttpContext.Session.SetString(PendingPersonnelIdKey,
+                        person.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    HttpContext.Session.SetString(PendingPersonnelTimeKey,
+                        DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(
+                            System.Globalization.CultureInfo.InvariantCulture));
+
+                    _logger.LogInformation(
+                        "درخواست ورود اولیه تأیید شده در سرویس پرسنل و در انتظار تأیید چهره است.");
+                    TempData["FaceLoginMessage"] =
+                        "کد پرسنلی در سرویس بررسی شد. برای تکمیل اولین ورود و تنظیم رمز جدید، چهره خود را با دستگاه تأیید کنید.";
+                    return RedirectToAction(nameof(IndexZP));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "استعلام کد پرسنلی برای درخواست اولین ورود ناموفق بود.");
+                res.Message =
+                    "ارتباط با سرویس پرسنل برقرار نشد. لطفاً دوباره تلاش کنید.";
+            }
+        }
+
+        if (!res.Status && User == null && string.IsNullOrWhiteSpace(res.Message))
+        {
+            res.Message = "نام کاربری یا کلمه عبور معتبر نیست.";
         }
 
         if (!res.Status || User == null)
@@ -189,6 +286,7 @@ public class AuthenticationController : Controller
         #endregion
 
         #region اطلاعات ردیس و کوکی
+        ClearPendingPersonnelLogin();
 
         if (MenuId == null)
         {
@@ -450,6 +548,20 @@ public class AuthenticationController : Controller
         if (configuredCodeLength > 0 && configuredCodeLength <= 30)
             personCode = personCode.PadLeft(configuredCodeLength, '0');
 
+        // اگر این احراز چهره برای ورود اولیه از صفحه رمز آغاز شده،
+        // فرد شناسایی‌شده باید دقیقاً همان فرد استعلام‌شده باشد.
+        bool isPendingInitialLogin = GetPendingPersonnelLogin(
+            out string pendingPersonnelCode, out long pendingPersonId);
+        if (isPendingInitialLogin &&
+            !string.Equals(pendingPersonnelCode, personCode, StringComparison.Ordinal))
+        {
+            _logger.LogWarning("چهره تشخیص‌داده‌شده با درخواست ورود اولیه مطابقت ندارد.");
+            ClearPendingPersonnelLogin();
+            TempData["FaceLoginMessage"] =
+                "چهره شناسایی‌شده با کد پرسنلی درخواست‌کننده مطابقت ندارد.";
+            return RedirectToAction("IndexZP");
+        }
+
         var user = AuthManager.LoginWithFaceZP(personCode);
 
         if (user == null && verifiedFace)
@@ -469,7 +581,8 @@ public class AuthenticationController : Controller
 
                 if (person == null ||
                     person.personalCode?.Trim().ToEnglishNumber() != personCode ||
-                    person.Id <= 0)
+                    person.Id <= 0 ||
+                    (isPendingInitialLogin && person.Id != pendingPersonId))
                 {
                     TempData["FaceLoginMessage"] =
                         "کد پرسنلی شناسایی‌شده در سرویس معتبر پرسنلی یافت نشد.";
@@ -558,6 +671,23 @@ public class AuthenticationController : Controller
             TempData["FaceLoginMessage"] =
                 "ورود چهره تأیید شد، اما ایجاد نشست کاربری انجام نشد. دوباره تلاش کنید.";
             return RedirectToAction("IndexZP");
+        }
+
+        // تکمیل ورود اولیه: چهره و سرویس پرسنل بررسی شده‌اند،
+        // حساب اولیه از قبل با PasswordIsChanged=false ساخته شده است.
+        if (isPendingInitialLogin)
+        {
+            ClearPendingPersonnelLogin();
+            HttpContext.Session.Remove("VerifiedFaceLogin");
+
+            if (!user.PasswordIsChanged)
+            {
+                _logger.LogInformation(
+                    "ورود اولیه پس از تأیید چهره تکمیل شد؛ ارجاع به تغییر رمز. UserId: {UserId}",
+                    user.Id);
+                return RedirectToAction("ChangePassword", "Profile",
+                    new { area = "Admin" });
+            }
         }
 
         _logger.LogInformation(
