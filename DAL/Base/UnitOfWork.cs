@@ -12,6 +12,8 @@ using Infrastructure.Data;
 using Infrastructure.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Services.SessionServices;
 using Utilities.Extentions;
 
@@ -663,6 +665,10 @@ namespace DAL
             }
             catch (Exception ex)
             {
+                _httpContextAccessor.HttpContext?.RequestServices
+                    .GetService<ILogger<UnitOfWork>>()
+                    ?.LogError(ex, "ذخیره تغییرات در ApplicationContext یا LogContext ناموفق بود.");
+
                 return false;
             }
         }
@@ -773,6 +779,10 @@ namespace DAL
             }
             catch (Exception ex)
             {
+                _httpContextAccessor.HttpContext?.RequestServices
+                    .GetService<ILogger<UnitOfWork>>()
+                    ?.LogError(ex, "ذخیره تغییرات در ApplicationContext یا LogContext ناموفق بود.");
+
                 return false;
             }
         }
