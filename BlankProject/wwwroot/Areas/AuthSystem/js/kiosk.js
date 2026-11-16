@@ -49,6 +49,12 @@
     }
 
     function getHubUrls() {
+        // The existing ZP hub is HTTP on the internal network. An HTTPS login page
+        // connects to our own origin; the application server reaches ZP internally.
+        if (legacyProtocol) {
+            return [window.location.origin + "/faceZpRelayHub"];
+        }
+
         const baseUrl = String(window.API_BASE_URL || "")
             .trim()
             .replace(/\/$/, "");
@@ -209,6 +215,12 @@
             }
         });
 
+
+        connection.on("ZpConnectionStatus", (connected) => {
+            setStatus(connected
+                ? "اتصال برقرار است؛ در انتظار تشخیص چهره..."
+                : "اتصال به ZP قطع شد؛ در حال تلاش برای اتصال مجدد...");
+        });
 
         connection.on("ReceiveAutoLogin", (...args) => {
             const event = getBiometricEvent(args);
