@@ -36,7 +36,7 @@ namespace BLL
             out string reason)
         {
             reason = null;
-            if (policy?.BlockPastDays == true && targetDate.Date < nowIran.Date)
+            if (policy != null && policy.BlockPastDays && targetDate.Date < nowIran.Date)
             {
                 reason = "رزرو روزهای گذشته امکان‌پذیر نیست.";
                 return false;
