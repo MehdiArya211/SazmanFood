@@ -328,7 +328,7 @@ namespace BLL.ReserveManagment
         {
             var images = new Dictionary<long, string>();
             var user = UOW.Users.FirstOrDefault(x =>
-                x.Id == userId && !x.IsDeleted && x.IsEnabled);
+                x.Id == userId && x.IsDeleted == false && x.IsEnabled);
             if (user == null || detailIds == null || detailIds.Count == 0 ||
                 string.IsNullOrWhiteSpace(siteBaseUrl))
                 return images;
@@ -355,9 +355,9 @@ namespace BLL.ReserveManagment
                     var nextDate = reserveDate.AddDays(1);
                     var quotaToken = UOW.QoutaPerson.Get(
                         x => x.PersonalCode == personalCode &&
-                             !x.IsDeleted &&
+                             x.IsDeleted == false &&
                              x.QoutaAllocation != null &&
-                             !x.QoutaAllocation.IsDeleted &&
+                             x.QoutaAllocation.IsDeleted == false &&
                              x.QoutaAllocation.QoutaAllocationDate >= reserveDate &&
                              x.QoutaAllocation.QoutaAllocationDate < nextDate &&
                              x.QoutaAllocation.MealId == detail.MealId,
@@ -377,7 +377,7 @@ namespace BLL.ReserveManagment
                                 .ToString();
                         }
                         while (UOW.QoutaPerson.Any(x =>
-                            x.DeliveryCode == deliveryCode && !x.IsDeleted));
+                            x.DeliveryCode == deliveryCode && x.IsDeleted == false));
                         quotaToken.DeliveryCode = deliveryCode;
                         changed = true;
                     }
