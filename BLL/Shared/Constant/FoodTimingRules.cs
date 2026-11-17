@@ -36,6 +36,11 @@ namespace BLL
             out string reason)
         {
             reason = null;
+            if (policy?.BlockPastDays == true && targetDate.Date < nowIran.Date)
+            {
+                reason = "رزرو روزهای گذشته امکان‌پذیر نیست.";
+                return false;
+            }
             if (policy == null || !policy.ReservationDeadlineEnabled)
                 return true;
 

@@ -163,7 +163,7 @@ public class QuotaControlController : Controller
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
                 Status = false,
-                Message = "فقط مدیر سیستم مجاز به تغییر محدودیت‌های زمانی است."
+            Message = "فقط مدیر سیستم مجاز به تغییر تنظیمات رزرو است."
             });
 
         var result = _constantManager.SaveFoodTimingPolicy(policy);
@@ -192,7 +192,7 @@ public class QuotaControlController : Controller
         return Json(new
         {
             Status = true,
-            Message = "تنظیمات ساعت چاپ ژتون و مهلت رزرو غذا با موفقیت ذخیره شد."
+            Message = "تنظیمات رزرو غذا و چاپ ژتون با موفقیت ذخیره شد."
         });
     }
     /// <summary>

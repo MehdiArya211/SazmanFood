@@ -588,10 +588,43 @@
                     </div>
                 </section>
 
+                <section class="timing-section">
+                    <div class="timing-section-heading">
+                        <input type="checkbox" id="blockPastDays" name="BlockPastDays" value="true" checked="@timing.BlockPastDays" />
+                        <label for="blockPastDays" style="margin:0;cursor:pointer">روزهای گذشته قابل رزرو و تغییر نباشند</label>
+                    </div>
+                </section>
+
+                <section class="timing-section">
+                    <h4>وعده‌ها و اقلام قابل رزرو</h4>
+                    <p class="timing-help">«نمایش» یعنی کارمند آن مورد را در صفحه رزرو ببیند؛ «رزرو» یعنی بتواند آن را انتخاب کند. رزروهای قبلی با تغییر این گزینه‌ها حفظ می‌شوند.</p>
+                    <div class="table-responsive">
+                        <table class="timing-day-table">
+                            <thead><tr><th>مورد</th><th>قابل رزرو</th><th>نمایش به کارکنان</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in new[] {
+                                    new { Title = "صبحانه", Key = "Breakfast", Reservable = timing.BreakfastReservable, Visible = timing.BreakfastVisible },
+                                    new { Title = "ناهار", Key = "Lunch", Reservable = timing.LunchReservable, Visible = timing.LunchVisible },
+                                    new { Title = "شام", Key = "Dinner", Reservable = timing.DinnerReservable, Visible = timing.DinnerVisible },
+                                    new { Title = "دسر", Key = "Dessert", Reservable = timing.DessertReservable, Visible = timing.DessertVisible },
+                                    new { Title = "دورچین", Key = "SideDish", Reservable = timing.SideDishReservable, Visible = timing.SideDishVisible }
+                                })
+                                {
+                                    <tr>
+                                        <td>@item.Title</td>
+                                        <td><input type="checkbox" name="@(item.Key)Reservable" value="true" checked="@item.Reservable" aria-label="رزرو @item.Title" /></td>
+                                        <td><input type="checkbox" name="@(item.Key)Visible" value="true" checked="@item.Visible" aria-label="نمایش @item.Title" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <div class="timing-save">
                     <button class="btn btn-info" id="food-timing-save" type="submit">
                         <i class="material-icons">save</i>
-                        ذخیره محدودیت‌های زمانی
+                        ذخیره تنظیمات رزرو و چاپ
                     </button>
                 </div>
             </form>
@@ -738,6 +771,9 @@
                 const values = new FormData(timingForm);
                 values.set('PrintTimeEnabled', printEnabled.checked ? 'true' : 'false');
                 values.set('ReservationDeadlineEnabled', reserveEnabled.checked ? 'true' : 'false');
+                timingForm.querySelectorAll('input[type="checkbox"][name]').forEach(input => {
+                    values.set(input.name, input.checked ? 'true' : 'false');
+                });
 
                 try {
                     const response = await fetch(timingForm.action, {

@@ -15,6 +15,35 @@ namespace DTO.Base
 
         public bool ReservationDeadlineEnabled { get; set; } = false;
 
+        public bool BlockPastDays { get; set; } = false;
+
+        public bool BreakfastReservable { get; set; } = true;
+        public bool BreakfastVisible { get; set; } = true;
+        public bool LunchReservable { get; set; } = true;
+        public bool LunchVisible { get; set; } = true;
+        public bool DinnerReservable { get; set; } = true;
+        public bool DinnerVisible { get; set; } = true;
+        public bool DessertReservable { get; set; } = true;
+        public bool DessertVisible { get; set; } = true;
+        public bool SideDishReservable { get; set; } = true;
+        public bool SideDishVisible { get; set; } = true;
+
+        public bool IsMealVisible(int code) => code switch
+        {
+            1 => BreakfastVisible,
+            2 => LunchVisible,
+            3 => DinnerVisible,
+            _ => true
+        };
+
+        public bool IsMealReservable(int code) => code switch
+        {
+            1 => BreakfastReservable,
+            2 => LunchReservable,
+            3 => DinnerReservable,
+            _ => true
+        };
+
         public List<FoodReservationDeadlineDayDTO> Days { get; set; } =
             Enumerable.Range(0, 7)
                 .Select(i => new FoodReservationDeadlineDayDTO

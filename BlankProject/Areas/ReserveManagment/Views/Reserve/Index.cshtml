@@ -3,6 +3,7 @@
 @using Domain.Entities.FoodManage
 @using Services.SessionServices
 @using System.Globalization
+@using DTO.Base
 
 @{
     ViewData["Title"] = "ثبت برنامه غذایی";
@@ -11,6 +12,8 @@
     var allowedSlots =
         ViewBag.AllowedReservationSlots as HashSet<string> ??
         new HashSet<string>();
+    var visibleSlots = ViewBag.VisibleReservationSlots as HashSet<string> ?? allowedSlots;
+    var foodPolicy = ViewBag.FoodPolicy as FoodTimingPolicyDTO ?? new FoodTimingPolicyDTO();
     var hasReservationQuota =
         ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
     var freeReservationEnabled =
@@ -684,22 +687,24 @@
                         <tr>
                             <th style="width:140px">وعده</th>
                             <th>غذا</th>
-                            <th>دسر</th>
-                            <th>دورچین</th>
+                            @if (foodPolicy.DessertVisible) { <th>دسر</th> }
+                            @if (foodPolicy.SideDishVisible) { <th>دورچین</th> }
                         </tr>
                     </thead>
 
                     <tbody>
                         @foreach (var day in Model.Days.Where(day =>
                             Model.Meals.Any(meal =>
-                                allowedSlots.Contains(
+                                visibleSlots.Contains(
                                     $"{weekStartDate.AddDays(day.Code - 1):yyyyMMdd}_{meal.Id}"))))
                         {
                             var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
-                            var dayHasQuota = true;
+                            var dayHasQuota = Model.Meals.Any(meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")) &&
+                                !(Model.ExistingReserveDetails?.Any(detail => detail.DayId == day.Id &&
+                                    !allowedSlots.Contains($"{dayDate:yyyyMMdd}_{detail.MealId}")) ?? false);
 
                             <tr class="day-header-row">
-                                <td colspan="4" class="day-header">
+                                <td colspan="@(2 + (foodPolicy.DessertVisible ? 1 : 0) + (foodPolicy.SideDishVisible ? 1 : 0))" class="day-header">
                                     <div class="day-header-inner">
                                         <div class="day-title">
                                             <span class="day-name">@day.Title</span>
@@ -717,18 +722,20 @@
                                         }
                                         else
                                         {
-                                            <span class="label label-default">برای این روز سهمیه ثبت نشده است</span>
+                                            <span class="label label-default">حذف همه وعده‌های این روز در دسترس نیست</span>
                                         }
                                     </div>
                                 </td>
                             </tr>
 
                             @foreach (var meal in Model.Meals.Where(
-                                meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")))
+                                meal => visibleSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")))
                             {
+                                var mealEditable = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}");
                                 <tr class="meal-row">
                                     <td data-label="وعده">
                                         <span class="meal-badge">@meal.Title</span>
+                                        @if (!mealEditable) { <small>رزرو غیرفعال</small> }
                                     </td>
 
                                     <!-- غذا -->
@@ -741,6 +748,7 @@
                                                     <input class="chip-input" type="radio" id="@id"
                                                            name="MainFood_@day.Id@meal.Id"
                                                            value="@food.Id"
+                                                           disabled="@(!mealEditable)"
                                                            @(IsFoodSelected(day.Id, meal.Id, food.Id, "Main", Model) ? "checked" : "") />
                                                     <label class="chip" for="@id">@food.Title</label>
                                                 </span>
@@ -749,6 +757,8 @@
                                     </td>
 
                                     <!-- دسر -->
+                                    @if (foodPolicy.DessertVisible)
+                                    {
                                     <td data-label="دسر">
                                         <div class="chips">
                                             @foreach (var dessert in GetDessertListForMeal(day.Id, meal.Id, Model))
@@ -758,6 +768,7 @@
                                                     <input class="chip-input" type="radio" id="@id"
                                                            name="Dessert_@day.Id@meal.Id"
                                                            value="@dessert.Id"
+                                                       disabled="@(!mealEditable || !foodPolicy.DessertReservable)"
                                                            @(IsFoodSelected(day.Id, meal.Id, dessert.Id, "Dessert", Model) ? "checked" : "") />
                                                     <label class="chip" for="@id">@dessert.Title</label>
                                                 </span>
@@ -772,13 +783,18 @@
                                             <span class="chip-item">
                                                 <input class="chip-input" type="radio" id="@noneDessertId"
                                                        name="Dessert_@day.Id@meal.Id" value=""
+                                                       disabled="@(!mealEditable || !foodPolicy.DessertReservable)"
                                                        @(dessertNoneChecked ? "checked" : "") />
                                                 <label class="chip chip-muted" for="@noneDessertId">بدون دسر</label>
                                             </span>
                                         </div>
+                                        @if (!foodPolicy.DessertReservable) { <small>رزرو دسر غیرفعال است</small> }
                                     </td>
+                                    }
 
                                     <!-- دورچین -->
+                                    @if (foodPolicy.SideDishVisible)
+                                    {
                                     <td data-label="دورچین">
                                         <div class="chips">
                                             @foreach (var side in GetSideDishListForMeal(day.Id, meal.Id, Model))
@@ -788,6 +804,7 @@
                                                     <input class="chip-input" type="radio" id="@id"
                                                            name="SideDish_@day.Id@meal.Id"
                                                            value="@side.Id"
+                                                           disabled="@(!mealEditable || !foodPolicy.SideDishReservable)"
                                                            @(IsFoodSelected(day.Id, meal.Id, side.Id, "SideDish", Model) ? "checked" : "") />
                                                     <label class="chip" for="@id">@side.Title</label>
                                                 </span>
@@ -802,11 +819,14 @@
                                             <span class="chip-item">
                                                 <input class="chip-input" type="radio" id="@noneSideId"
                                                        name="SideDish_@day.Id@meal.Id" value=""
+                                                       disabled="@(!mealEditable || !foodPolicy.SideDishReservable)"
                                                        @(sideNoneChecked ? "checked" : "") />
                                                 <label class="chip chip-muted" for="@noneSideId">بدون دورچین</label>
                                             </span>
                                         </div>
+                                        @if (!foodPolicy.SideDishReservable) { <small>رزرو دورچین غیرفعال است</small> }
                                     </td>
+                                    }
                                 </tr>
                             }
                         }
@@ -832,9 +852,9 @@
                     else
                     {
                         <button type="button" class="btn btn-default btn-lg" disabled>
-                            @(reservationDeadlineEnabled && closedReservationSlotsCount > 0
+                            @((reservationDeadlineEnabled || foodPolicy.BlockPastDays) && closedReservationSlotsCount > 0
                                 ? "مهلت رزرو به پایان رسیده است"
-                                : "سهمیه‌ای برای رزرو وجود ندارد")
+                                : visibleSlots.Count > 0 ? "رزرو این وعده‌ها غیرفعال است" : "سهمیه‌ای برای رزرو وجود ندارد")
                         </button>
                     }
                 </div>

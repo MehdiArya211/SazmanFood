@@ -177,7 +177,7 @@ namespace BLL
                 return new FoodTimingPolicyDTO();
 
             var sections = setting.Value.Split('|');
-            if (sections.Length != 3 ||
+            if ((sections.Length != 3 && sections.Length != 5) ||
                 !sections[0].StartsWith("p", StringComparison.Ordinal) ||
                 !sections[1].StartsWith("r", StringComparison.Ordinal))
             {
@@ -222,11 +222,32 @@ namespace BLL
                 throw new InvalidOperationException(
                     "تنظیمات مهلت رزرو باید شامل دقیقاً هفت روز متفاوت باشد.");
 
+            var flags = "1111111111";
+            if (sections.Length == 5)
+            {
+                if ((sections[3] != "b0" && sections[3] != "b1") ||
+                    sections[4].Length != 11 || sections[4][0] != 'm' ||
+                    sections[4].Substring(1).Any(x => x != '0' && x != '1'))
+                    throw new InvalidOperationException("تنظیمات نمایش و رزرو وعده‌ها معتبر نیست.");
+                flags = sections[4].Substring(1);
+            }
+
             return new FoodTimingPolicyDTO
             {
                 PrintTimeEnabled = printParts[0] == "1",
                 PrintStartTime = printParts[1],
                 ReservationDeadlineEnabled = sections[1] == "r1",
+                BlockPastDays = sections.Length == 5 && sections[3] == "b1",
+                BreakfastReservable = flags[0] == '1',
+                BreakfastVisible = flags[1] == '1',
+                LunchReservable = flags[2] == '1',
+                LunchVisible = flags[3] == '1',
+                DinnerReservable = flags[4] == '1',
+                DinnerVisible = flags[5] == '1',
+                DessertReservable = flags[6] == '1',
+                DessertVisible = flags[7] == '1',
+                SideDishReservable = flags[8] == '1',
+                SideDishVisible = flags[9] == '1',
                 Days = days
             };
         }
@@ -257,7 +278,15 @@ namespace BLL
                 "|r" + (policy.ReservationDeadlineEnabled ? "1" : "0") +
                 "|" + string.Join(";", policy.Days
                     .OrderBy(x => x.DayOfWeek)
-                    .Select(x => $"{x.DayOfWeek},{x.DaysBefore},{x.CutoffTime}"));
+                    .Select(x => $"{x.DayOfWeek},{x.DaysBefore},{x.CutoffTime}")) +
+                "|b" + (policy.BlockPastDays ? "1" : "0") +
+                "|m" + string.Concat(new[] {
+                    policy.BreakfastReservable, policy.BreakfastVisible,
+                    policy.LunchReservable, policy.LunchVisible,
+                    policy.DinnerReservable, policy.DinnerVisible,
+                    policy.DessertReservable, policy.DessertVisible,
+                    policy.SideDishReservable, policy.SideDishVisible
+                }.Select(x => x ? "1" : "0"));
 
             if (serialized.Length > 300)
                 return new BaseResult(false, "مقادیر تنظیمات زمان‌بندی بیش از حد مجاز است.");

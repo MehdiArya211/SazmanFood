@@ -96,9 +96,22 @@ namespace Food.Areas.ReserveManagment.Controllers
                 !FoodTimingRules.CanReserve(
                     timingPolicy, slot.Date, now, out _));
 
+            var mealCodes = _mealManager.GetAll().ToDictionary(x => x.Id, x => x.Code);
+            var visibleSlots = reservableSlots
+                .Where(slot => mealCodes.TryGetValue(slot.MealId, out var code) &&
+                               timingPolicy.IsMealVisible(code))
+                .Select(slot => $"{slot.Date:yyyyMMdd}_{slot.MealId}")
+                .ToHashSet();
+            reservableSlots.RemoveWhere(slot =>
+                !mealCodes.TryGetValue(slot.MealId, out var code) ||
+                !timingPolicy.IsMealVisible(code) ||
+                !timingPolicy.IsMealReservable(code));
+
+            ViewBag.FoodPolicy = timingPolicy;
+            ViewBag.VisibleReservationSlots = visibleSlots;
             ViewBag.ReservationDeadlineEnabled = timingPolicy.ReservationDeadlineEnabled;
             ViewBag.ClosedReservationSlotsCount =
-                slotsBeforeTiming - reservableSlots.Count;
+                slotsBeforeTiming - visibleSlots.Count;
 
             ViewBag.FreeReservationEnabled = freeReservationEnabled;
             ViewBag.WeekOffset = week;
@@ -110,9 +123,11 @@ namespace Food.Areas.ReserveManagment.Controllers
 
             if (reservableSlots.Count == 0)
             {
-                ViewBag.QuotaError = (timingPolicy.ReservationDeadlineEnabled &&
+                ViewBag.QuotaError = visibleSlots.Count > 0
+                    ? "رزرو وعده‌های نمایش‌داده‌شده غیرفعال است."
+                    : ((timingPolicy.ReservationDeadlineEnabled || timingPolicy.BlockPastDays) &&
                                            slotsBeforeTiming > 0)
-                    ? "مهلت رزرو روزها و وعده‌های مجاز این هفته به پایان رسیده است."
+                    ? "مهلت رزرو روزهای مجاز این هفته به پایان رسیده است."
                     : freeReservationEnabled
                         ? "برای این هفته برنامه غذایی قابل رزرو تعریف نشده است."
                         : "سهمیه‌ای برای شما ثبت نشده است.";
@@ -238,10 +253,16 @@ namespace Food.Areas.ReserveManagment.Controllers
                     !FoodTimingRules.CanReserve(
                         timingPolicy, slot.Date, now, out _));
 
+                var mealCodes = _mealManager.GetAll().ToDictionary(x => x.Id, x => x.Code);
+                reservableSlots.RemoveWhere(slot =>
+                    !mealCodes.TryGetValue(slot.MealId, out var code) ||
+                    !timingPolicy.IsMealVisible(code) ||
+                    !timingPolicy.IsMealReservable(code));
+
                 if (reservableSlots.Count == 0)
                 {
                     TempData["Error"] =
-                        timingPolicy.ReservationDeadlineEnabled && slotsBeforeTiming > 0
+                        (timingPolicy.ReservationDeadlineEnabled || timingPolicy.BlockPastDays) && slotsBeforeTiming > 0
                             ? "مهلت رزرو روزهای مجاز این هفته پایان یافته است."
                             : freeReservationEnabled
                                 ? "برنامه غذایی قابل رزرو یافت نشد."
@@ -271,6 +292,14 @@ namespace Food.Areas.ReserveManagment.Controllers
                 var plannedFoodItems = _foodPlanDayManager.GetAll()
                     .Where(x => x.IsDeleted == false)
                     .ToList();
+                var existingReserve = _foodReserveManager.GetAll()
+                    .FirstOrDefault(x => x.UserId == userId &&
+                                         x.WeekStartDate == weekStartDate &&
+                                         x.WeekEndDate == weekEndDate);
+                var existingDetails = existingReserve == null
+                    ? new List<FoodReserveDetail>()
+                    : _foodReserveDetailManager.GetAll()
+                        .Where(x => x.FoodReserveId == existingReserve.Id).ToList();
 
                 var unauthorizedSelection = false;
                 var invalidFoodSelection = false;
@@ -309,6 +338,22 @@ namespace Food.Areas.ReserveManagment.Controllers
                         long.TryParse(dessert, out var dessertId);
                         long.TryParse(sideDish, out var sideDishId);
 
+                        var canChooseDessert = timingPolicy.DessertVisible && timingPolicy.DessertReservable;
+                        var canChooseSide = timingPolicy.SideDishVisible && timingPolicy.SideDishReservable;
+                        if ((!canChooseDessert && !string.IsNullOrEmpty(dessert)) ||
+                            (!canChooseSide && !string.IsNullOrEmpty(sideDish)))
+                        {
+                            invalidFoodSelection = true;
+                            continue;
+                        }
+
+                        var oldDetail = existingDetails.FirstOrDefault(x =>
+                            x.DayId == day.Id && x.MealId == meal.Id);
+                        if (!canChooseDessert)
+                            dessertId = oldDetail?.DessertId ?? 0;
+                        if (!canChooseSide)
+                            sideDishId = oldDetail?.SideDishId ?? 0;
+
                         // شناسه غذاها باید از برنامه ثبت‌شده همین روز و وعده باشند.
                         // این کنترل در هر دو حالت آزاد و سهمیه‌ای الزامی است.
                         var dayId = Convert.ToInt64(day.Id);
@@ -319,9 +364,9 @@ namespace Food.Areas.ReserveManagment.Controllers
 
                         if (mainFoodId <= 0 ||
                             !plannedForMeal.Any(x => x.FoodId == mainFoodId) ||
-                            (dessertId > 0 &&
+                            (canChooseDessert && dessertId > 0 &&
                              !plannedForMeal.Any(x => x.FoodDesserId == dessertId)) ||
-                            (sideDishId > 0 &&
+                            (canChooseSide && sideDishId > 0 &&
                              !plannedForMeal.Any(x => x.FoodDorchinId == sideDishId)))
                         {
                             invalidFoodSelection = true;
@@ -498,6 +543,24 @@ namespace Food.Areas.ReserveManagment.Controllers
                         success = false,
                         message = timingMessage ?? "مهلت تغییر رزرو این روز به پایان رسیده است."
                     });
+                }
+
+                var existingReserve = _foodReserveManager.GetAll()
+                    .FirstOrDefault(x => x.UserId == userId &&
+                                         x.WeekStartDate == weekStartDate &&
+                                         x.WeekEndDate == weekEndDate);
+                if (existingReserve != null)
+                {
+                    var mealCodes = _mealManager.GetAll().ToDictionary(x => x.Id, x => x.Code);
+                    var details = _foodReserveDetailManager.GetAll()
+                        .Where(x => x.FoodReserveId == existingReserve.Id && x.DayId == dayId);
+                    if (details.Any(x =>
+                        !mealCodes.TryGetValue(x.MealId, out var code) ||
+                        !timingPolicy.IsMealVisible(code) ||
+                        !timingPolicy.IsMealReservable(code)))
+                    {
+                        return Json(new { success = false, message = "یکی از وعده‌های این روز برای تغییر رزرو غیرفعال است." });
+                    }
                 }
 
                 // حذف در سرویس با یک Commit انجام می‌شود؛ حذف جزئیات
