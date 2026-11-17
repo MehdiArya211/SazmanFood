@@ -32,8 +32,8 @@ namespace BLL.ReserveManagment
             FoodReserveDTO model,
             IReadOnlyCollection<(long DayId, long MealId)> editableSlots);
 
-        /// <summary>حذف ایمن و یک‌مرحله‌ای رزرو یک روز از هفته.</summary>
-        BaseResult DeleteDayReservation(long userId, DateTime weekStartDate, long dayId);
+        /// <summary>حذف یک وعده رزروشده بدون دست‌زدن به وعده‌های دیگر.</summary>
+        BaseResult DeleteMealReservation(long userId, DateTime weekStartDate, long dayId, long mealId);
 
     }
 }

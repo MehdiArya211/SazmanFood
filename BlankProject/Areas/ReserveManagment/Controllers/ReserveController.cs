@@ -502,7 +502,7 @@ namespace Food.Areas.ReserveManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteDay(long dayId, int week = 0)
+        public IActionResult DeleteMeal(long dayId, long mealId, int week = 0)
         {
             if (week < 0 || week > 1)
                 return Json(new { success = false, message = "هفته انتخاب‌شده معتبر نیست." });
@@ -525,14 +525,13 @@ namespace Food.Areas.ReserveManagment.Controllers
                 var now = FoodTimingRules.GetIranNow();
                 int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
                 DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
-                DateTime weekEndDate = weekStartDate.AddDays(6).Date;
-
                 List<Days> days = (List<Days>)_foodPlanDayManager.GetAllDay().Model;
                 var foodDay = days.FirstOrDefault(x => x.Id == dayId);
+                var meal = _mealManager.GetAll().FirstOrDefault(x => x.Id == mealId);
 
-                if (foodDay == null)
+                if (foodDay == null || meal == null)
                 {
-                    return Json(new { success = false, message = "روز انتخاب‌شده معتبر نیست." });
+                    return Json(new { success = false, message = "روز یا وعده انتخاب‌شده معتبر نیست." });
                 }
 
                 var dayDate = weekStartDate.AddDays(foodDay.Code - 1).Date;
@@ -547,28 +546,14 @@ namespace Food.Areas.ReserveManagment.Controllers
                     });
                 }
 
-                var existingReserve = _foodReserveManager.GetAll()
-                    .FirstOrDefault(x => x.UserId == userId &&
-                                         x.WeekStartDate == weekStartDate &&
-                                         x.WeekEndDate == weekEndDate);
-                if (existingReserve != null)
+                if (!timingPolicy.IsMealVisible(meal.Code) ||
+                    !timingPolicy.IsMealReservable(meal.Code))
                 {
-                    var mealCodes = _mealManager.GetAll().ToDictionary(x => x.Id, x => x.Code);
-                    var details = _foodReserveDetailManager.GetAll()
-                        .Where(x => x.FoodReserveId == existingReserve.Id && x.DayId == dayId);
-                    if (details.Any(x =>
-                        !mealCodes.TryGetValue(x.MealId, out var code) ||
-                        !timingPolicy.IsMealVisible(code) ||
-                        !timingPolicy.IsMealReservable(code)))
-                    {
-                        return Json(new { success = false, message = "یکی از وعده‌های این روز برای تغییر رزرو غیرفعال است." });
-                    }
+                    return Json(new { success = false, message = "تغییر رزرو این وعده غیرفعال است." });
                 }
 
-                // حذف در سرویس با یک Commit انجام می‌شود؛ حذف جزئیات
-                // به‌صورت جداگانه نباید منجر به وضعیت نیمه‌کاره شود.
-                var deleteResult = _foodReserveManager.DeleteDayReservation(
-                    userId, weekStartDate, dayId);
+                var deleteResult = _foodReserveManager.DeleteMealReservation(
+                    userId, weekStartDate, dayId, mealId);
 
                 return Json(new
                 {
@@ -579,12 +564,12 @@ namespace Food.Areas.ReserveManagment.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "خطا در حذف رزرو غذا. UserId: {UserId}, DayId: {DayId}",
-                    userId, dayId);
+                    "خطا در حذف غذای انتخاب‌شده. UserId: {UserId}, DayId: {DayId}, MealId: {MealId}",
+                    userId, dayId, mealId);
                 return Json(new
                 {
                     success = false,
-                    message = "حذف رزرو روز با خطا همراه بود."
+                    message = "حذف غذای انتخاب‌شده با خطا همراه بود."
                 });
             }
         }

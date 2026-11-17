@@ -15,6 +15,8 @@
     var foodPolicy = ViewBag.FoodPolicy as FoodTimingPolicyDTO ?? new FoodTimingPolicyDTO();
     var foodTitles = ViewBag.FoodTitles as Dictionary<long, string> ?? new Dictionary<long, string>();
     var todayIranDate = ViewBag.TodayIranDate is DateTime iranDate ? iranDate : DateTime.Today;
+    var saveSuccess = TempData["Success"] as string;
+    var saveError = TempData["Error"] as string;
     var hasReservationQuota =
         ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
     var freeReservationEnabled =
@@ -393,6 +395,16 @@
             font-size: 11px;
         }
 
+        .swal2-modal {
+            border-radius: 18px;
+            font-family: Vazirmatn, IRANSans, Tahoma, Arial, sans-serif;
+        }
+
+        .swal2-modal .swal2-title {
+            color: #26384d;
+            font-weight: 900;
+        }
+
         .reserve-sticky {
             position: sticky;
             bottom: 10px;
@@ -635,13 +647,10 @@
     </div>
 }
 
-@if (TempData["Success"] != null)
+@if (saveSuccess != null || saveError != null)
 {
-    <div class="alert alert-success">@TempData["Success"]</div>
-}
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">@TempData["Error"]</div>
+    <div id="reserve-result" data-kind="@(saveSuccess != null ? "success" : "error")"
+         data-message="@(saveSuccess ?? saveError)" hidden></div>
 }
 
 <form method="post"
@@ -719,13 +728,7 @@
                         @foreach (var day in Model.Days.OrderBy(day => day.Code))
                         {
                             var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
-                            var hasLockedReservations = Model.ExistingReserveDetails != null &&
-                                Model.ExistingReserveDetails.Any(detail => detail.DayId == day.Id &&
-                                    !allowedSlots.Contains($"{dayDate:yyyyMMdd}_{detail.MealId}"));
-                            var dayHasQuota = Model.ExistingReserveDetails != null &&
-                                Model.ExistingReserveDetails.Any(detail => detail.DayId == day.Id) &&
-                                Model.Meals.Any(meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")) &&
-                                !hasLockedReservations;
+                            var dayReservations = Model.ExistingReserveDetails?.Count(detail => detail.DayId == day.Id) ?? 0;
 
                             <tr class="day-header-row">
                                 <td colspan="@(2 + (foodPolicy.DessertVisible ? 1 : 0) + (foodPolicy.SideDishVisible ? 1 : 0))" class="day-header">
@@ -739,19 +742,9 @@
                                             }
                                         </div>
 
-                                        @if (dayHasQuota)
-                                        {
-                                            <button type="button"
-                                                    class="btn btn-sm btn-danger delete-day-btn"
-                                                    data-day-id="@day.Id"
-                                                    data-day-title="@day.Title">
-                                                حذف روز
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <span class="label label-default">@(foodPolicy.BlockPastDays && dayDate < todayIranDate ? "روز گذشته، فقط مشاهده" : "حذف روز در دسترس نیست")</span>
-                                        }
+                                        <span class="label label-default day-reservation-status" data-day-id="@day.Id" data-count="@dayReservations">
+                                            @(dayReservations > 0 ? $"{dayReservations} وعده رزروشده" : "رزروی ثبت نشده است")
+                                        </span>
                                     </div>
                                 </td>
                             </tr>
@@ -761,10 +754,18 @@
                                 var mainFoods = GetFoodListForMeal(day.Id, meal.Id, Model);
                                 var savedDetail = Model.ExistingReserveDetails?.FirstOrDefault(detail =>
                                     detail.DayId == day.Id && detail.MealId == meal.Id);
-                                var mealEditable = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}") && mainFoods.Count > 0;
-                                <tr class="meal-row">
+                                var mealCanChange = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}");
+                                var mealEditable = mealCanChange && mainFoods.Count > 0;
+                                <tr class="meal-row" data-day-id="@day.Id" data-meal-id="@meal.Id" data-reserved="@(savedDetail != null ? "true" : "false")">
                                     <td data-label="وعده">
                                         <span class="meal-badge">@meal.Title</span>
+                                        @if (mealCanChange)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-danger delete-meal-btn"
+                                                    style="@(savedDetail == null ? "display:none" : "")">
+                                                حذف غذای انتخاب‌شده
+                                            </button>
+                                        }
                                         @if (!mealEditable)
                                         {
                                             <small class="reserve-readonly-note">@(foodPolicy.BlockPastDays && dayDate < todayIranDate ? "فقط مشاهده" : "انتخاب غیرفعال")</small>
@@ -970,22 +971,47 @@
             function updateSelectionCount() {
                 var count = $('input[name^="MainFood_"]:checked').filter(function () {
                     return $(this).val();
+                }).length + $('.meal-row[data-reserved="true"] .chip-selected-readonly').filter(function () {
+                    return $(this).closest('td').attr('data-label') === 'غذا';
                 }).length;
 
                 $('#selectionCount').text(toPersianNumber(count));
             }
 
-            $('input[type="radio"]').on('change', updateSelectionCount);
+            function refreshMealButton(row) {
+                var hasChoice = row.find('input[name^="MainFood_"]:checked').length > 0 ||
+                    row.attr('data-reserved') === 'true';
+                row.find('.delete-meal-btn').toggle(hasChoice);
+            }
+
+            $('input[type="radio"]').on('change', function () {
+                refreshMealButton($(this).closest('.meal-row'));
+                updateSelectionCount();
+            });
             updateSelectionCount();
 
-            $('.delete-day-btn').on('click', function () {
-                var dayId = $(this).data('day-id');
-                var dayTitle = $(this).data('day-title');
-
-                // SweetAlert2 (در Layout شما هست)
+            var result = document.getElementById('reserve-result');
+            if (result) {
                 swal({
-                    title: 'حذف روز',
-                    text: 'آیا از حذف برنامه غذایی روز ' + dayTitle + ' اطمینان دارید؟',
+                    title: result.dataset.kind === 'success' ? 'برنامه غذایی ثبت شد' : 'ثبت برنامه غذایی انجام نشد',
+                    text: result.dataset.message,
+                    type: result.dataset.kind,
+                    confirmButtonText: 'متوجه شدم',
+                    confirmButtonClass: 'btn btn-rose',
+                    buttonsStyling: false
+                });
+            }
+
+            $('.delete-meal-btn').on('click', function () {
+                var button = $(this);
+                var row = button.closest('.meal-row');
+                var dayId = row.attr('data-day-id');
+                var mealId = row.attr('data-meal-id');
+                var mealTitle = row.find('.meal-badge').text().trim();
+
+                swal({
+                    title: 'حذف غذای انتخاب‌شده',
+                    text: 'غذای انتخاب‌شده برای ' + mealTitle + ' حذف شود؟',
                     type: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'بله، حذف کن',
@@ -994,32 +1020,46 @@
                     cancelButtonClass: 'btn btn-default',
                     buttonsStyling: false
                 }).then(function () {
-
+                    if (row.attr('data-reserved') !== 'true') {
+                        row.find('input[type="radio"]').prop('checked', false);
+                        refreshMealButton(row);
+                        updateSelectionCount();
+                        return;
+                    }
+                    button.prop('disabled', true);
                     $.ajax({
-                        url: '@Url.Action("DeleteDay", "Reserve")',
+                        url: '@Url.Action("DeleteMeal", "Reserve", new { area = "ReserveManagment" })',
                         type: 'POST',
                         data: {
                             dayId: dayId,
+                            mealId: mealId,
                             week: @weekOffset,
                             __RequestVerificationToken:
                                 $('input[name="__RequestVerificationToken"]').first().val()
                         },
                         success: function (response) {
                             if (response.success) {
+                                row.attr('data-reserved', 'false');
+                                row.find('input[type="radio"]').prop('checked', false);
+                                row.find('.chip-selected-readonly').remove();
+                                refreshMealButton(row);
+                                updateSelectionCount();
+                                var dayStatus = $('.day-reservation-status[data-day-id="' + dayId + '"]');
+                                var reservedCount = Math.max(0, Number(dayStatus.attr('data-count')) - 1);
+                                dayStatus.attr('data-count', reservedCount)
+                                    .text(reservedCount ? toPersianNumber(reservedCount) + ' وعده رزروشده' : 'رزروی ثبت نشده است');
                                 swal({
                                     title: 'انجام شد',
-                                    text: 'برنامه غذایی روز حذف شد.',
+                                    text: response.message || 'غذای انتخاب‌شده حذف شد.',
                                     type: 'success',
                                     confirmButtonText: 'باشه',
                                     confirmButtonClass: 'btn btn-success',
                                     buttonsStyling: false
-                                }).then(function () {
-                                    location.reload();
                                 });
                             } else {
                                 swal({
                                     title: 'خطا',
-                                    text: response.message || 'خطا در حذف روز',
+                                    text: response.message || 'حذف غذا انجام نشد.',
                                     type: 'error',
                                     confirmButtonText: 'باشه',
                                     confirmButtonClass: 'btn btn-danger',
@@ -1027,6 +1067,7 @@
                                 });
                             }
                         },
+                        complete: function () { button.prop('disabled', false); },
                         error: function () {
                             swal({
                                 title: 'خطا',
