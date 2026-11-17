@@ -699,9 +699,11 @@
                                     $"{weekStartDate.AddDays(day.Code - 1):yyyyMMdd}_{meal.Id}"))))
                         {
                             var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
-                            var dayHasQuota = Model.Meals.Any(meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")) &&
-                                !(Model.ExistingReserveDetails?.Any(detail => detail.DayId == day.Id &&
-                                    !allowedSlots.Contains($"{dayDate:yyyyMMdd}_{detail.MealId}")) ?? false);
+                            var hasLockedReservations = Model.ExistingReserveDetails != null &&
+                                Model.ExistingReserveDetails.Any(detail => detail.DayId == day.Id &&
+                                    !allowedSlots.Contains($"{dayDate:yyyyMMdd}_{detail.MealId}"));
+                            var dayHasQuota = Model.Meals.Any(meal =>
+                                allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")) && !hasLockedReservations;
 
                             <tr class="day-header-row">
                                 <td colspan="@(2 + (foodPolicy.DessertVisible ? 1 : 0) + (foodPolicy.SideDishVisible ? 1 : 0))" class="day-header">
