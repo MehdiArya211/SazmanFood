@@ -190,11 +190,11 @@ namespace BLL.ReserveManagment
             }
         }
 
-        public BaseResult DeleteDayReservation(
-            long userId, DateTime weekStartDate, long dayId)
+        public BaseResult DeleteMealReservation(
+            long userId, DateTime weekStartDate, long dayId, long mealId)
         {
-            if (userId <= 0 || dayId <= 0)
-                return new BaseResult(false, "شناسه کاربر یا روز معتبر نیست.");
+            if (userId <= 0 || dayId <= 0 || mealId <= 0)
+                return new BaseResult(false, "شناسه کاربر، روز یا وعده معتبر نیست.");
 
             try
             {
@@ -209,27 +209,28 @@ namespace BLL.ReserveManagment
                 var details = UOW.FoodReserveDetail.Get(
                     x => x.FoodReserveId == reservation.Id).ToList();
 
-                var forDay = details.Where(x => x.DayId == dayId).ToList();
-                if (forDay.Count == 0)
-                    return new BaseResult(false, "برای این روز رزروی ثبت نشده است.");
+                var selected = details.FirstOrDefault(x =>
+                    x.DayId == dayId && x.MealId == mealId);
+                if (selected == null)
+                    return new BaseResult(false, "برای این وعده رزروی ثبت نشده است.");
 
-                UOW.FoodReserveDetail.RemoveRange(forDay);
+                UOW.FoodReserveDetail.Remove(selected);
 
-                if (details.Count == forDay.Count)
+                if (details.Count == 1)
                     UOW.FoodReserve.Remove(reservation);
 
                 var success = UOW.Commit();
                 return new BaseResult(success,
                     success
-                        ? "رزرو روز انتخاب‌شده حذف شد."
+                        ? "غذای انتخاب‌شده از این وعده حذف شد."
                         : "حذف رزرو انجام نشد.");
             }
             catch (Exception ex)
             {
                 _printLogger.LogError(
                     ex,
-                    "خطا در حذف رزرو یک روز. UserId: {UserId}, DayId: {DayId}",
-                    userId, dayId);
+                    "خطا در حذف رزرو یک وعده. UserId: {UserId}, DayId: {DayId}, MealId: {MealId}",
+                    userId, dayId, mealId);
                 return new BaseResult(false, "حذف رزرو با خطا همراه بود.");
             }
         }
