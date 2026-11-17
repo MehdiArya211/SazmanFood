@@ -95,23 +95,20 @@ namespace Food.Areas.ReserveManagment.Controllers
             reservableSlots.RemoveWhere(slot =>
                 !FoodTimingRules.CanReserve(
                     timingPolicy, slot.Date, now, out _));
+            var slotsAfterTiming = reservableSlots.Count;
 
-            var mealCodes = _mealManager.GetAll().ToDictionary(x => x.Id, x => x.Code);
-            var visibleSlots = reservableSlots
-                .Where(slot => mealCodes.TryGetValue(slot.MealId, out var code) &&
-                               timingPolicy.IsMealVisible(code))
-                .Select(slot => $"{slot.Date:yyyyMMdd}_{slot.MealId}")
-                .ToHashSet();
+            var meals = _mealManager.GetAll().ToList();
+            var mealCodes = meals.ToDictionary(x => x.Id, x => x.Code);
             reservableSlots.RemoveWhere(slot =>
                 !mealCodes.TryGetValue(slot.MealId, out var code) ||
                 !timingPolicy.IsMealVisible(code) ||
                 !timingPolicy.IsMealReservable(code));
 
             ViewBag.FoodPolicy = timingPolicy;
-            ViewBag.VisibleReservationSlots = visibleSlots;
+            ViewBag.TodayIranDate = now.Date;
             ViewBag.ReservationDeadlineEnabled = timingPolicy.ReservationDeadlineEnabled;
             ViewBag.ClosedReservationSlotsCount =
-                slotsBeforeTiming - visibleSlots.Count;
+                slotsBeforeTiming - slotsAfterTiming;
 
             ViewBag.FreeReservationEnabled = freeReservationEnabled;
             ViewBag.WeekOffset = week;
@@ -123,10 +120,10 @@ namespace Food.Areas.ReserveManagment.Controllers
 
             if (reservableSlots.Count == 0)
             {
-                ViewBag.QuotaError = visibleSlots.Count > 0
-                    ? "رزرو وعده‌های نمایش‌داده‌شده غیرفعال است."
+                ViewBag.QuotaError = slotsAfterTiming > 0
+                    ? "رزرو وعده‌های این هفته غیرفعال است."
                     : ((timingPolicy.ReservationDeadlineEnabled || timingPolicy.BlockPastDays) &&
-                                           slotsBeforeTiming > 0)
+                       slotsBeforeTiming > 0)
                     ? "مهلت رزرو روزهای مجاز این هفته به پایان رسیده است."
                     : freeReservationEnabled
                         ? "برای این هفته برنامه غذایی قابل رزرو تعریف نشده است."
@@ -152,7 +149,9 @@ namespace Food.Areas.ReserveManagment.Controllers
             }
             // --------------------------------------
 
-            var allFoods = _foodManager.GetAll().Where(x => x.IsDeleted == false).ToList();
+            var foodRecords = _foodManager.GetAll().ToList();
+            var allFoods = foodRecords.Where(x => x.IsDeleted == false).ToList();
+            ViewBag.FoodTitles = foodRecords.ToDictionary(x => x.Id, x => x.Title);
             var allFoodPlanDays = _foodPlanDayManager.GetAll().Where(x => x.IsDeleted == false);
 
             // ... (بقیه منطق ساخت دیکشنری‌های غذاها که قبلا داشتید) ...
@@ -190,7 +189,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             var model = new FoodPlanReserveDTO
             {
                 Days = (List<Days>)_foodPlanDayManager.GetAllDay().Model,
-                Meals = _mealManager.GetAll().ToList(),
+                Meals = meals,
                 MainFoods = mainFoodsDict,
                 Desserts = dessertDict,
                 SideDishes = sideDishDict,
@@ -252,6 +251,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 reservableSlots.RemoveWhere(slot =>
                     !FoodTimingRules.CanReserve(
                         timingPolicy, slot.Date, now, out _));
+                var slotsAfterTiming = reservableSlots.Count;
 
                 var mealCodes = _mealManager.GetAll().ToDictionary(x => x.Id, x => x.Code);
                 reservableSlots.RemoveWhere(slot =>
@@ -262,7 +262,9 @@ namespace Food.Areas.ReserveManagment.Controllers
                 if (reservableSlots.Count == 0)
                 {
                     TempData["Error"] =
-                        (timingPolicy.ReservationDeadlineEnabled || timingPolicy.BlockPastDays) && slotsBeforeTiming > 0
+                        slotsAfterTiming > 0
+                            ? "رزرو وعده‌های این هفته غیرفعال است."
+                            : (timingPolicy.ReservationDeadlineEnabled || timingPolicy.BlockPastDays) && slotsBeforeTiming > 0
                             ? "مهلت رزرو روزهای مجاز این هفته پایان یافته است."
                             : freeReservationEnabled
                                 ? "برنامه غذایی قابل رزرو یافت نشد."

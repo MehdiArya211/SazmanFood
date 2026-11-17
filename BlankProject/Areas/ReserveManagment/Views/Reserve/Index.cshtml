@@ -12,8 +12,9 @@
     var allowedSlots =
         ViewBag.AllowedReservationSlots as HashSet<string> ??
         new HashSet<string>();
-    var visibleSlots = ViewBag.VisibleReservationSlots as HashSet<string> ?? allowedSlots;
     var foodPolicy = ViewBag.FoodPolicy as FoodTimingPolicyDTO ?? new FoodTimingPolicyDTO();
+    var foodTitles = ViewBag.FoodTitles as Dictionary<long, string> ?? new Dictionary<long, string>();
+    var todayIranDate = ViewBag.TodayIranDate is DateTime iranDate ? iranDate : DateTime.Today;
     var hasReservationQuota =
         ViewBag.HasReservationQuota is bool hasQuota && hasQuota;
     var freeReservationEnabled =
@@ -370,6 +371,28 @@
             color: #8a4b18;
         }
 
+        .chip-input:disabled + .chip {
+            cursor: default;
+        }
+
+        .chip-input:disabled + .chip:hover {
+            transform: none;
+        }
+
+        .chip-selected-readonly {
+            border-color: #7e57c2;
+            background: #f1ecfb;
+            color: #5e35b1;
+            cursor: default;
+        }
+
+        .reserve-readonly-note {
+            display: block;
+            margin-top: 5px;
+            color: #758293;
+            font-size: 11px;
+        }
+
         .reserve-sticky {
             position: sticky;
             bottom: 10px;
@@ -668,7 +691,7 @@
             <div class="reserve-guide">
                 <div class="reserve-guide-item">
                     <span class="reserve-guide-number">۱</span>
-                    <span>@(freeReservationEnabled ? "روز و وعده‌های دارای برنامه غذایی نمایش داده می‌شوند." : "روز و وعده‌ای که برای شما سهمیه دارد نمایش داده می‌شود.")</span>
+                        <span>همه روزهای هفته و وعده‌های قابل نمایش را می‌بینید؛ موارد بسته فقط برای مشاهده هستند.</span>
                 </div>
                 <div class="reserve-guide-item">
                     <span class="reserve-guide-number">۲</span>
@@ -693,17 +716,16 @@
                     </thead>
 
                     <tbody>
-                        @foreach (var day in Model.Days.Where(day =>
-                            Model.Meals.Any(meal =>
-                                visibleSlots.Contains(
-                                    $"{weekStartDate.AddDays(day.Code - 1):yyyyMMdd}_{meal.Id}"))))
+                        @foreach (var day in Model.Days.OrderBy(day => day.Code))
                         {
                             var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
                             var hasLockedReservations = Model.ExistingReserveDetails != null &&
                                 Model.ExistingReserveDetails.Any(detail => detail.DayId == day.Id &&
                                     !allowedSlots.Contains($"{dayDate:yyyyMMdd}_{detail.MealId}"));
-                            var dayHasQuota = Model.Meals.Any(meal =>
-                                allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")) && !hasLockedReservations;
+                            var dayHasQuota = Model.ExistingReserveDetails != null &&
+                                Model.ExistingReserveDetails.Any(detail => detail.DayId == day.Id) &&
+                                Model.Meals.Any(meal => allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")) &&
+                                !hasLockedReservations;
 
                             <tr class="day-header-row">
                                 <td colspan="@(2 + (foodPolicy.DessertVisible ? 1 : 0) + (foodPolicy.SideDishVisible ? 1 : 0))" class="day-header">
@@ -711,6 +733,10 @@
                                         <div class="day-title">
                                             <span class="day-name">@day.Title</span>
                                             <span class="day-date">@Shamsi(dayDate)</span>
+                                            @if (foodPolicy.BlockPastDays && dayDate < todayIranDate)
+                                            {
+                                                <span class="day-date">گذشته · فقط مشاهده</span>
+                                            }
                                         </div>
 
                                         @if (dayHasQuota)
@@ -724,26 +750,31 @@
                                         }
                                         else
                                         {
-                                            <span class="label label-default">حذف همه وعده‌های این روز در دسترس نیست</span>
+                                            <span class="label label-default">@(foodPolicy.BlockPastDays && dayDate < todayIranDate ? "روز گذشته، فقط مشاهده" : "حذف روز در دسترس نیست")</span>
                                         }
                                     </div>
                                 </td>
                             </tr>
 
-                            @foreach (var meal in Model.Meals.Where(
-                                meal => visibleSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}")))
+                            @foreach (var meal in Model.Meals.Where(meal => foodPolicy.IsMealVisible(meal.Code)).OrderBy(meal => meal.SortName))
                             {
-                                var mealEditable = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}");
+                                var mainFoods = GetFoodListForMeal(day.Id, meal.Id, Model);
+                                var savedDetail = Model.ExistingReserveDetails?.FirstOrDefault(detail =>
+                                    detail.DayId == day.Id && detail.MealId == meal.Id);
+                                var mealEditable = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}") && mainFoods.Count > 0;
                                 <tr class="meal-row">
                                     <td data-label="وعده">
                                         <span class="meal-badge">@meal.Title</span>
-                                        @if (!mealEditable) { <small>رزرو غیرفعال</small> }
+                                        @if (!mealEditable)
+                                        {
+                                            <small class="reserve-readonly-note">@(foodPolicy.BlockPastDays && dayDate < todayIranDate ? "فقط مشاهده" : "انتخاب غیرفعال")</small>
+                                        }
                                     </td>
 
                                     <!-- غذا -->
                                     <td data-label="غذا">
                                         <div class="chips">
-                                            @foreach (var food in GetFoodListForMeal(day.Id, meal.Id, Model))
+                                            @foreach (var food in mainFoods)
                                             {
                                                 var id = $"Main_{day.Id}_{meal.Id}_{food.Id}";
                                                 <span class="chip-item">
@@ -754,6 +785,14 @@
                                                            @(IsFoodSelected(day.Id, meal.Id, food.Id, "Main", Model) ? "checked" : "") />
                                                     <label class="chip" for="@id">@food.Title</label>
                                                 </span>
+                                            }
+                                            @if (savedDetail?.MainFoodId is long savedMainId && !mainFoods.Any(x => x.Id == savedMainId))
+                                            {
+                                                <span class="chip chip-selected-readonly">✓ @(foodTitles.TryGetValue(savedMainId, out var mainTitle) ? mainTitle : "غذای انتخاب‌شده قبلی")</span>
+                                            }
+                                            @if (mainFoods.Count == 0 && savedDetail?.MainFoodId == null)
+                                            {
+                                                <span class="reserve-readonly-note">برنامه غذایی ثبت نشده است.</span>
                                             }
                                         </div>
                                     </td>
@@ -774,6 +813,11 @@
                                                            @(IsFoodSelected(day.Id, meal.Id, dessert.Id, "Dessert", Model) ? "checked" : "") />
                                                     <label class="chip" for="@id">@dessert.Title</label>
                                                 </span>
+                                            }
+                                            @if (savedDetail?.DessertId is long savedDessertId &&
+                                                !GetDessertListForMeal(day.Id, meal.Id, Model).Any(x => x.Id == savedDessertId))
+                                            {
+                                                <span class="chip chip-selected-readonly">✓ @(foodTitles.TryGetValue(savedDessertId, out var dessertTitle) ? dessertTitle : "دسر انتخاب‌شده قبلی")</span>
                                             }
 
                                             @{
@@ -810,6 +854,11 @@
                                                            @(IsFoodSelected(day.Id, meal.Id, side.Id, "SideDish", Model) ? "checked" : "") />
                                                     <label class="chip" for="@id">@side.Title</label>
                                                 </span>
+                                            }
+                                            @if (savedDetail?.SideDishId is long savedSideId &&
+                                                !GetSideDishListForMeal(day.Id, meal.Id, Model).Any(x => x.Id == savedSideId))
+                                            {
+                                                <span class="chip chip-selected-readonly">✓ @(foodTitles.TryGetValue(savedSideId, out var sideTitle) ? sideTitle : "دورچین انتخاب‌شده قبلی")</span>
                                             }
 
                                             @{
@@ -856,7 +905,7 @@
                         <button type="button" class="btn btn-default btn-lg" disabled>
                             @((reservationDeadlineEnabled || foodPolicy.BlockPastDays) && closedReservationSlotsCount > 0
                                 ? "مهلت رزرو به پایان رسیده است"
-                                : visibleSlots.Count > 0 ? "رزرو این وعده‌ها غیرفعال است" : "سهمیه‌ای برای رزرو وجود ندارد")
+                                : "در این هفته موردی برای رزرو در دسترس نیست")
                         </button>
                     }
                 </div>
