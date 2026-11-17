@@ -402,13 +402,6 @@ namespace Food.Areas.ReserveManagment.Controllers
                     return RedirectToAction("Index", new { week });
                 }
 
-                // اگر هیچ جزئیتی وجود نداشت، خطا
-                if (!plan.Details.Any())
-                {
-                    TempData["Error"] = "لطفاً حداقل یک مورد را انتخاب نمایید.";
-                    return RedirectToAction("Index", new { week });
-                }
-
                 // فقط روز و وعده‌های واقعاً مجاز در این درخواست تغییر می‌کنند.
                 // بقیه رکوردها (مهلت‌گذشته، بدون سهمیه یا برنامه قبلی)
                 // همان شماره ژتون را حفظ می‌کنند.
@@ -499,86 +492,6 @@ namespace Food.Areas.ReserveManagment.Controllers
 
             return slots;
         }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeleteMeal(long dayId, long mealId, int week = 0)
-        {
-            if (week < 0 || week > 1)
-                return Json(new { success = false, message = "هفته انتخاب‌شده معتبر نیست." });
-
-            var user = HttpContext.Session.GetUser();
-            if (user == null)
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "نشست کاربری منقضی شده است؛ دوباره وارد سامانه شوید."
-                });
-            }
-
-            long userId = user.Id;
-
-            try
-            {
-                // محاسبه محدوده هفته جاری
-                var now = FoodTimingRules.GetIranNow();
-                int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
-                DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
-                List<Days> days = (List<Days>)_foodPlanDayManager.GetAllDay().Model;
-                var foodDay = days.FirstOrDefault(x => x.Id == dayId);
-                var meal = _mealManager.GetAll().FirstOrDefault(x => x.Id == mealId);
-
-                if (foodDay == null || meal == null)
-                {
-                    return Json(new { success = false, message = "روز یا وعده انتخاب‌شده معتبر نیست." });
-                }
-
-                var dayDate = weekStartDate.AddDays(foodDay.Code - 1).Date;
-                var timingPolicy = _constantManager.GetFoodTimingPolicy();
-                if (!FoodTimingRules.CanReserve(
-                        timingPolicy, dayDate, now, out string timingMessage))
-                {
-                    return Json(new
-                    {
-                        success = false,
-                        message = timingMessage ?? "مهلت تغییر رزرو این روز به پایان رسیده است."
-                    });
-                }
-
-                if (!timingPolicy.IsMealVisible(meal.Code) ||
-                    !timingPolicy.IsMealReservable(meal.Code))
-                {
-                    return Json(new { success = false, message = "تغییر رزرو این وعده غیرفعال است." });
-                }
-
-                var deleteResult = _foodReserveManager.DeleteMealReservation(
-                    userId, weekStartDate, dayId, mealId);
-
-                return Json(new
-                {
-                    success = deleteResult.Status,
-                    message = deleteResult.Message
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "خطا در حذف غذای انتخاب‌شده. UserId: {UserId}, DayId: {DayId}, MealId: {MealId}",
-                    userId, dayId, mealId);
-                return Json(new
-                {
-                    success = false,
-                    message = "حذف غذای انتخاب‌شده با خطا همراه بود."
-                });
-            }
-        }
-
-
-
-
-
-
 
     }
 }

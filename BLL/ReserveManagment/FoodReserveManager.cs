@@ -77,7 +77,7 @@ namespace BLL.ReserveManagment
             IReadOnlyCollection<(long DayId, long MealId)> editableSlots)
         {
             if (model == null || model.UserId <= 0 ||
-                model.Details == null || model.Details.Count == 0 ||
+                model.Details == null ||
                 editableSlots == null || editableSlots.Count == 0)
             {
                 return new BaseResult(false, "اطلاعات روزهای قابل رزرو کامل نیست.");
@@ -112,6 +112,9 @@ namespace BLL.ReserveManagment
 
                 if (existing == null)
                 {
+                    if (newDetails.Count == 0)
+                        return new BaseResult(false, "لطفاً حداقل یک غذا را انتخاب کنید.");
+
                     var now = FoodTimingRules.GetIranNow();
                     UOW.FoodReserve.Add(new FoodReserve
                     {
@@ -128,11 +131,15 @@ namespace BLL.ReserveManagment
                 {
                     // برخلاف حذف رزرو اصلی و ایجاد مجدد آن، فقط جزئیات روزها و وعده‌های
                     // قابل‌ویرایش تغییر می‌کنند. موارد قفل‌شده همان شناسه را دارند.
-                    var editableExisting = UOW.FoodReserveDetail.Get(
+                    var allExisting = UOW.FoodReserveDetail.Get(
                         x => x.FoodReserveId == existing.Id)
-                        .ToList()
+                        .ToList();
+                    var editableExisting = allExisting
                         .Where(x => slots.Contains((x.DayId, x.MealId)))
                         .ToList();
+
+                    if (newDetails.Count == 0 && editableExisting.Count == 0)
+                        return new BaseResult(false, "غذایی برای تغییر انتخاب نشده است.");
 
                     var incoming = newDetails.ToDictionary(
                         x => (x.DayId, x.MealId));
@@ -168,6 +175,9 @@ namespace BLL.ReserveManagment
                         newDetail.FoodReserveId = existing.Id;
                         UOW.FoodReserveDetail.Add(newDetail);
                     }
+
+                    if (newDetails.Count == 0 && allExisting.Count == editableExisting.Count)
+                        UOW.FoodReserve.Remove(existing);
                 }
 
                 // همه حذف‌ها و درج‌ها در یک SaveChanges دیتابیس انجام می‌شوند.
@@ -187,51 +197,6 @@ namespace BLL.ReserveManagment
                     model.UserId, model.WeekStartDate);
                 return new BaseResult(false,
                     "ثبت رزرو با خطا همراه بود؛ لطفاً دوباره بررسی کنید.");
-            }
-        }
-
-        public BaseResult DeleteMealReservation(
-            long userId, DateTime weekStartDate, long dayId, long mealId)
-        {
-            if (userId <= 0 || dayId <= 0 || mealId <= 0)
-                return new BaseResult(false, "شناسه کاربر، روز یا وعده معتبر نیست.");
-
-            try
-            {
-                var reservation = UOW.FoodReserve.Get(x =>
-                    x.UserId == userId &&
-                    x.WeekStartDate == weekStartDate.Date)
-                    .FirstOrDefault();
-
-                if (reservation == null)
-                    return new BaseResult(false, "رزرو این هفته پیدا نشد.");
-
-                var details = UOW.FoodReserveDetail.Get(
-                    x => x.FoodReserveId == reservation.Id).ToList();
-
-                var selected = details.FirstOrDefault(x =>
-                    x.DayId == dayId && x.MealId == mealId);
-                if (selected == null)
-                    return new BaseResult(false, "برای این وعده رزروی ثبت نشده است.");
-
-                UOW.FoodReserveDetail.Remove(selected);
-
-                if (details.Count == 1)
-                    UOW.FoodReserve.Remove(reservation);
-
-                var success = UOW.Commit();
-                return new BaseResult(success,
-                    success
-                        ? "غذای انتخاب‌شده از این وعده حذف شد."
-                        : "حذف رزرو انجام نشد.");
-            }
-            catch (Exception ex)
-            {
-                _printLogger.LogError(
-                    ex,
-                    "خطا در حذف رزرو یک وعده. UserId: {UserId}, DayId: {DayId}, MealId: {MealId}",
-                    userId, dayId, mealId);
-                return new BaseResult(false, "حذف رزرو با خطا همراه بود.");
             }
         }
 
