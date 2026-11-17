@@ -21,78 +21,143 @@
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; }
         body {
-            background: #f1f4f7;
-            color: #171717;
+            background: #eef1f4;
+            color: #111;
             font-family: Tahoma, Arial, sans-serif;
             direction: rtl;
         }
         .print-toolbar {
             background: #fff;
-            border-bottom: 1px solid #ddd;
-            padding: 13px;
+            border-bottom: 1px solid #dbe1e8;
+            padding: 16px;
             text-align: center;
-            line-height: 1.9;
+            line-height: 1.8;
         }
+        .print-toolbar strong { font-size: 16px; }
         .print-toolbar p {
-            margin: 4px auto 12px;
+            margin: 5px auto 12px;
             max-width: 580px;
             color: #5b6570;
-            font-size: 12px;
+            font-size: 13px;
         }
         .print-toolbar button {
-            padding: 11px 24px;
+            padding: 11px 28px;
             border: 0;
-            border-radius: 8px;
-            background: #276eaa;
+            border-radius: 10px;
+            background: #145844;
             color: #fff;
             font: bold 14px Tahoma, sans-serif;
             cursor: pointer;
         }
-        .tickets { padding: 12px 0; }
+        .tickets { padding: 20px 8px; }
         .ticket {
             background: #fff;
             width: 56mm;
-            margin: 0 auto 14px;
-            padding: 3mm 2mm;
-            border: 1px dashed #777;
-            font-size: 10px;
-            line-height: 1.8;
+            margin: 0 auto 18px;
+            padding: 3mm;
+            border: 1px solid #d9dee3;
+            border-radius: 6px;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, .10);
+            font-size: 9pt;
+            line-height: 1.7;
             overflow-wrap: anywhere;
         }
+        .ticket-header { text-align: center; }
+        .ticket-brand {
+            margin: 0;
+            font-size: 9pt;
+            font-weight: 700;
+        }
         .ticket h1 {
-            font-size: 14px;
+            margin: 2px 0 0;
+            font-size: 13pt;
+            line-height: 1.6;
+            font-weight: 900;
+        }
+        .ticket-caption {
+            margin: 2px 0 0;
+            font-size: 8pt;
+            color: #333;
+        }
+        .ticket-number {
             text-align: center;
-            margin: 0 0 4px;
+            border: 1.5px solid #111;
+            border-radius: 5px;
+            padding: 5px 3px 6px;
+            margin: 10px 0;
         }
-        .ticket .subtitle {
-            text-align: center;
-            font-size: 9px;
-            color: #555;
-        }
-        .ticket .ticket-number {
-            text-align: center;
-            font-weight: bold;
-            font-size: 12px;
-            padding: 3px;
-        }
-        .ticket .rule {
-            border-top: 1px dashed #777;
-            margin: 5px 0;
-        }
-        .ticket .row {
-            padding: 2px 0;
-        }
-        .ticket .row span { font-weight: bold; }
-        .ticket .foot {
-            font-size: 9px;
-            text-align: center;
-            margin-top: 6px;
-        }
-        .ticket .delivery-qr {
+        .ticket-number .label {
             display: block;
-            width: 32mm;
-            height: 32mm;
-            margin: 5px auto 0;
+            font-size: 8pt;
+            line-height: 1.5;
+        }
+        .ticket-number .value {
+            display: block;
+            font: bold 16pt Tahoma, Arial, sans-serif;
+            line-height: 1.45;
+            direction: ltr;
+        }
+        .ticket-meta { margin: 0; }
+        .ticket-meta .row {
+            display: flex;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 3px 0;
+            border-bottom: 1px dotted #777;
+        }
+        .ticket-meta .row:last-child { border-bottom: 0; }
+        .ticket-meta dt {
+            flex: 0 0 32%;
+            font-size: 8pt;
+            color: #333;
+        }
+        .ticket-meta dd {
+            flex: 1;
+            margin: 0;
+            font-size: 9pt;
+            font-weight: 700;
+            text-align: left;
+        }
+        .ticket-food {
+            border-top: 2px solid #111;
+            border-bottom: 2px solid #111;
+            padding: 7px 0;
+            margin: 9px 0 6px;
+            text-align: center;
+        }
+        .ticket-food .label { display: block; font-size: 8pt; }
+        .ticket-food .value {
+            display: block;
+            font-size: 11pt;
+            font-weight: 900;
+            line-height: 1.7;
+        }
+        .ticket-addon {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            padding: 2px 0;
+            font-size: 9pt;
+        }
+        .ticket-addon strong { text-align: left; }
+        .ticket-footer {
+            border-top: 1px dashed #555;
+            margin-top: 10px;
+            padding-top: 8px;
+            text-align: center;
+            font-size: 8pt;
+        }
+        .delivery-qr {
+            display: block;
+            width: 30mm;
+            height: 30mm;
+            margin: 0 auto 4px;
+            image-rendering: crisp-edges;
+        }
+        .ticket-footer p { margin: 3px 0 0; }
+        .ticket-end {
+            border-top: 1px dashed #777;
+            margin-top: 10px;
         }
         @@media print {
             @@page { margin: 0; }
@@ -105,9 +170,10 @@
             .tickets { padding: 0; }
             .ticket {
                 border: 0;
+                border-radius: 0;
                 box-shadow: none;
                 margin: 0;
-                padding: 3mm 2mm;
+                padding: 3mm;
                 width: 56mm;
                 break-inside: avoid;
                 page-break-inside: avoid;
@@ -143,35 +209,46 @@
                 $"{persianCalendar.GetDayOfMonth(foodDate):00}";
 
             <article class="ticket">
-                <h1>رسید رزرو غذا</h1>
-                <div class="subtitle">سامانه تغذیه</div>
-                <div class="rule"></div>
-                <div class="ticket-number">شماره رزرو: @item.FoodReserveDetaileId</div>
-                <div class="row">نام: <span>@printUserName</span></div>
-                <div class="row">تاریخ: <span>@persianDate</span></div>
-                <div class="row">روز: <span>@item.DayTitle</span></div>
-                <div class="row">وعده: <span>@item.MealTitle</span></div>
-                <div class="rule"></div>
-                <div class="row">غذای اصلی: <span>@item.MainFood</span></div>
+                <header class="ticket-header">
+                    <p class="ticket-brand">سامانه تغذیه</p>
+                    <h1>رسید رزرو غذا</h1>
+                    <p class="ticket-caption">لطفاً این رسید را تا زمان دریافت غذا نگه دارید</p>
+                </header>
+                <div class="ticket-number">
+                    <span class="label">شماره رزرو</span>
+                    <span class="value">@item.FoodReserveDetaileId</span>
+                </div>
+                <dl class="ticket-meta">
+                    <div class="row"><dt>نام</dt><dd>@printUserName</dd></div>
+                    <div class="row"><dt>تاریخ</dt><dd>@persianDate</dd></div>
+                    <div class="row"><dt>روز</dt><dd>@item.DayTitle</dd></div>
+                    <div class="row"><dt>وعده</dt><dd>@item.MealTitle</dd></div>
+                </dl>
+                <div class="ticket-food">
+                    <span class="label">غذای اصلی</span>
+                    <span class="value">@item.MainFood</span>
+                </div>
                 @if (!string.IsNullOrWhiteSpace(item.Dessert) && item.Dessert != "-")
                 {
-                    <div class="row">دسر: <span>@item.Dessert</span></div>
+                    <div class="ticket-addon"><span>دسر</span><strong>@item.Dessert</strong></div>
                 }
                 @if (!string.IsNullOrWhiteSpace(item.SideDish) && item.SideDish != "-")
                 {
-                    <div class="row">همراه: <span>@item.SideDish</span></div>
+                    <div class="ticket-addon"><span>دورچین</span><strong>@item.SideDish</strong></div>
                 }
-                <div class="rule"></div>
+                <footer class="ticket-footer">
                 @if (deliveryQrImages.TryGetValue(item.FoodReserveDetaileId, out var qrImage))
                 {
                     <img class="delivery-qr" src="data:image/png;base64,@qrImage"
                          alt="QR تحویل غذا" />
-                    <div class="foot">برای تحویل غذا اسکن شود</div>
+                    <p>برای تحویل غذا اسکن شود</p>
                 }
                 else
                 {
-                    <div class="foot">رسید رزرو غذا</div>
+                    <p>از همراهی شما سپاسگزاریم</p>
                 }
+                </footer>
+                <div class="ticket-end" aria-hidden="true"></div>
             </article>
         }
     </div>
