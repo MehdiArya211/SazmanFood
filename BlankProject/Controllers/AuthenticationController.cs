@@ -730,6 +730,23 @@ public class AuthenticationController : Controller
             return RedirectToAction("IndexZP");
         }
 
+        if (user != null && user.RoleId.GetValueOrDefault() <= 0)
+        {
+            var roleResult = _reservationUserProvisioning
+                .EnsureReservationRoleIfMissing(user.Id);
+            if (!roleResult.Status)
+            {
+                HttpContext.Session.RemoveUser();
+                TempData["FaceLoginMessage"] = roleResult.Message;
+                return RedirectToAction("IndexZP");
+            }
+
+            // ورود قبلی DTO را پیش از افزودن نقش به نشست گذاشته بود.
+            user = AuthManager.LoginWithVerifiedFacePersonnel(
+                user.PersonId.GetValueOrDefault(), personCode)
+                ?? AuthManager.LoginWithFaceZP(personCode);
+        }
+
         if (user == null || !user.IsEnabled)
         {
             _logger.LogWarning(

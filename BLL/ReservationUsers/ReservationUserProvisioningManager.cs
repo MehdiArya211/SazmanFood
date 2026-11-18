@@ -44,6 +44,28 @@ public class ReservationUserProvisioningManager
         }
     }
 
+    public BaseResult EnsureReservationRoleIfMissing(long userId)
+    {
+        lock (ProvisioningSync)
+        {
+            var user = UOW.Users.FirstOrDefault(x =>
+                x.Id == userId && x.IsDeleted == false && x.IsEnabled);
+            if (user == null)
+                return new BaseResult(false, "حساب کاربری معتبر یافت نشد.");
+
+            // نقش‌های موجود و دسترسی‌های وابسته به آن‌ها دست‌نخورده می‌مانند.
+            if (user.RoleId > 0)
+                return new BaseResult(true, null, user.Id);
+
+            var roleResult = EnsureReservationRole();
+            if (!roleResult.Status)
+                return roleResult;
+
+            user.RoleId = RoleConstant.MealBooker;
+            return base.Update(user);
+        }
+    }
+
     private BaseResult EnsureReservationUserCore(
         long? personId,
         string personCode,
@@ -97,6 +119,18 @@ public class ReservationUserProvisioningManager
             {
                 return new BaseResult(false,
                     "حساب کاربری غیرفعال است. با مدیر سامانه تماس بگیرید.");
+            }
+
+            if (existingUser.RoleId <= 0)
+            {
+                var roleResult = EnsureReservationRole();
+                if (!roleResult.Status)
+                    return roleResult;
+
+                existingUser.RoleId = RoleConstant.MealBooker;
+                var updateResult = base.Update(existingUser);
+                if (!updateResult.Status)
+                    return updateResult;
             }
 
             return new BaseResult(true,
