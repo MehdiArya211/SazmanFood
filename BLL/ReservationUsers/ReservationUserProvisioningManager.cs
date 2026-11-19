@@ -123,9 +123,9 @@ public class ReservationUserProvisioningManager
 
             if (existingUser.RoleId <= 0)
             {
-                var roleResult = EnsureReservationRole();
-                if (!roleResult.Status)
-                    return roleResult;
+                var existingRoleResult = EnsureReservationRole();
+                if (!existingRoleResult.Status)
+                    return existingRoleResult;
 
                 existingUser.RoleId = RoleConstant.MealBooker;
                 var updateResult = base.Update(existingUser);
