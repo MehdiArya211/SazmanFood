@@ -194,9 +194,7 @@
             فاکتور با چاپگر همین دستگاه چاپ می‌شود. اگر پنجره چاپ باز شد، چاپگر متصل به این دستگاه را انتخاب کنید.
             اندازه کاغذ چاپگر حرارتی را روی ۵۸ میلی‌متر تنظیم کنید.
         </p>
-        <button type="button" onclick="window.print()">
-            چاپ رسید
-        </button>
+        <p>هر بار درخواست چاپ، یک نوبت از سقف مجاز ژتون را مصرف می‌کند.</p>
     </div>
 
     <div class="tickets">
@@ -218,6 +216,7 @@
                     <span class="label">شماره رزرو</span>
                     <span class="value">@item.FoodReserveDetaileId</span>
                 </div>
+                <div class="ticket-number">نوبت چاپ این ژتون: <strong>@item.PrintCount</strong></div>
                 <dl class="ticket-meta">
                     <div class="row"><dt>نام</dt><dd>@printUserName</dd></div>
                     <div class="row"><dt>تاریخ</dt><dd>@persianDate</dd></div>
@@ -254,9 +253,15 @@
     </div>
     <script>
         window.addEventListener('load', function () {
+            if (window.opener) {
+                window.opener.postMessage({ type: 'food-ticket-print', items:
+                    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(x => new { x.FoodReserveDetaileId, x.PrintCount })))
+                }, window.location.origin);
+            }
             // مرورگر روی همان دستگاهی که کاربر وارد شده است چاپ را شروع می‌کند.
             window.print();
         });
+        window.addEventListener('afterprint', function () { window.close(); });
     </script>
 </body>
 </html>

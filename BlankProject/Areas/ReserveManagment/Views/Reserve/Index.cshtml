@@ -755,13 +755,14 @@
                                 var savedDetail = Model.ExistingReserveDetails?.FirstOrDefault(detail =>
                                     detail.DayId == day.Id && detail.MealId == meal.Id);
                                 var mealCanChange = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}");
-                                var mealEditable = mealCanChange && mainFoods.Count > 0;
+                                var mealEditable = mealCanChange && mainFoods.Count > 0 &&
+                                    (savedDetail == null || savedDetail.PrintCount == 0);
                                 <tr class="meal-row" data-day-id="@day.Id" data-meal-id="@meal.Id" data-reserved="@(savedDetail != null ? "true" : "false")">
                                     <td data-label="وعده">
                                         <span class="meal-badge">@meal.Title</span>
                                         @if (!mealEditable)
                                         {
-                                            <small class="reserve-readonly-note">@(foodPolicy.BlockPastDays && dayDate < todayIranDate ? "فقط مشاهده" : "انتخاب غیرفعال")</small>
+                                            <small class="reserve-readonly-note">@(savedDetail != null && savedDetail.PrintCount > 0 ? $"ژتون چاپ شده (نوبت {savedDetail.PrintCount})؛ فقط مشاهده" : foodPolicy.BlockPastDays && dayDate < todayIranDate ? "فقط مشاهده" : "انتخاب غیرفعال")</small>
                                         }
                                     </td>
 

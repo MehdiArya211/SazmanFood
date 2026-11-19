@@ -177,7 +177,7 @@ namespace BLL
                 return new FoodTimingPolicyDTO();
 
             var sections = setting.Value.Split('|');
-            if ((sections.Length != 3 && sections.Length != 5) ||
+            if ((sections.Length != 3 && sections.Length != 5 && sections.Length != 6) ||
                 !sections[0].StartsWith("p", StringComparison.Ordinal) ||
                 !sections[1].StartsWith("r", StringComparison.Ordinal))
             {
@@ -223,7 +223,7 @@ namespace BLL
                     "تنظیمات مهلت رزرو باید شامل دقیقاً هفت روز متفاوت باشد.");
 
             var flags = "1111111111";
-            if (sections.Length == 5)
+            if (sections.Length >= 5)
             {
                 if ((sections[3] != "b0" && sections[3] != "b1") ||
                     sections[4].Length != 11 || sections[4][0] != 'm' ||
@@ -232,12 +232,20 @@ namespace BLL
                 flags = sections[4].Substring(1);
             }
 
+            var maxPrintCount = 3;
+            if (sections.Length == 6 &&
+                (!sections[5].StartsWith("c", StringComparison.Ordinal) ||
+                 !int.TryParse(sections[5].Substring(1), out maxPrintCount) ||
+                 maxPrintCount < 1 || maxPrintCount > 20))
+                throw new InvalidOperationException("حداکثر تعداد چاپ ژتون معتبر نیست.");
+
             return new FoodTimingPolicyDTO
             {
                 PrintTimeEnabled = printParts[0] == "1",
                 PrintStartTime = printParts[1],
+                MaxPrintCount = maxPrintCount,
                 ReservationDeadlineEnabled = sections[1] == "r1",
-                BlockPastDays = sections.Length == 5 && sections[3] == "b1",
+                BlockPastDays = sections.Length >= 5 && sections[3] == "b1",
                 BreakfastReservable = flags[0] == '1',
                 BreakfastVisible = flags[1] == '1',
                 LunchReservable = flags[2] == '1',
@@ -256,6 +264,9 @@ namespace BLL
         {
             if (policy == null || !FoodTimingRules.TryReadTime(policy.PrintStartTime, out _))
                 return new BaseResult(false, "ساعت شروع چاپ ژتون باید در قالب HH:mm باشد.");
+
+            if (policy.MaxPrintCount < 1 || policy.MaxPrintCount > 20)
+                return new BaseResult(false, "تعداد مجاز چاپ هر ژتون باید بین ۱ تا ۲۰ باشد.");
 
             if (policy.Days == null || policy.Days.Count != 7 ||
                 policy.Days.Select(x => x.DayOfWeek).Distinct().Count() != 7)
@@ -286,7 +297,8 @@ namespace BLL
                     policy.DinnerReservable, policy.DinnerVisible,
                     policy.DessertReservable, policy.DessertVisible,
                     policy.SideDishReservable, policy.SideDishVisible
-                }.Select(x => x ? "1" : "0"));
+                }.Select(x => x ? "1" : "0")) +
+                "|c" + policy.MaxPrintCount;
 
             if (serialized.Length > 300)
                 return new BaseResult(false, "مقادیر تنظیمات زمان‌بندی بیش از حد مجاز است.");
@@ -311,6 +323,44 @@ namespace BLL
         public int? GetNumberValue(ConstantType Type)
         {
             return UOW.Constants.GetNumberValue(Type);
+        }
+
+        public LoginPageMessageDTO GetLoginPageMessage(bool faceLogin)
+        {
+            var type = faceLogin ? ConstantType.FaceLoginMessage : ConstantType.PasswordLoginMessage;
+            var setting = UOW.Constants.FirstOrDefault(x => x.Type == type && x.IsDeleted == false);
+            if (string.IsNullOrWhiteSpace(setting?.Value)) return new LoginPageMessageDTO();
+            var parts = setting.Value.Split('|', 4);
+            if (parts.Length != 4 || parts[0] != "v1" ||
+                !int.TryParse(parts[1], out var size) || size < 12 || size > 28 ||
+                !System.Text.RegularExpressions.Regex.IsMatch(parts[2], "^#[0-9a-fA-F]{6}$"))
+                return new LoginPageMessageDTO();
+            var body = parts[3];
+            if (body.Length < 2 || (body[0] != '0' && body[0] != '1'))
+                return new LoginPageMessageDTO();
+            return new LoginPageMessageDTO
+            {
+                Text = body.Substring(1), FontSize = size,
+                Color = parts[2], Bold = body[0] == '1'
+            };
+        }
+
+        public BaseResult SaveLoginPageMessage(bool faceLogin, LoginPageMessageDTO message)
+        {
+            if (message == null || message.FontSize < 12 || message.FontSize > 28 ||
+                !System.Text.RegularExpressions.Regex.IsMatch(message.Color ?? "", "^#[0-9a-fA-F]{6}$") ||
+                (message.Text?.Length ?? 0) > 270 ||
+                (message.Text?.Contains('|') ?? false))
+                return new BaseResult(false, "متن، رنگ یا اندازه پیام معتبر نیست (حداکثر ۲۷۰ نویسه). ");
+
+            var type = faceLogin ? ConstantType.FaceLoginMessage : ConstantType.PasswordLoginMessage;
+            var value = $"v1|{message.FontSize}|{message.Color}|{(message.Bold ? "1" : "0")}{message.Text?.Trim()}";
+            if (value.Length > 300) return new BaseResult(false, "متن پیام بیش از حد مجاز است.");
+            var setting = UOW.Constants.FirstOrDefault(x => x.Type == type && x.IsDeleted == false);
+            if (setting == null)
+                return base.Create(new Constant { Title = faceLogin ? "پیام ورود با چهره" : "پیام ورود با رمز", Type = type, Value = value });
+            setting.Value = value;
+            return base.Update(setting);
         }
 
 

@@ -16,6 +16,7 @@ namespace Domain.Entities.FoodReservation
         public long? MainFoodId { get; set; }
         public long? DessertId { get; set; }
         public long? SideDishId { get; set; }
+        public int PrintCount { get; set; }
 
         public FoodReserve FoodReserve { get; set; }
         public Days Day { get; set; }

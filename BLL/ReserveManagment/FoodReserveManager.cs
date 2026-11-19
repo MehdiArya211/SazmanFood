@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
+using System.Data;
 using System.Drawing;
 using System.Drawing.Printing;
 using QRCoder;
@@ -21,6 +22,7 @@ namespace BLL.ReserveManagment
         protected readonly IFoodReserveDetailManager _foodReserveDetailManager;
         private readonly ILogger<FoodReserveManager> _printLogger;
         private readonly string _configuredPrinterName;
+        private readonly ApplicationContext _db;
 
         public FoodReserveManager(
             DbContexts context,
@@ -33,6 +35,7 @@ namespace BLL.ReserveManagment
             Session = httpContextAccessor.HttpContext?.Session;
             _foodReserveDetailManager = foodReserveDetailManager;
             _printLogger = printLogger;
+            _db = (ApplicationContext)context["ApplicationContext"];
 
             // هرگز بدون پیکربندی صریح به یک نام چاپگر قدیمی و احتمالاً
             // متعلق به پورت یا دستگاه دیگر فرمان چاپ نفرست.
@@ -95,6 +98,7 @@ namespace BLL.ReserveManagment
 
             try
             {
+                using var transaction = _db.Database.BeginTransaction(IsolationLevel.Serializable);
                 var existing = UOW.FoodReserve.Get(
                     x => x.UserId == model.UserId &&
                          x.WeekStartDate == model.WeekStartDate.Date &&
@@ -135,14 +139,26 @@ namespace BLL.ReserveManagment
                         x => x.FoodReserveId == existing.Id)
                         .ToList();
                     var editableExisting = allExisting
-                        .Where(x => slots.Contains((x.DayId, x.MealId)))
+                        .Where(x => slots.Contains((x.DayId, x.MealId)) && x.PrintCount == 0)
                         .ToList();
+
+                    // ژتون چاپ‌شده هرگز با حذف انتخاب از فرم یا تغییر غذا جایگزین نمی‌شود.
+                    if (allExisting.Any(x => x.PrintCount > 0 &&
+                        slots.Contains((x.DayId, x.MealId)) &&
+                         newDetails.Any(d => d.DayId == x.DayId && d.MealId == x.MealId &&
+                             (d.MainFoodId != x.MainFoodId || d.DessertId != x.DessertId ||
+                              d.SideDishId != x.SideDishId))))
+                        return new BaseResult(false, "ژتون این وعده قبلاً چاپ شده و غذای آن قابل تغییر یا حذف نیست.");
 
                     if (newDetails.Count == 0 && editableExisting.Count == 0)
                         return new BaseResult(false, "غذایی برای تغییر انتخاب نشده است.");
 
                     var incoming = newDetails.ToDictionary(
                         x => (x.DayId, x.MealId));
+
+                    // مقدار یکسانِ ارسالی برای ژتون چاپ‌شده نیز نباید دوباره درج شود.
+                    foreach (var printed in allExisting.Where(x => x.PrintCount > 0))
+                        incoming.Remove((printed.DayId, printed.MealId));
 
                     foreach (var oldDetail in editableExisting)
                     {
@@ -183,6 +199,7 @@ namespace BLL.ReserveManagment
                 // همه حذف‌ها و درج‌ها در یک SaveChanges دیتابیس انجام می‌شوند.
                 // EF Core تغییرات یک SaveChanges را به صورت تراکنشی ذخیره می‌کند.
                 var success = UOW.Commit();
+                if (success) transaction.Commit();
                 return new BaseResult(
                     success,
                     success
@@ -274,6 +291,7 @@ namespace BLL.ReserveManagment
                 Date = reserve.WeekStartDate.AddDays(d.Day.Code - 1),
                 DayTitle = d.Day?.Title ?? "-",
                 FoodReserveDetaileId = d.Id,
+                PrintCount = d.PrintCount,
                 MealId = d.MealId,
                 MealTitle = d.Meal?.Title ?? "-",
                 MainFood = d.MainFood?.Title ?? "-",
@@ -282,6 +300,43 @@ namespace BLL.ReserveManagment
             }).ToList();
 
             return list;
+        }
+
+        public BaseResult RecordPrintAttempt(IReadOnlyCollection<long> detailIds, long userId, int maxPrintCount)
+        {
+            var ids = detailIds?.Distinct().OrderBy(x => x).ToList();
+            if (ids == null || ids.Count == 0 || ids.Count > 30 || maxPrintCount < 1)
+                return new BaseResult(false, "درخواست چاپ معتبر نیست.");
+
+            try
+            {
+                using var transaction = _db.Database.BeginTransaction(IsolationLevel.Serializable);
+                var counts = new Dictionary<long, int>();
+                foreach (var id in ids)
+                {
+                    var changed = _db.Set<FoodReserveDetail>()
+                        .Where(x => x.Id == id && x.FoodReserve.UserId == userId &&
+                                    x.PrintCount < maxPrintCount)
+                        .ExecuteUpdate(setters => setters
+                            .SetProperty(x => x.PrintCount, x => x.PrintCount + 1));
+                    if (changed != 1)
+                        return new BaseResult(false,
+                            $"ژتون شماره {id} پیدا نشد یا سقف {maxPrintCount} نوبت چاپ آن پر شده است.");
+
+                    counts[id] = _db.Set<FoodReserveDetail>()
+                        .AsNoTracking().Where(x => x.Id == id)
+                        .Select(x => x.PrintCount).Single();
+                }
+
+                transaction.Commit();
+                _db.ChangeTracker.Clear();
+                return new BaseResult(true, "درخواست چاپ ثبت شد.", counts);
+            }
+            catch (Exception ex)
+            {
+                _printLogger.LogError(ex, "ثبت نوبت چاپ ژتون ناموفق بود. UserId: {UserId}", userId);
+                return new BaseResult(false, "ثبت نوبت چاپ انجام نشد. دوباره تلاش کنید.");
+            }
         }
 
 
@@ -693,7 +748,7 @@ namespace BLL.ReserveManagment
 
                     var tokenNo =
                         "شماره: " +
-                        detail.Id;
+                        detail.Id + " | نوبت چاپ: " + detail.PrintCount;
 
                     Action<object, PrintPageEventArgs>
                         printerPage =
