@@ -1,8 +1,10 @@
 @using Domain.Resources
+@inject BLL.Interface.IConstantManager Settings
 @{
     Layout = "/Views/Shared/_AuthLayout.cshtml";
     ViewBag.Title = Config.SiteNameFa + " | ورود";
     var hasError = !string.IsNullOrWhiteSpace(ViewBag.Error as string);
+    var loginMessage = Settings.GetLoginPageMessage(false);
 }
 
 <div class="auth-panel">
@@ -29,6 +31,10 @@
             <p class="auth-subtitle" style="font-size:12px;line-height:2;">
                 <strong>توضیح:</strong> در اولین ورود، نام کاربری و کلمه عبور هر دو کد پرسنلی شماست.
             </p>
+            @if (!string.IsNullOrWhiteSpace(loginMessage.Text))
+            {
+                <p class="auth-subtitle" style="white-space:pre-line;color:@loginMessage.Color;font-size:@(loginMessage.FontSize)px;font-weight:@(loginMessage.Bold ? "700" : "400")">@loginMessage.Text</p>
+            }
 
                 <div class="auth-alert error" role="alert" aria-live="polite"
                      style="@(hasError ? "" : "display:none;")">

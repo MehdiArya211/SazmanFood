@@ -89,5 +89,8 @@ namespace BLL.Interface
         /// <summary>اعتبارسنجی و ثبت یک‌جای محدودیت‌های زمانی.</summary>
         BaseResult SaveFoodTimingPolicy(FoodTimingPolicyDTO policy);
 
+        LoginPageMessageDTO GetLoginPageMessage(bool faceLogin);
+        BaseResult SaveLoginPageMessage(bool faceLogin, LoginPageMessageDTO message);
+
     }
 }

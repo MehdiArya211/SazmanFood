@@ -42,6 +42,8 @@ public class QuotaControlController : Controller
 
         ViewBag.FreeReservationEnabled =
             _constantManager.IsFreeFoodReservationEnabled();
+        ViewBag.PasswordLoginMessage = _constantManager.GetLoginPageMessage(false);
+        ViewBag.FaceLoginMessage = _constantManager.GetLoginPageMessage(true);
         try
         {
             ViewBag.TimingPolicy = _constantManager.GetFoodTimingPolicy();
@@ -194,6 +196,19 @@ public class QuotaControlController : Controller
             Status = true,
             Message = "تنظیمات رزرو غذا و چاپ ژتون با موفقیت ذخیره شد."
         });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult SaveLoginMessage(bool faceLogin, LoginPageMessageDTO message)
+    {
+        var user = HttpContext.Session.GetUser();
+        if (user == null || user.RoleId != RoleConstant.Admin || !user.IsEnabled)
+            return Forbid();
+        var result = _constantManager.SaveLoginPageMessage(faceLogin, message);
+        return result.Status
+            ? Json(new { Status = true, Message = "پیام صفحه ورود ذخیره شد." })
+            : BadRequest(new { Status = false, result.Message });
     }
     /// <summary>
     /// تشخیص محل اجرای چاپ و قابل مشاهده بودن چاپگر از داخل حساب IIS.

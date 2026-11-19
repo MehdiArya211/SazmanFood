@@ -1,10 +1,12 @@
 @using Domain.Resources
+@inject BLL.Interface.IConstantManager Settings
 @{
     Layout = "/Views/Shared/_AuthLayout.cshtml";
     ViewBag.Title = Config.SiteNameFa + " | ورود با تشخیص چهره";
     var message = TempData["FaceLoginMessage"] as string;
     var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
     var kioskId = ViewBag.KioskId is int configuredKioskId ? configuredKioskId : 0;
+    var loginMessage = Settings.GetLoginPageMessage(true);
 }
 
 <div class="auth-panel">
@@ -27,6 +29,10 @@
             <div class="auth-eyebrow">احراز هویت هوشمند</div>
             <h2 class="auth-title">تشخیص چهره</h2>
             <p class="auth-subtitle">سامانه به‌صورت خودکار پس از شناسایی، شما را وارد پنل می‌کند.</p>
+            @if (!string.IsNullOrWhiteSpace(loginMessage.Text))
+            {
+                <p class="auth-subtitle" style="white-space:pre-line;color:@loginMessage.Color;font-size:@(loginMessage.FontSize)px;font-weight:@(loginMessage.Bold ? "700" : "400")">@loginMessage.Text</p>
+            }
 
             @if (!string.IsNullOrWhiteSpace(message))
             {

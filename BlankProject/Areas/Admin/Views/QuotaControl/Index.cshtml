@@ -14,6 +14,8 @@
     ViewData["Title"] = "کنترل سیاست سهمیه‌بندی غذا";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
     var isEnabled = ViewBag.FreeReservationEnabled == true;
+    var passwordMessage = ViewBag.PasswordLoginMessage as LoginPageMessageDTO ?? new LoginPageMessageDTO();
+    var faceMessage = ViewBag.FaceLoginMessage as LoginPageMessageDTO ?? new LoginPageMessageDTO();
 }
 
 @section styles {
@@ -21,9 +23,27 @@
         .quota-policy-page {
             direction: rtl;
             margin: 0 auto;
-            max-width: 1040px;
+            max-width: 1160px;
             padding: 12px 5px 32px;
         }
+        .wizard-hero { padding: 24px 28px; color: #fff; border-radius: 18px; background: linear-gradient(120deg,#253a70,#147d86); margin-bottom: 14px; }
+        .wizard-hero h1 { margin: 0 0 8px; font-size: 24px; font-weight: 900; color: #fff; }
+        .wizard-hero p { margin: 0; line-height: 2; color: #e5f3fa; }
+        .wizard-nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; margin-bottom: 15px; background: #fff; border-radius: 13px; box-shadow: 0 4px 18px #21314910; }
+        .wizard-nav a { color: #34516a; padding: 9px 14px; border-radius: 9px; font-weight: 800; text-decoration: none; }
+        .wizard-nav a:hover, .wizard-nav a:focus-visible { background: #edf6ff; color: #155b91; }
+        .quota-policy-card, .timing-card { margin-bottom: 16px; scroll-margin-top: 90px; }
+        .wizard-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 18px; }
+        .wizard-message-card { background: #fafcff; border: 1px solid #dfe9f3; border-radius: 13px; padding: 17px; }
+        .wizard-message-card h4 { margin: 0 0 12px; font-weight: 800; color: #273d56; }
+        .wizard-message-card label { display: block; margin: 9px 0 5px; font-weight: 700; color: #41576e; }
+        .wizard-message-card textarea { min-height: 98px; resize: vertical; }
+        .wizard-format { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+        .wizard-format label { margin: 0; }
+        .wizard-format input[type=color] { width: 50px; height: 39px; cursor: pointer; }
+        .wizard-format input[type=number] { width: 80px; height: 39px; }
+        .wizard-preview { white-space: pre-line; min-height: 62px; background: white; border: 1px dashed #bdd3e6; padding: 12px; border-radius: 9px; overflow-wrap: anywhere; }
+        .wizard-message-card .btn { margin-top: 12px; }
         .quota-policy-card {
             background: #fff;
             border-radius: 16px;
@@ -338,13 +358,21 @@
 
 <div class="col-md-12">
     <div class="quota-policy-page">
+        <header class="wizard-hero"><h1>تنظیمات سامانه تغذیه</h1><p>سهمیه، چاپ ژتون، زمان رزرو و پیام صفحه‌های ورود را از بخش‌های زیر مدیریت کنید.</p></header>
+        <nav class="wizard-nav" aria-label="بخش‌های تنظیمات">
+            <a href="#quota-policy-settings">۱. سهمیه‌بندی</a>
+            <a href="#initial-personnel-login">۲. حساب پرسنل</a>
+            <a href="#food-timing-settings">۳. رزرو و چاپ</a>
+            <a href="#login-page-settings">۴. پیام‌های ورود</a>
+            <a href="@Url.Action("PrinterDiagnostics", "QuotaControl", new { area = "Admin" })">عیب‌یابی چاپگر</a>
+        </nav>
         <div style="margin:0 0 15px">
             <a class="btn btn-default" href="@Url.Action("PrinterDiagnostics", "QuotaControl", new { area = "Admin" })">
                 <i class="material-icons" aria-hidden="true">print</i>
                 عیب‌یابی چاپ ژتون سرور
             </a>
         </div>
-        <div class="quota-policy-card">
+        <div class="quota-policy-card" id="quota-policy-settings">
             <h2 class="quota-policy-title">
                 <i class="material-icons" aria-hidden="true">verified_user</i>
                 کنترل سهمیه‌بندی غذا
@@ -466,6 +494,13 @@
                             ژتون فردا هم زودتر از فردا ساعت ۱۲ قابل چاپ نخواهد بود.
                         </p>
                     </div>
+                </section>
+                <section class="timing-section">
+                    <h4>سقف چاپ هر ژتون</h4>
+                    <label for="maxPrintCount" class="timing-help">حداکثر تعداد درخواست چاپ برای هر ژتون</label>
+                    <input id="maxPrintCount" name="MaxPrintCount" type="number" min="1" max="20"
+                           class="timing-time-input" value="@timing.MaxPrintCount" required />
+                    <p class="timing-help">هر بار درخواست چاپ، یک نوبت ثبت می‌شود؛ پس از رسیدن به سقف، چاپ دوباره مجاز نیست. غذای ژتون چاپ‌شده نیز قفل می‌شود.</p>
                 </section>
 
                 <section class="timing-section">
@@ -630,6 +665,31 @@
             </form>
             <div id="food-timing-notice" class="timing-notice" role="status"></div>
         </div>
+        <div class="timing-card" id="login-page-settings">
+            <h3><i class="material-icons" aria-hidden="true">campaign</i> پیام‌های صفحه ورود</h3>
+            <p class="timing-intro">برای هر روش ورود پیام جداگانه بنویسید. متن به شکل امن نمایش داده می‌شود و می‌توانید رنگ، اندازه و ضخامت تمام پیام را تنظیم کنید.</p>
+            <div class="wizard-fields">
+                @foreach (var entry in new[] { new { Face = false, Title = "ورود با نام کاربری و رمز", Message = passwordMessage }, new { Face = true, Title = "ورود با چهره", Message = faceMessage } })
+                {
+                    <form class="wizard-message-card login-message-form" method="post"
+                          action="@Url.Action("SaveLoginMessage", "QuotaControl", new { area = "Admin" })">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="faceLogin" value="@(entry.Face ? "true" : "false")" />
+                        <h4>@entry.Title</h4>
+                        <label>متن توضیحات</label>
+                        <textarea name="message.Text" class="form-control" maxlength="270" placeholder="متنی که کاربر در صفحه ورود می‌بیند">@entry.Message.Text</textarea>
+                        <div class="wizard-format">
+                            <label>رنگ <input type="color" name="message.Color" value="@entry.Message.Color" /></label>
+                            <label>اندازه (پیکسل) <input type="number" name="message.FontSize" min="12" max="28" value="@entry.Message.FontSize" /></label>
+                            <label><input type="checkbox" name="message.Bold" value="true" checked="@entry.Message.Bold" /> بولد</label>
+                        </div>
+                        <div class="wizard-preview" aria-label="پیش‌نمایش پیام"></div>
+                        <button type="submit" class="btn btn-info">ذخیره پیام</button>
+                        <div class="timing-notice login-message-notice" role="status"></div>
+                    </form>
+                }
+            </div>
+        </div>
     </div>
 </div>
 
@@ -721,6 +781,35 @@
             });
 
             const timingForm = document.getElementById('food-timing-form');
+            document.querySelectorAll('.login-message-form').forEach(messageForm => {
+                const preview = messageForm.querySelector('.wizard-preview');
+                const refresh = () => {
+                    preview.textContent = messageForm.querySelector('textarea').value || 'پیش‌نمایش پیام شما';
+                    preview.style.color = messageForm.querySelector('input[type=color]').value;
+                    preview.style.fontSize = messageForm.querySelector('input[type=number]').value + 'px';
+                    preview.style.fontWeight = messageForm.querySelector('input[type=checkbox]').checked ? '700' : '400';
+                };
+                messageForm.addEventListener('input', refresh);
+                refresh();
+                messageForm.addEventListener('submit', async event => {
+                    event.preventDefault();
+                    const button = messageForm.querySelector('button[type=submit]');
+                    const notice = messageForm.querySelector('.login-message-notice');
+                    button.disabled = true;
+                    try {
+                        const values = new FormData(messageForm);
+                        values.set('message.Bold', messageForm.querySelector('input[type=checkbox]').checked ? 'true' : 'false');
+                        const response = await fetch(messageForm.action, { method: 'POST', credentials: 'same-origin', body: values });
+                        const result = await response.json();
+                        if (!response.ok || !(result.status ?? result.Status)) throw new Error(result.message || result.Message || 'ذخیره انجام نشد.');
+                        notice.className = 'timing-notice success';
+                        notice.textContent = result.message || result.Message;
+                    } catch (error) {
+                        notice.className = 'timing-notice error';
+                        notice.textContent = error.message || 'خطای ارتباط با سرور';
+                    } finally { button.disabled = false; }
+                });
+            });
             const timingSave = document.getElementById('food-timing-save');
             const timingNotice = document.getElementById('food-timing-notice');
             const printEnabled = document.getElementById('printTimeEnabled');

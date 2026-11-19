@@ -57,7 +57,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             // سیاست زمانی همیشه مستقل از آزاد یا سهمیه‌ای بودن غذا اعمال می‌شود.
             var timeEligible = reservations
                 .Where(x => FoodTimingRules.CanPrint(
-                    timingPolicy, x.Date, nowIran, out _))
+                    timingPolicy, x.Date, nowIran, out _) &&
+                    x.PrintCount < timingPolicy.MaxPrintCount)
                 .ToList();
 
             if (timeEligible.Count == 0)
@@ -105,6 +106,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             var timingPolicy = _constantManager.GetFoodTimingPolicy();
             ViewBag.PrintRestrictionEnabled = timingPolicy.PrintTimeEnabled;
             ViewBag.PrintStartTime = timingPolicy.PrintStartTime;
+            ViewBag.MaxPrintCount = timingPolicy.MaxPrintCount;
             ViewBag.IranToday = FoodTimingRules.GetIranNow().ToString("yyyy-MM-dd");
 
             // نبودن Redis نباید دسترسی کاربر به رسید رزرو و چاپ را قطع کند.
@@ -128,7 +130,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
         /// رسیدهای رزرو متعلق به کاربر جاری را برای چاپ در مرورگر آماده می‌کند.
         /// از این مسیر، چاپگر رایانه کاربر (نه چاپگر نصب‌شده روی سرور) استفاده می‌شود.
         /// </summary>
-        [HttpGet]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
         public async Task<IActionResult> PrintPreview(string foodReserveDetaileIds)
         {
@@ -167,6 +170,11 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                 return NotFound("ژتون‌های انتخاب‌شده برای این کاربر یافت نشد.");
             }
 
+            var maxPrintCount = _constantManager.GetFoodTimingPolicy().MaxPrintCount;
+            if (printableItems.Any(x => x.PrintCount >= maxPrintCount))
+                return StatusCode(StatusCodes.Status409Conflict,
+                    $"سقف {maxPrintCount} نوبت چاپ برای این ژتون پر شده است.");
+
             var permittedIds = GetPrintableIds(user, printableItems);
             if (!ids.IsSubsetOf(permittedIds))
             {
@@ -186,6 +194,15 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden,
                     timingError ?? "برای چاپ این ژتون سهمیه فعال ندارید.");
             }
+
+            var printAttempt = _foodReserveManager.RecordPrintAttempt(
+                ids, user.Id, maxPrintCount);
+            if (!printAttempt.Status)
+                return StatusCode(StatusCodes.Status409Conflict, printAttempt.Message);
+
+            var printCounts = printAttempt.Model as Dictionary<long, int>;
+            foreach (var item in printableItems)
+                item.PrintCount = printCounts![item.FoodReserveDetaileId];
 
             ViewBag.PrintUserName = user.FullName;
             var siteBaseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
@@ -266,6 +283,10 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                     .ToList();
 
                 var permittedIds = GetPrintableIds(user, owned);
+                var maxPrintCount = _constantManager.GetFoodTimingPolicy().MaxPrintCount;
+                if (owned.Any(x => x.PrintCount >= maxPrintCount))
+                    return StatusCode(StatusCodes.Status409Conflict,
+                        new { Status = false, Message = $"سقف {maxPrintCount} نوبت چاپ برای ژتون پر شده است." });
                 if (owned.Count != ids.Count ||
                     !ids.All(permittedIds.Contains))
                 {
@@ -290,6 +311,12 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                                 "رزرو یا سهمیه معتبر برای چاپ ژتون انتخاب‌شده یافت نشد."
                         });
                 }
+
+                var printAttempt = _foodReserveManager.RecordPrintAttempt(
+                    ids, user.Id, maxPrintCount);
+                if (!printAttempt.Status)
+                    return StatusCode(StatusCodes.Status409Conflict,
+                        new { Status = false, Message = printAttempt.Message });
 
                 var result =
                     await _foodReserveManager

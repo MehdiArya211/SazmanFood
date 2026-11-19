@@ -5,6 +5,8 @@ namespace BLL;
 
 public interface IReservationUserProvisioningManager
 {
+    BaseResult EnsureReservationRoleIfMissing(long userId);
+
     BaseResult EnsureReservationUser(
         long? personId,
         string personCode,

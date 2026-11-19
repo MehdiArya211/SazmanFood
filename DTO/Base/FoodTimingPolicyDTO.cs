@@ -16,6 +16,7 @@ namespace DTO.Base
         public bool ReservationDeadlineEnabled { get; set; } = false;
 
         public bool BlockPastDays { get; set; } = false;
+        public int MaxPrintCount { get; set; } = 3;
 
         public bool BreakfastReservable { get; set; } = true;
         public bool BreakfastVisible { get; set; } = true;

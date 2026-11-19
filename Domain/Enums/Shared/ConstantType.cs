@@ -71,6 +71,12 @@ namespace Domain.Enums
         [CustomDataType(Type = CustomDataType.String, Max = 300)]
         [Description("زمان‌بندی رزرو و چاپ ژتون غذا")]
         FoodTimingPolicy = 8,
+        [CustomDataType(Type = CustomDataType.String, Max = 300)]
+        [Description("پیام صفحه ورود با رمز")]
+        PasswordLoginMessage = 9,
+        [CustomDataType(Type = CustomDataType.String, Max = 300)]
+        [Description("پیام صفحه ورود با چهره")]
+        FaceLoginMessage = 10,
 
     }
 

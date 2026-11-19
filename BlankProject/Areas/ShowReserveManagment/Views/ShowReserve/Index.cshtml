@@ -291,6 +291,11 @@
 }
 
 <div class="food-print-page">
+    <form id="local-print-form" method="post" target="food-print-window"
+          action="@Url.Action("PrintPreview", "ShowReserve", new { area = "ShowReserveManagment" })" hidden>
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="foodReserveDetaileIds" />
+    </form>
     <div class="food-print-container">
         <div class="food-print-header">
             <h1>برنامه غذایی هفتگی</h1>
@@ -321,6 +326,17 @@
             const iranToday = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.IranToday ?? DateTime.Today.ToString("yyyy-MM-dd")));
             const printRestrictionEnabled = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PrintRestrictionEnabled == true));
             const printStartTime = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PrintStartTime ?? "12:00"));
+            const maxPrintCount = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MaxPrintCount ?? 3));
+            window.addEventListener('message', event => {
+                if (event.origin !== window.location.origin || event.data?.type !== 'food-ticket-print') return;
+                (event.data.items || []).forEach(printed => {
+                    const item = weeklyFoodData.find(x => Number(x.FoodReserveDetaileId) === Number(printed.FoodReserveDetaileId));
+                    if (!item) return;
+                    item.PrintCount = printed.PrintCount;
+                    if (item.PrintCount >= maxPrintCount) allowedPrintIds.delete(Number(item.FoodReserveDetaileId));
+                });
+                renderWeeklyFood(weeklyFoodData);
+            });
 
             function getDayStatus(date) {
                 // تاریخ مستقل از ساعت محلی مرورگر با روز رسمی ایران مقایسه می‌شود.
@@ -400,13 +416,8 @@
                     return;
                 }
 
-                const url =
-                    '/ShowReserveManagment/ShowReserve/PrintPreview' +
-                    '?foodReserveDetaileIds=' +
-                    encodeURIComponent(ids.join(','));
-
                 // این دستور در رویداد کلیک اجرا می‌شود تا پنجره توسط مرورگر مسدود نشود.
-                const printWindow = window.open(url, '_blank');
+                const printWindow = window.open('', 'food-print-window');
 
                 if (!printWindow) {
                     showPrintMessage(
@@ -415,6 +426,10 @@
                     );
                     return;
                 }
+
+                const form = document.getElementById('local-print-form');
+                form.elements.namedItem('foodReserveDetaileIds').value = ids.join(',');
+                form.submit();
 
                 showPrintMessage(
                     'چاپ روی همین دستگاه آغاز شد. در صورت نمایش پنجره چاپ، چاپگر متصل به این دستگاه را انتخاب کنید.',
@@ -554,8 +569,12 @@
                                 return meal.FoodReserveDetaileId;
                             })
                             .filter(function (id) {
-                                return id !== null && id !== undefined && id !== '';
+                                return id !== null && id !== undefined && id !== '' && allowedPrintIds.has(Number(id));
                             });
+
+                        const allFoodReserveIds = dayInfo.meals
+                            .map(meal => meal.FoodReserveDetaileId)
+                            .filter(id => id !== null && id !== undefined && id !== '');
 
                         const canPrint =
                             (!printRestrictionEnabled || status !== 'past') &&
@@ -586,7 +605,10 @@
                                         ? 'چاپ فقط در روز غذا'
                                         : printRestrictionEnabled && status === 'today'
                                             ? 'چاپ از ساعت ' + printStartTime
-                                            : '❌ بدون سهمیه مجاز';
+                                            : allFoodReserveIds.some(id => weeklyFoodData.some(x =>
+                                                Number(x.FoodReserveDetaileId) === Number(id) && x.PrintCount >= maxPrintCount))
+                                                ? 'سقف چاپ ژتون پر شده'
+                                                : '❌ بدون سهمیه مجاز';
                             printButton.disabled = true;
                             printSection.appendChild(printButton);
                         }
