@@ -62,7 +62,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Constants");
+                    b.ToTable("Constants", (string)null);
 
                     b.HasData(
                         new
@@ -181,7 +181,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Days");
+                    b.ToTable("Days", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Devices", b =>
@@ -205,7 +205,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("PrinterId");
 
-                    b.ToTable("Devices");
+                    b.ToTable("Devices", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodManage.DiningHall", b =>
@@ -284,7 +284,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("PersonalTypeId");
 
-                    b.ToTable("DiningHall");
+                    b.ToTable("DiningHall", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodManage.FoodReceiverType", b =>
@@ -311,7 +311,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FoodReceiverType");
+                    b.ToTable("FoodReceiverType", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodManage.FoodTokenType", b =>
@@ -338,7 +338,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FoodTokenType");
+                    b.ToTable("FoodTokenType", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodManage.FoodTypes", b =>
@@ -363,7 +363,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FoodTypes");
+                    b.ToTable("FoodTypes", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodManage.Foods", b =>
@@ -406,7 +406,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("FoodTypesId");
 
-                    b.ToTable("Foods");
+                    b.ToTable("Foods", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodManage.Kitchens", b =>
@@ -458,7 +458,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Kitchens");
+                    b.ToTable("Kitchens", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodPlan", b =>
@@ -510,7 +510,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("YearsId");
 
-                    b.ToTable("FoodPlan");
+                    b.ToTable("FoodPlan", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodPlanDay", b =>
@@ -570,7 +570,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("MealId");
 
-                    b.ToTable("FoodPlanDay");
+                    b.ToTable("FoodPlanDay", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodReservation.FoodReserve", b =>
@@ -601,7 +601,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FoodReserves");
+                    b.ToTable("FoodReserves", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodReservation.FoodReserveDetail", b =>
@@ -647,7 +647,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("SideDishId");
 
-                    b.ToTable("FoodReserveDetails");
+                    b.ToTable("FoodReserveDetails", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodSource", b =>
@@ -702,7 +702,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("YeganTypeId", "PersonalTypeId", "DayType");
 
-                    b.ToTable("FoodSource");
+                    b.ToTable("FoodSource", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Garrison.OrganGarrison", b =>
@@ -761,7 +761,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("OrganGarrison");
+                    b.ToTable("OrganGarrison", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Garrison.OrganGarrisonType", b =>
@@ -796,7 +796,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("MealId");
 
-                    b.ToTable("OrganGarrisonType");
+                    b.ToTable("OrganGarrisonType", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Garrison.Person", b =>
@@ -849,7 +849,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("PersonalTypeId");
 
-                    b.ToTable("Person");
+                    b.ToTable("Person", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.GuestExtraFoodRequest", b =>
@@ -1128,7 +1128,7 @@ namespace Infrastracture.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0 AND [PersonCode] IS NOT NULL");
 
-                    b.ToTable("GuestExtraFoodRequestPersons");
+                    b.ToTable("GuestExtraFoodRequestPersons", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.LogSystem.SeriLog", b =>
@@ -1162,7 +1162,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SeriLog");
+                    b.ToTable("SeriLog", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Meal", b =>
@@ -1186,7 +1186,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Meal");
+                    b.ToTable("Meal", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Menu", b =>
@@ -1260,7 +1260,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("Menus");
+                    b.ToTable("Menus", (string)null);
 
                     b.HasData(
                         new
@@ -1440,7 +1440,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PersonalType");
+                    b.ToTable("PersonalType", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Printer", b =>
@@ -1471,7 +1471,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Printer");
+                    b.ToTable("Printer", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.QoutaAllocation", b =>
@@ -1564,7 +1564,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("OrganGarrisonId");
 
-                    b.ToTable("QoutaAllocations");
+                    b.ToTable("QoutaAllocations", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.QoutaPerson", b =>
@@ -1683,7 +1683,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("SideDishId");
 
-                    b.ToTable("QoutaPersons");
+                    b.ToTable("QoutaPersons", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Role", b =>
@@ -1725,7 +1725,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
 
                     b.HasData(
                         new
@@ -1752,7 +1752,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("MenuId");
 
-                    b.ToTable("RoleMenus");
+                    b.ToTable("RoleMenus", (string)null);
 
                     b.HasData(
                         new
@@ -1828,7 +1828,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Season");
+                    b.ToTable("Season", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Statistic", b =>
@@ -1870,7 +1870,7 @@ namespace Infrastracture.Migrations
 
                     b.HasIndex("OrganGarrisonId");
 
-                    b.ToTable("Statistic");
+                    b.ToTable("Statistic", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.UnitCalendar", b =>
@@ -2364,7 +2364,7 @@ namespace Infrastracture.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
 
                     b.HasData(
                         new
@@ -2412,7 +2412,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserPasswordHistorys");
+                    b.ToTable("UserPasswordHistorys", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Years", b =>
@@ -2439,7 +2439,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Years");
+                    b.ToTable("Years", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.YeganType", b =>
@@ -2463,7 +2463,7 @@ namespace Infrastracture.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("YeganType");
+                    b.ToTable("YeganType", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Devices", b =>
