@@ -19,8 +19,7 @@
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="HttpClient.Caching" Version="1.6.6" />
     <PackageReference Include="IdentityModel" Version="6.0.0" />
-    <!--<PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.6" />-->
-	  <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.8" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.8" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.16.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
