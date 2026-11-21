@@ -17,7 +17,7 @@ namespace Infrastracture.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.0")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -124,6 +124,39 @@ namespace Infrastracture.Migrations
                             Title = "چک کردن تکراری نبودن پسورد با دو یا سه پسورد قدیم",
                             Type = 6,
                             Value = "3"
+                        },
+                        new
+                        {
+                            Id = 8L,
+                            CreateDate = new DateTime(2022, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Title = "رزرو آزاد غذا بدون نیاز به سهمیه فردی",
+                            Type = 7,
+                            Value = "false"
+                        },
+                        new
+                        {
+                            Id = 9L,
+                            CreateDate = new DateTime(2022, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Title = "زمان‌بندی رزرو و چاپ ژتون غذا",
+                            Type = 8
+                        },
+                        new
+                        {
+                            Id = 10L,
+                            CreateDate = new DateTime(2022, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Title = "پیام صفحه ورود با رمز",
+                            Type = 9
+                        },
+                        new
+                        {
+                            Id = 11L,
+                            CreateDate = new DateTime(2022, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsDeleted = false,
+                            Title = "پیام صفحه ورود با چهره",
+                            Type = 10
                         });
                 });
 
@@ -593,6 +626,9 @@ namespace Infrastracture.Migrations
 
                     b.Property<long>("MealId")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("PrintCount")
+                        .HasColumnType("int");
 
                     b.Property<long?>("SideDishId")
                         .HasColumnType("bigint");
@@ -2246,13 +2282,6 @@ namespace Infrastracture.Migrations
                     b.Property<int?>("GharargahId")
                         .HasColumnType("int");
 
-                    b.Property<string>("RegisteredIpAddress")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
-
-                    b.Property<DateTime?>("RegisteredIpDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<bool?>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -2305,6 +2334,13 @@ namespace Infrastracture.Migrations
 
                     b.Property<long?>("RegUserId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("RegisteredIpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<DateTime?>("RegisteredIpDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<long>("RoleId")
                         .HasColumnType("bigint");
