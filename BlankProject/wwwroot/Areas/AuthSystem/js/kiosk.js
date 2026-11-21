@@ -135,7 +135,7 @@
         form.elements.namedItem("kioskId").value = String(kioskId);
         form.elements.namedItem("enrollId").value = safeEnrollId;
         redirected = true;
-        setStatus("چهره شناسایی شد؛ در حال تأیید ورود...");
+        setStatus("چهره شناسایی شد؛ در حال بررسی حساب و استعلام اطلاعات پرسنلی...");
         form.submit();
     }
 
@@ -201,6 +201,11 @@
             const output =
                 `[ورود بیومتریک][${step}] ${message}`;
 
+            // پیام‌های دستگاه باید روی صفحه هم دیده شوند؛ Console برای کاربر کیوسک قابل مشاهده نیست.
+            if (!redirected && ["error", "warning", "warn", "success"].includes(level)) {
+                setStatus(String(message).slice(0, 200));
+            }
+
             switch (level) {
                 case "error":
                     console.error(output, details);
@@ -236,6 +241,7 @@
             const event = getBiometricEvent(args);
             if (!event) {
                 logWarning("پیام ZP فاقد کد پرسنلی معتبر بود.");
+                setStatus("دستگاه چهره‌ای اعلام کرد، اما کد پرسنلی معتبر نفرستاد. با پشتیبانی تماس بگیرید.");
                 return;
             }
 
@@ -257,6 +263,7 @@
                 }
             } catch (error) {
                 logError("ثبت مجدد کیوسک ناموفق بود.", error);
+                setStatus("اتصال دستگاه بازگشت، اما ثبت کیوسک ناموفق بود. صفحه را تازه‌سازی کنید.");
             }
         });
 
