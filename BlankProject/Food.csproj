@@ -51,6 +51,7 @@
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />
 		<PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
 		<PackageReference Include="Serilog.Sinks.MSSqlServer" Version="6.4.0" />
+		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
 		<PackageReference Include="StackExchange.Redis.Extensions.AspNetCore" Version="8.0.5" />
 		<PackageReference Include="StackExchange.Redis.Extensions.Newtonsoft" Version="8.0.5" />
 		<PackageReference Include="StackExchange.Redis.Extensions.Utf8Json" Version="8.0.5" />
