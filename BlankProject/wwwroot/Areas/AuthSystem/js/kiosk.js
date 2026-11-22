@@ -9,6 +9,8 @@
     const legacyProtocol = window.ZP_LEGACY_FACE_LOGIN === true;
     let redirected = false;
     let connectionFailure = "";
+    let lastDeviceEventAt = Date.now();
+    let waitMonitor = null;
 
     function logInfo(message) {
         console.info("[ورود بیومتریک] " + message);
@@ -238,6 +240,8 @@
         });
 
         connection.on("ReceiveAutoLogin", (...args) => {
+            lastDeviceEventAt = Date.now();
+            console.info("[ورود بیومتریک][DeviceEvent] پیام تشخیص چهره از ZP دریافت شد.", { kioskId, argumentCount: args.length });
             const event = getBiometricEvent(args);
             if (!event) {
                 logWarning("پیام ZP فاقد کد پرسنلی معتبر بود.");
@@ -251,7 +255,18 @@
                 return;
             }
 
+            console.info("[ورود بیومتریک][DeviceEvent] پیام معتبر است؛ درخواست استعلام پرسنلی به سرور ارسال می‌شود.", { kioskId });
             redirectToFinalize(kioskId, event.enrollId);
+        });
+
+        connection.onreconnecting((error) => {
+            logWarning("اتصال به ZP قطع شد؛ تلاش برای اتصال مجدد...", error);
+            setStatus("اتصال دستگاه قطع شده؛ در حال اتصال مجدد...");
+        });
+
+        connection.onclose((error) => {
+            logError("اتصال ZP بسته شد؛ صفحه را تازه‌سازی کنید.", error);
+            setStatus("ارتباط با دستگاه بسته شد؛ صفحه را تازه‌سازی کنید.");
         });
 
         connection.onreconnected(async () => {
@@ -261,6 +276,9 @@
                 } else {
                     await connection.invoke("Register", kioskId, getFaceChallenge());
                 }
+                logInfo("اتصال و ثبت مجدد کیوسک موفق بود؛ منتظر رویداد دستگاه هستیم.");
+                setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
+                lastDeviceEventAt = Date.now();
             } catch (error) {
                 logError("ثبت مجدد کیوسک ناموفق بود.", error);
                 setStatus("اتصال دستگاه بازگشت، اما ثبت کیوسک ناموفق بود. صفحه را تازه‌سازی کنید.");
@@ -375,6 +393,24 @@
             }
 
             setStatus("اتصال برقرار است؛ در انتظار تشخیص چهره...");
+            lastDeviceEventAt = Date.now();
+            if (waitMonitor) window.clearInterval(waitMonitor);
+            waitMonitor = window.setInterval(() => {
+                if (redirected) {
+                    window.clearInterval(waitMonitor);
+                    waitMonitor = null;
+                    return;
+                }
+                const seconds = Math.floor((Date.now() - lastDeviceEventAt) / 1000);
+                const connected = connections.some(c => c.state === signalR.HubConnectionState.Connected);
+                if (connected) {
+                    console.info("[ورود بیومتریک][Waiting]", `${seconds} ثانیه از آخرین پیام دستگاه گذشته است؛ هنوز رویداد تشخیص چهره دریافت نشده و استعلام پرسنل آغاز نشده است.`);
+                    if (seconds >= 30) setStatus("اتصال برقرار است، اما هنوز پیامی از دستگاه دریافت نشده است؛ وضعیت شناسایی چهره در ZP را بررسی کنید.");
+                } else {
+                    logWarning("هیچ اتصال فعالی به ZP وجود ندارد؛ استعلام پرسنل آغاز نشده است.");
+                    setStatus("اتصال به دستگاه برقرار نیست؛ وضعیت شبکه یا سرویس ZP را بررسی کنید.");
+                }
+            }, 15000);
 
             // چالش امنیتی سمت سرور فقط سه دقیقه اعتبار دارد.
             // صفحه کیوسک ممکن است ساعت‌ها باز بماند؛ پیش از انقضا
