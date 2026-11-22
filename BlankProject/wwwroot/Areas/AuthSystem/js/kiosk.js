@@ -188,7 +188,7 @@
     function createConnection(hubUrl, kioskId) {
         const connection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {
-                withCredentials: false,
+                withCredentials: hubUrl.startsWith(window.location.origin + "/"),
                 transport:
                     signalR.HttpTransportType.WebSockets |
                     signalR.HttpTransportType.LongPolling

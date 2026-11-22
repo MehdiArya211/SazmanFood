@@ -60,6 +60,7 @@
                 <span class="connection-dot" aria-hidden="true"></span>
                 <span id="connectionStatus">در حال آماده‌سازی اتصال...</span>
             </div>
+            <p class="auth-subtitle">شناسه این کیوسک برای ثبت در سرویس دستگاه: <strong dir="ltr">@kioskId</strong></p>
 
             <div>
                 <a asp-controller="Authentication" asp-action="Login" class="auth-alt-link">
@@ -79,7 +80,13 @@
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.FaceChallenge ?? ""));
         window.ZP_LEGACY_FACE_LOGIN =
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllowLegacyFaceLogin ?? false));
+        console.info("[ورود بیومتریک][Page] صفحه آماده شد.", { kioskId: window.ZP_KIOSK_ID });
+        function faceScriptFailed(script) {
+            console.error("[ورود بیومتریک][Script] فایل ورود چهره بارگذاری نشد.", script);
+            document.getElementById("connectionStatus").textContent =
+                "فایل ارتباط با دستگاه بارگذاری نشد؛ اتصال شبکه و فایل‌های سامانه را بررسی کنید.";
+        }
     </script>
-    <script src="~/assets/signalr/signalr2.js"></script>
-    <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true"></script>
+    <script src="~/assets/signalr/signalr2.js" onerror="faceScriptFailed('SignalR')"></script>
+    <script src="~/Areas/AuthSystem/js/kiosk.js" asp-append-version="true" onerror="faceScriptFailed('kiosk.js')"></script>
 }
