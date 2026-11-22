@@ -632,6 +632,7 @@ public class AuthenticationController : Controller
             personCode = pendingPersonnelCode;
         }
 
+        _logger.LogInformation("ورود چهره: بررسی حساب موجود آغاز شد. KioskId: {KioskId}, EnrollId: {EnrollId}", kioskId, enrollId);
         var user = AuthManager.LoginWithFaceZP(personCode);
         if (isPendingInitialLogin && user != null &&
             (user.PersonId != pendingPersonId ||
@@ -659,6 +660,10 @@ public class AuthenticationController : Controller
                     CustomSettings.Instance.ROPC_UserName,
                     CustomSettings.Instance.ROPC_Password);
 
+                if (string.IsNullOrWhiteSpace(accessToken))
+                    throw new InvalidOperationException("سرویس احراز هویت پرسنل توکن معتبری برنگرداند.");
+
+                _logger.LogInformation("ورود چهره: استعلام سرویس پرسنل آغاز شد. EnrollId: {EnrollId}", enrollId);
                 var person = WebApiManager.GetPersonalByPersonCode(
                     personCode, accessToken);
 
@@ -667,6 +672,8 @@ public class AuthenticationController : Controller
                     person.Id <= 0 ||
                     (isPendingInitialLogin && person.Id != pendingPersonId))
                 {
+                    _logger.LogWarning("ورود چهره: سرویس پرسنل پاسخ معتبر یا منطبق نداد. EnrollId: {EnrollId}, Found: {Found}, PersonId: {PersonId}, ReturnedCode: {ReturnedCode}",
+                        enrollId, person != null, person?.Id, person?.personalCode);
                     TempData["FaceLoginMessage"] =
                         "کد پرسنلی شناسایی‌شده در سرویس معتبر پرسنلی یافت نشد.";
                     return RedirectToAction("IndexZP");
@@ -676,6 +683,7 @@ public class AuthenticationController : Controller
                     ? person.FullName
                     : $"{person.FirstName} {person.LastName}".Trim();
 
+                _logger.LogInformation("ورود چهره: پرسنل تأیید شد؛ ساخت یا بازیابی حساب آغاز شد. EnrollId: {EnrollId}, PersonId: {PersonId}", enrollId, person.Id);
                 var result = _reservationUserProvisioning.EnsureReservationUser(
                     person.Id,
                     personCode,
