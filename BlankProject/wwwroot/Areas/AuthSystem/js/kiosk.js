@@ -157,6 +157,9 @@
             const result = await response.json();
             const details = {
                 personnelLookup: result.lookup ?? "Unknown",
+                personnelHttpStatus: result.personnelHttpStatus ?? null,
+                requestedCodeLength: result.lookupCodeLength ?? null,
+                returnedCodeLength: result.returnedCodeLength ?? null,
                 account: result.account ?? "Unknown",
                 success: result.status === true
             };
