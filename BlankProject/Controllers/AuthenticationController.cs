@@ -645,6 +645,11 @@ public class AuthenticationController : Controller
 
         _logger.LogInformation("ورود چهره: بررسی حساب موجود آغاز شد. KioskId: {KioskId}, EnrollId: {EnrollId}", kioskId, enrollId);
         var user = AuthManager.LoginWithFaceZP(personCode);
+        if (user != null)
+        {
+            lookupOutcome = "SkippedExistingAccount";
+            accountOutcome = "Existing";
+        }
         if (isPendingInitialLogin && user != null &&
             (user.PersonId != pendingPersonId ||
              !string.Equals(user.Username, pendingPersonnelCode,
@@ -727,6 +732,7 @@ public class AuthenticationController : Controller
 
                 user = AuthManager.LoginWithVerifiedFacePersonnel(
                     person.Id, personCode);
+                if (user == null) accountOutcome = "LoginFailed";
                 if (user != null)
                 {
                     _logger.LogInformation(
