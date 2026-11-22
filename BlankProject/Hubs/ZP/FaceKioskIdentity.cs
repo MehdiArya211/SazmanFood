@@ -23,7 +23,8 @@ public sealed class FaceKioskIdentity
         if (TryGet(context, out var kioskId))
             return kioskId;
 
-        kioskId = RandomNumberGenerator.GetInt32(1, int.MaxValue);
+        // قرارداد سرویس ZP برای کیوسک شناسه شش‌رقمی است.
+        kioskId = RandomNumberGenerator.GetInt32(100000, 1000000);
         context.Response.Cookies.Append(CookieName,
             _protector.Protect(kioskId.ToString(CultureInfo.InvariantCulture)),
             new CookieOptions
@@ -47,9 +48,15 @@ public sealed class FaceKioskIdentity
 
         try
         {
-            return int.TryParse(_protector.Unprotect(value),
-                       NumberStyles.None, CultureInfo.InvariantCulture, out kioskId) &&
-                   kioskId > 0;
+            if (int.TryParse(_protector.Unprotect(value),
+                    NumberStyles.None, CultureInfo.InvariantCulture, out var parsedId) &&
+                parsedId is >= 100000 and <= 999999)
+            {
+                kioskId = parsedId;
+                return true;
+            }
+
+            return false;
         }
         catch (CryptographicException)
         {
