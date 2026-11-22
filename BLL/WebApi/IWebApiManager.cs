@@ -34,6 +34,7 @@ namespace BLL.Interface
 
         #region person
         PersonalInfDTO GetPersonalByPersonCode(string PersonCode, string token);
+        PersonalInfDTO GetPersonalByPersonCode(string PersonCode, string token, out int httpStatusCode);
 
 
 		#endregion
