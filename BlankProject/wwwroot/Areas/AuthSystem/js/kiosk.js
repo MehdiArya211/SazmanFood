@@ -138,7 +138,48 @@
         form.elements.namedItem("enrollId").value = safeEnrollId;
         redirected = true;
         setStatus("چهره شناسایی شد؛ در حال بررسی حساب و استعلام اطلاعات پرسنلی...");
-        form.submit();
+        void finalizeFaceLogin(form);
+    }
+
+    async function finalizeFaceLogin(form) {
+        try {
+            console.info("[ورود بیومتریک][PersonnelLookup] درخواست بررسی حساب و پرسنل ارسال شد.");
+            const response = await fetch(form.action, {
+                method: "POST",
+                body: new FormData(form),
+                credentials: "same-origin",
+                headers: { "X-Face-Status": "1", "Accept": "application/json" }
+            });
+            if (!response.ok || !String(response.headers.get("content-type")).includes("application/json")) {
+                throw new Error("پاسخ سرور معتبر نیست (HTTP " + response.status + ").");
+            }
+
+            const result = await response.json();
+            const details = {
+                personnelLookup: result.lookup ?? "Unknown",
+                account: result.account ?? "Unknown",
+                success: result.status === true
+            };
+            if (result.status !== true) {
+                console.warn("[ورود بیومتریک][PersonnelLookup] بررسی یا ایجاد حساب ناموفق بود.", details, result.message);
+                setStatus(result.message || "ورود با چهره انجام نشد. دوباره تلاش کنید.");
+                window.setTimeout(() => window.location.reload(), 8000);
+                return;
+            }
+
+            console.info("[ورود بیومتریک][PersonnelLookup] ورود تأیید شد.", details);
+            if (typeof result.redirectUrl !== "string" ||
+                !result.redirectUrl.startsWith("/") ||
+                result.redirectUrl.startsWith("//")) {
+                throw new Error("نشانی انتقال پس از ورود معتبر نیست.");
+            }
+            setStatus("ورود تأیید شد؛ در حال انتقال...");
+            window.location.assign(result.redirectUrl);
+        } catch (error) {
+            console.error("[ورود بیومتریک][PersonnelLookup] دریافت نتیجه از سرور ناموفق بود.", error);
+            setStatus("نتیجهٔ ورود دریافت نشد. صفحه پس از چند ثانیه دوباره آماده می‌شود.");
+            window.setTimeout(() => window.location.reload(), 8000);
+        }
     }
 
     function createConnection(hubUrl, kioskId) {
