@@ -8,6 +8,7 @@ using DTO.User;
 using FajrLog.Enum;
 using Filters;
 using ITOWebApiClient;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.DependencyInjection;
@@ -159,7 +160,8 @@ namespace Food.Areas.AuthSystem.Controllers
 
             try
             {
-                using var workbook = new XLWorkbook(file.OpenReadStream());
+                using var fileStream = file.OpenReadStream();
+                using var workbook = new XLWorkbook(fileStream);
                 var sheet = workbook.Worksheets.FirstOrDefault();
                 if (sheet == null || sheet.FirstRowUsed() == null)
                     return Json(new { status = false, message = "فایل اکسل فاقد اطلاعات است." });
@@ -233,6 +235,22 @@ namespace Food.Areas.AuthSystem.Controllers
                         // Each row gets a fresh DbContext: a failed SaveChanges must
                         // not leave tracked entities behind for the following row.
                         using var scope = _scopeFactory.CreateScope();
+                        var context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+                        int? numericCode = int.TryParse(personCode, out var parsedCode)
+                            ? parsedCode : null;
+                        var conflictingAccount = context.Users.FirstOrDefault(x =>
+                            x.IsDeleted == false &&
+                            numericCode.HasValue && x.PersonCode == numericCode &&
+                            x.Username != personCode);
+                        if (conflictingAccount != null)
+                        {
+                            failed++;
+                            results.Add(new MealBookerImportRowResult(
+                                rowNumber, personCode, fullName, "failed",
+                                "این کد پرسنلی به حسابی با نام کاربری متفاوت متصل است؛ با مدیر سامانه بررسی کنید."));
+                            continue;
+                        }
+
                         var provisioning = scope.ServiceProvider
                             .GetRequiredService<IReservationUserProvisioningManager>();
                         var saved = provisioning.EnsureReservationUser(
