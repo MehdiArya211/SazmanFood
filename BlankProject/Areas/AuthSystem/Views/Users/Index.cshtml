@@ -1,5 +1,6 @@
 ﻿@model IEnumerable<DTO.User.UserDataTableDTO>
 @using Services.SessionServices
+@using Domain.Constants
 
 @{
     ViewData["Title"] = "Index";
@@ -139,6 +140,11 @@
             <div class="toolbar">
                 <p>
                     <a onclick="user.create.loadForm()" class="btn btn-sm btn-success"><i class="material-icons">add_circle_outline</i> افزودن کاربر جدید</a>
+                    @if (Admin?.RoleId == RoleConstant.Admin)
+                    {
+                        <a asp-area="AuthSystem" asp-controller="Users" asp-action="ImportMealBookers"
+                           class="btn btn-sm btn-primary"><i class="material-icons">upload_file</i> ثبت گروهی کاربران رزرو غذا</a>
+                    }
                 </p>
             </div>
 
