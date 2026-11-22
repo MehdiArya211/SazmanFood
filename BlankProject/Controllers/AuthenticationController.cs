@@ -559,6 +559,17 @@ public class AuthenticationController : Controller
             kioskId,
             enrollId);
 
+        var browserStatus = Request.Headers["X-Face-Status"].ToString() == "1";
+        string lookupOutcome = "NotStarted";
+        string accountOutcome = "NotStarted";
+        IActionResult FaceFailure()
+        {
+            if (!browserStatus) return RedirectToAction("IndexZP");
+            var message = TempData["FaceLoginMessage"]?.ToString() ?? "ورود با چهره ناموفق بود.";
+            TempData.Remove("FaceLoginMessage");
+            return Json(new { status = false, lookup = lookupOutcome, account = accountOutcome, message });
+        }
+
         if (kioskId <= 0 || enrollId <= 0)
         {
             _logger.LogWarning(
@@ -567,7 +578,7 @@ public class AuthenticationController : Controller
                 enrollId);
 
             TempData["FaceLoginMessage"] = "اطلاعات ورود معتبر نیست.";
-            return RedirectToAction("IndexZP");
+            return FaceFailure();
         }
 
         var configuredKiosk = _configuration.GetValue<int?>("ApiAddress:KioskId");
@@ -576,7 +587,7 @@ public class AuthenticationController : Controller
         {
             _logger.LogWarning("درخواست ورود با شناسه کیوسک ناشناس. KioskId: {KioskId}", kioskId);
             TempData["FaceLoginMessage"] = "شناسه دستگاه ورود معتبر نیست.";
-            return RedirectToAction("IndexZP");
+            return FaceFailure();
         }
 
         // قرارداد قدیمی ZP فقط Register(kioskId) و کد پرسنلی را ارسال می‌کند.
@@ -596,7 +607,7 @@ public class AuthenticationController : Controller
                 kioskId, enrollId);
             TempData["FaceLoginMessage"] =
                 "تأیید تشخیص چهره برای این نشست دریافت نشده یا منقضی شده است. دوباره روبه‌روی دستگاه قرار بگیرید.";
-            return RedirectToAction("IndexZP");
+            return FaceFailure();
         }
 
         // بعضی سازمان‌ها کد پرسنلی را با صفرهای ابتدایی ذخیره می‌کنند.
@@ -625,7 +636,7 @@ public class AuthenticationController : Controller
                 ClearPendingPersonnelLogin();
                 TempData["FaceLoginMessage"] =
                     "چهره شناسایی‌شده با کد پرسنلی درخواست‌کننده مطابقت ندارد.";
-                return RedirectToAction("IndexZP");
+                return FaceFailure();
             }
 
             // استعلام مجدد با کد رسمی ثبت‌شده در سرویس پرسنل.
@@ -634,6 +645,11 @@ public class AuthenticationController : Controller
 
         _logger.LogInformation("ورود چهره: بررسی حساب موجود آغاز شد. KioskId: {KioskId}, EnrollId: {EnrollId}", kioskId, enrollId);
         var user = AuthManager.LoginWithFaceZP(personCode);
+        if (user != null)
+        {
+            lookupOutcome = "SkippedExistingAccount";
+            accountOutcome = "Existing";
+        }
         if (isPendingInitialLogin && user != null &&
             (user.PersonId != pendingPersonId ||
              !string.Equals(user.Username, pendingPersonnelCode,
@@ -645,7 +661,7 @@ public class AuthenticationController : Controller
                 "شناسه یا نام کاربری حساب موجود با استعلام سرویس پرسنل تطابق ندارد.");
             TempData["FaceLoginMessage"] =
                 "اطلاعات حساب موجود با هویت استعلام‌شده مطابقت ندارد. با مدیر تماس بگیرید.";
-            return RedirectToAction("IndexZP");
+            return FaceFailure();
         }
 
         if (user == null && verifiedFace)
@@ -663,20 +679,28 @@ public class AuthenticationController : Controller
                 if (string.IsNullOrWhiteSpace(accessToken))
                     throw new InvalidOperationException("سرویس احراز هویت پرسنل توکن معتبری برنگرداند.");
 
-                _logger.LogInformation("ورود چهره: استعلام سرویس پرسنل آغاز شد. EnrollId: {EnrollId}", enrollId);
+                _logger.LogInformation("ورود چهره: استعلام سرویس پرسنل آغاز شد. KioskId: {KioskId}, EnrollId: {EnrollId}", kioskId, enrollId);
+                var lookupTimer = System.Diagnostics.Stopwatch.StartNew();
                 var person = WebApiManager.GetPersonalByPersonCode(
                     personCode, accessToken);
+                lookupTimer.Stop();
+                var returnedCode = person?.personalCode?.Trim().ToEnglishNumber();
+                var lookupResult = person == null ? "NotFound" :
+                    returnedCode != personCode ? "CodeMismatch" :
+                    person.Id <= 0 ? "InvalidPersonId" :
+                    isPendingInitialLogin && person.Id != pendingPersonId ? "PersonIdMismatch" : "Found";
+                lookupOutcome = lookupResult;
+                _logger.LogInformation(
+                    "ورود چهره: نتیجه استعلام سرویس پرسنل. KioskId: {KioskId}, EnrollId: {EnrollId}, Result: {Result}, DurationMs: {DurationMs}",
+                    kioskId, enrollId, lookupResult, lookupTimer.ElapsedMilliseconds);
 
-                if (person == null ||
-                    person.personalCode?.Trim().ToEnglishNumber() != personCode ||
-                    person.Id <= 0 ||
-                    (isPendingInitialLogin && person.Id != pendingPersonId))
+                if (lookupResult != "Found")
                 {
-                    _logger.LogWarning("ورود چهره: سرویس پرسنل پاسخ معتبر یا منطبق نداد. EnrollId: {EnrollId}, Found: {Found}, PersonId: {PersonId}, ReturnedCode: {ReturnedCode}",
-                        enrollId, person != null, person?.Id, person?.personalCode);
+                    _logger.LogWarning("ورود چهره: پاسخ سرویس پرسنل برای ورود قابل قبول نبود. KioskId: {KioskId}, EnrollId: {EnrollId}, Result: {Result}",
+                        kioskId, enrollId, lookupResult);
                     TempData["FaceLoginMessage"] =
                         "کد پرسنلی شناسایی‌شده در سرویس معتبر پرسنلی یافت نشد.";
-                    return RedirectToAction("IndexZP");
+                    return FaceFailure();
                 }
 
                 var fullName = !string.IsNullOrWhiteSpace(person.FullName)
@@ -693,17 +717,22 @@ public class AuthenticationController : Controller
                     0, // ایجاد خودکار توسط سرویس، نه یک کاربر پنل
                     person.UnitCode);
 
+                accountOutcome = result.Status ? "Ready" : "Failed";
+                _logger.LogInformation("ورود چهره: نتیجه ساخت یا بازیابی حساب. KioskId: {KioskId}, EnrollId: {EnrollId}, Success: {Success}, UserId: {UserId}",
+                    kioskId, enrollId, result.Status, result.Status ? result.Model : null);
+
                 if (!result.Status)
                 {
                     _logger.LogWarning(
                         "ایجاد حساب هنگام ورود چهره موفق نبود. EnrollId: {EnrollId}, Reason: {Reason}",
                         enrollId, result.Message);
                     TempData["FaceLoginMessage"] = result.Message;
-                    return RedirectToAction("IndexZP");
+                    return FaceFailure();
                 }
 
                 user = AuthManager.LoginWithVerifiedFacePersonnel(
                     person.Id, personCode);
+                if (user == null) accountOutcome = "LoginFailed";
                 if (user != null)
                 {
                     _logger.LogInformation(
@@ -713,12 +742,14 @@ public class AuthenticationController : Controller
             }
             catch (Exception ex)
             {
+                if (lookupOutcome == "NotStarted") lookupOutcome = "ServiceError";
+                else accountOutcome = "Failed";
                 _logger.LogError(ex,
                     "استعلام و ساخت حساب در اولین ورود با چهره ناموفق بود. EnrollId: {EnrollId}",
                     enrollId);
                 TempData["FaceLoginMessage"] =
                     "در حال حاضر ایجاد حساب از طریق سرویس پرسنلی امکان‌پذیر نیست.";
-                return RedirectToAction("IndexZP");
+                return FaceFailure();
             }
         }
 
@@ -735,7 +766,7 @@ public class AuthenticationController : Controller
                 "حساب بازیابی‌شده از سرویس پرسنل با شناسه یا نام کاربری ورود اولیه مطابقت ندارد.");
             TempData["FaceLoginMessage"] =
                 "این کد پرسنلی به حساب دیگری متصل است. برای بررسی با مدیر تماس بگیرید.";
-            return RedirectToAction("IndexZP");
+            return FaceFailure();
         }
 
         if (user != null && user.RoleId.GetValueOrDefault() <= 0)
@@ -746,7 +777,7 @@ public class AuthenticationController : Controller
             {
                 HttpContext.Session.RemoveUser();
                 TempData["FaceLoginMessage"] = roleResult.Message;
-                return RedirectToAction("IndexZP");
+                return FaceFailure();
             }
 
             // ورود قبلی DTO را پیش از افزودن نقش به نشست گذاشته بود.
@@ -764,7 +795,7 @@ public class AuthenticationController : Controller
                 verifiedFace
                     ? "حساب پرسنلی یافت نشد یا غیرفعال است."
                     : "برای ثبت خودکار حساب، تأیید امن سرویس تشخیص چهره لازم است.";
-            return RedirectToAction("IndexZP");
+            return FaceFailure();
         }
 
         _logger.LogInformation(
@@ -794,7 +825,7 @@ public class AuthenticationController : Controller
                 "تکمیل نشست ورود چهره ناموفق بود. UserId: {UserId}", user.Id);
             TempData["FaceLoginMessage"] =
                 "ورود چهره تأیید شد، اما ایجاد نشست کاربری انجام نشد. دوباره تلاش کنید.";
-            return RedirectToAction("IndexZP");
+            return FaceFailure();
         }
 
         // تکمیل ورود اولیه: چهره و سرویس پرسنل بررسی شده‌اند،
@@ -809,6 +840,7 @@ public class AuthenticationController : Controller
                 _logger.LogInformation(
                     "ورود اولیه پس از تأیید چهره تکمیل شد؛ ارجاع به تغییر رمز. UserId: {UserId}",
                     user.Id);
+                if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, redirectUrl = Url.Action("ChangePassword", "Profile", new { area = "Admin" }) });
                 return RedirectToAction("ChangePassword", "Profile",
                     new { area = "Admin" });
             }
@@ -818,6 +850,7 @@ public class AuthenticationController : Controller
             "ورود بیومتریک: موفق؛ انتقال به داشبورد. UserId: {UserId}",
             user.Id);
 
+        if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, redirectUrl = Url.Action("Index", "Dashboard", new { area = "Admin" }) });
         return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
     }
     #endregion
