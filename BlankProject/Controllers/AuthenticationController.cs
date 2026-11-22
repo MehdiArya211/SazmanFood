@@ -663,17 +663,24 @@ public class AuthenticationController : Controller
                 if (string.IsNullOrWhiteSpace(accessToken))
                     throw new InvalidOperationException("سرویس احراز هویت پرسنل توکن معتبری برنگرداند.");
 
-                _logger.LogInformation("ورود چهره: استعلام سرویس پرسنل آغاز شد. EnrollId: {EnrollId}", enrollId);
+                _logger.LogInformation("ورود چهره: استعلام سرویس پرسنل آغاز شد. KioskId: {KioskId}, EnrollId: {EnrollId}", kioskId, enrollId);
+                var lookupTimer = System.Diagnostics.Stopwatch.StartNew();
                 var person = WebApiManager.GetPersonalByPersonCode(
                     personCode, accessToken);
+                lookupTimer.Stop();
+                var returnedCode = person?.personalCode?.Trim().ToEnglishNumber();
+                var lookupResult = person == null ? "NotFound" :
+                    returnedCode != personCode ? "CodeMismatch" :
+                    person.Id <= 0 ? "InvalidPersonId" :
+                    isPendingInitialLogin && person.Id != pendingPersonId ? "PersonIdMismatch" : "Found";
+                _logger.LogInformation(
+                    "ورود چهره: نتیجه استعلام سرویس پرسنل. KioskId: {KioskId}, EnrollId: {EnrollId}, Result: {Result}, DurationMs: {DurationMs}",
+                    kioskId, enrollId, lookupResult, lookupTimer.ElapsedMilliseconds);
 
-                if (person == null ||
-                    person.personalCode?.Trim().ToEnglishNumber() != personCode ||
-                    person.Id <= 0 ||
-                    (isPendingInitialLogin && person.Id != pendingPersonId))
+                if (lookupResult != "Found")
                 {
-                    _logger.LogWarning("ورود چهره: سرویس پرسنل پاسخ معتبر یا منطبق نداد. EnrollId: {EnrollId}, Found: {Found}, PersonId: {PersonId}, ReturnedCode: {ReturnedCode}",
-                        enrollId, person != null, person?.Id, person?.personalCode);
+                    _logger.LogWarning("ورود چهره: پاسخ سرویس پرسنل برای ورود قابل قبول نبود. KioskId: {KioskId}, EnrollId: {EnrollId}, Result: {Result}",
+                        kioskId, enrollId, lookupResult);
                     TempData["FaceLoginMessage"] =
                         "کد پرسنلی شناسایی‌شده در سرویس معتبر پرسنلی یافت نشد.";
                     return RedirectToAction("IndexZP");
@@ -692,6 +699,9 @@ public class AuthenticationController : Controller
                     null,
                     0, // ایجاد خودکار توسط سرویس، نه یک کاربر پنل
                     person.UnitCode);
+
+                _logger.LogInformation("ورود چهره: نتیجه ساخت یا بازیابی حساب. KioskId: {KioskId}, EnrollId: {EnrollId}, Success: {Success}, UserId: {UserId}",
+                    kioskId, enrollId, result.Status, result.Status ? result.Model : null);
 
                 if (!result.Status)
                 {
