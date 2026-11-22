@@ -719,7 +719,7 @@ public class AuthenticationController : Controller
 
                 accountOutcome = result.Status ? "Ready" : "Failed";
                 _logger.LogInformation("ورود چهره: نتیجه ساخت یا بازیابی حساب. KioskId: {KioskId}, EnrollId: {EnrollId}, Success: {Success}, UserId: {UserId}",
-                    kioskId, enrollId, result.Status, result.Status ? result.Model : null);
+                    kioskId, enrollId, result.Status, result.Status ? (object)result.Model : null);
 
                 if (!result.Status)
                 {
