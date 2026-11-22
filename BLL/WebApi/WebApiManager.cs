@@ -69,9 +69,17 @@ namespace BLL
 
 		public PersonalInfDTO GetPersonalByPersonCode(string PersonCode, string token)
 		{
+			return GetPersonalByPersonCode(PersonCode, token, out _);
+		}
+
+		public PersonalInfDTO GetPersonalByPersonCode(string PersonCode, string token, out int httpStatusCode)
+		{
+			httpStatusCode = 0;
 			_client.SetBearerToken(token);
-			var url = _apiPersonalUrl + "/GetPersonalByPersonalCode/" + PersonCode;
+			var url = _apiPersonalUrl.TrimEnd('/') + "/GetPersonalByPersonalCode/" +
+				Uri.EscapeDataString(PersonCode);
 			using var response = _client.GetAsync(url).GetAwaiter().GetResult();
+			httpStatusCode = (int)response.StatusCode;
 
 			if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
 				return null;
