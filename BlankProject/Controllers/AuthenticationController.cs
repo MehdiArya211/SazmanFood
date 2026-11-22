@@ -12,6 +12,7 @@ using Services.CookieServices;
 using Services.RedisService;
 using Services.SessionServices;
 using Utilities.Extentions;
+using Food.Hubs.ZP;
 
 
 namespace Food.Controllers;
@@ -34,8 +35,10 @@ public class AuthenticationController : Controller
     private readonly ApiTokenCacheClient ApiTokenClient;
     private readonly IMemoryCache _faceEventCache;
     private readonly IReservationUserProvisioningManager _reservationUserProvisioning;
+    private readonly FaceKioskIdentity _faceKioskIdentity;
     private static readonly object FaceProofSync = new();
     private const string FaceChallengeSessionKey = "FaceLoginChallenge";
+    private const string FaceKioskSessionKey = "FaceLoginKioskId";
     private const string PendingPersonnelCodeKey = "InitialPersonnelLogin:Code";
     private const string PendingPersonnelIdKey = "InitialPersonnelLogin:PersonId";
     private const string PendingPersonnelTimeKey = "InitialPersonnelLogin:Timestamp";
@@ -95,6 +98,7 @@ public class AuthenticationController : Controller
         ApiTokenCacheClient apiTokenClient,
         IMemoryCache faceEventCache,
         IReservationUserProvisioningManager reservationUserProvisioning,
+        FaceKioskIdentity faceKioskIdentity,
         IFajrLogManager fajrLogManager = null
         ) : base()
     {
@@ -105,6 +109,7 @@ public class AuthenticationController : Controller
         ApiTokenClient = apiTokenClient;
         _faceEventCache = faceEventCache;
         _reservationUserProvisioning = reservationUserProvisioning;
+        _faceKioskIdentity = faceKioskIdentity;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
         Redis = _Redis;
@@ -373,7 +378,6 @@ public class AuthenticationController : Controller
     public IActionResult IndexZP(long? mid)
     {
         var hubBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
-        var configuredKioskId = _configuration.GetValue<int?>("ApiAddress:KioskId");
 
         if (mid == null)
         {
@@ -382,30 +386,29 @@ public class AuthenticationController : Controller
                 return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
         }
 
+        var browserKioskId = _faceKioskIdentity.GetOrCreate(HttpContext);
+
         // برای هر نمایش صفحه یک چالش تصادفیِ مستقل از کد پرسنلی ساخته
         // می‌شود. سرویس معتبر ZP باید همان چالش را در رویداد امضاشده
         // برگرداند؛ رویداد کاربر دیگر یا مرورگر دیگر پذیرفته نمی‌شود.
         var challenge = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         HttpContext.Session.SetString(FaceChallengeSessionKey, challenge);
-        if (configuredKioskId.HasValue && configuredKioskId.Value > 0)
-        {
-            _faceEventCache.Set(
-                $"FacePending:{challenge}",
-                configuredKioskId.Value,
-                TimeSpan.FromMinutes(3));
-        }
+        HttpContext.Session.SetInt32(FaceKioskSessionKey, browserKioskId);
+        _faceEventCache.Set(
+            $"FacePending:{challenge}",
+            browserKioskId,
+            TimeSpan.FromMinutes(3));
 
         ViewBag.ApiBaseUrl = hubBaseUrl;
-        ViewBag.KioskId = configuredKioskId;
+        ViewBag.KioskId = browserKioskId;
         ViewBag.FaceChallenge = challenge;
-        // ZP فعلی از قرارداد Register(kioskId) استفاده می‌کند. نبودن کلید
-        // در تنظیمات محیط انتشار نباید قرارداد متفاوتی را فعال کند.
+        // ZP فعلی از قرارداد Register(kioskId) استفاده می‌کند.
         ViewBag.AllowLegacyFaceLogin =
             _configuration.GetValue<bool?>("FaceLogin:AllowLegacyZpEvents") ?? true;
 
         _logger.LogInformation(
             "صفحه انتظار چهره ایجاد شد. KioskId: {KioskId}",
-            configuredKioskId);
+            browserKioskId);
 
         var showCaptcha = HttpContext.GetCookieShowCaptcha();
         if (showCaptcha)
@@ -432,9 +435,7 @@ public class AuthenticationController : Controller
             return StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var expectedKiosk = _configuration.GetValue<int?>("ApiAddress:KioskId");
-        if (!expectedKiosk.HasValue || expectedKiosk.Value <= 0 ||
-            payload == null || payload.KioskId != expectedKiosk.Value ||
+        if (payload == null || payload.KioskId <= 0 ||
             payload.EnrollId <= 0 || payload.TimestampUtc <= 0 ||
             string.IsNullOrWhiteSpace(payload.Nonce) ||
             payload.Nonce.Length > 100 ||
@@ -586,9 +587,9 @@ public class AuthenticationController : Controller
             return FaceFailure();
         }
 
-        var configuredKiosk = _configuration.GetValue<int?>("ApiAddress:KioskId");
-        if (configuredKiosk.HasValue && configuredKiosk.Value > 0 &&
-            kioskId != configuredKiosk.Value)
+        if (!_faceKioskIdentity.TryGet(HttpContext, out var browserKioskId) ||
+            browserKioskId != kioskId ||
+            HttpContext.Session.GetInt32(FaceKioskSessionKey) != kioskId)
         {
             _logger.LogWarning("درخواست ورود با شناسه کیوسک ناشناس. KioskId: {KioskId}", kioskId);
             TempData["FaceLoginMessage"] = "شناسه دستگاه ورود معتبر نیست.";
@@ -597,7 +598,7 @@ public class AuthenticationController : Controller
 
         // قرارداد قدیمی ZP فقط Register(kioskId) و کد پرسنلی را ارسال می‌کند.
         // این مسیر تنها با تنظیم صریح سازگاری فعال است و همچنان به نشست همان
-        // صفحه، Anti-forgery، و تطبیق KioskId پیکربندی‌شده محدود می‌ماند.
+        // صفحه، Anti-forgery، و تطبیق شناسه مرورگر کیوسک محدود می‌ماند.
         var verifiedFace = ConsumeVerifiedFaceEvent(kioskId, enrollId);
         if (!verifiedFace &&
             (_configuration.GetValue<bool?>("FaceLogin:AllowLegacyZpEvents") ?? true))

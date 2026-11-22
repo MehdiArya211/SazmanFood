@@ -16,22 +16,25 @@ public sealed class FaceZpRelayHub : Hub
     private readonly IConfiguration _configuration;
     private readonly IHubContext<FaceZpRelayHub> _browserHub;
     private readonly ILogger<FaceZpRelayHub> _logger;
+    private readonly FaceKioskIdentity _identity;
 
     public FaceZpRelayHub(
         IConfiguration configuration,
         IHubContext<FaceZpRelayHub> browserHub,
-        ILogger<FaceZpRelayHub> logger)
+        ILogger<FaceZpRelayHub> logger,
+        FaceKioskIdentity identity)
     {
         _configuration = configuration;
         _browserHub = browserHub;
         _logger = logger;
+        _identity = identity;
     }
 
     public async Task Register(int kioskId)
     {
-        var configuredKioskId = _configuration.GetValue<int?>("ApiAddress:KioskId");
-        if (configuredKioskId.GetValueOrDefault() <= 0 ||
-            kioskId != configuredKioskId.Value)
+        var httpContext = Context.GetHttpContext();
+        if (httpContext == null || !_identity.TryGet(httpContext, out var browserKioskId) ||
+            browserKioskId != kioskId)
             throw new HubException("شناسه دستگاه ZP معتبر نیست.");
 
         var baseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
@@ -54,8 +57,13 @@ public sealed class FaceZpRelayHub : Hub
             .Build();
 
         zpConnection.On<string>("ReceiveAutoLogin", enrollId =>
-            _browserHub.Clients.Client(browserConnectionId)
-                .SendAsync("ReceiveAutoLogin", enrollId));
+        {
+            _logger.LogInformation(
+                "رویداد چهره از ZP برای کیوسک {KioskId} دریافت شد. EnrollId: {EnrollId}",
+                kioskId, enrollId);
+            return _browserHub.Clients.Client(browserConnectionId)
+                .SendAsync("ReceiveAutoLogin", enrollId);
+        });
 
         zpConnection.On<object>("KioskDiagnostic", diagnostic =>
             _browserHub.Clients.Client(browserConnectionId)

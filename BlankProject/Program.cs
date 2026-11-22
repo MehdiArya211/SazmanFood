@@ -310,6 +310,7 @@ internal class Program
         #endregion
         #region ZP
         services.AddScoped<KioskHubService>();
+        services.AddSingleton<FaceKioskIdentity>();
 
         #endregion
         #endregion
