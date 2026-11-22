@@ -562,12 +562,17 @@ public class AuthenticationController : Controller
         var browserStatus = Request.Headers["X-Face-Status"].ToString() == "1";
         string lookupOutcome = "NotStarted";
         string accountOutcome = "NotStarted";
+        int personnelHttpStatus = 0;
+        int? lookupCodeLength = null;
+        int? returnedCodeLength = null;
         IActionResult FaceFailure()
         {
             if (!browserStatus) return RedirectToAction("IndexZP");
             var message = TempData["FaceLoginMessage"]?.ToString() ?? "ورود با چهره ناموفق بود.";
             TempData.Remove("FaceLoginMessage");
-            return Json(new { status = false, lookup = lookupOutcome, account = accountOutcome, message });
+            return Json(new { status = false, lookup = lookupOutcome, account = accountOutcome,
+                personnelHttpStatus = personnelHttpStatus == 0 ? (int?)null : personnelHttpStatus,
+                lookupCodeLength, returnedCodeLength, message });
         }
 
         if (kioskId <= 0 || enrollId <= 0)
@@ -680,28 +685,61 @@ public class AuthenticationController : Controller
                     throw new InvalidOperationException("سرویس احراز هویت پرسنل توکن معتبری برنگرداند.");
 
                 _logger.LogInformation("ورود چهره: استعلام سرویس پرسنل آغاز شد. KioskId: {KioskId}, EnrollId: {EnrollId}", kioskId, enrollId);
+                lookupCodeLength = personCode.Length;
+                var serviceBase = CustomSettings.Instance.ApiPersonelUrl;
+                if (Uri.TryCreate(serviceBase, UriKind.Absolute, out var serviceUri))
+                    _logger.LogInformation(
+                        "ورود چهره: مسیر سرویس پرسنل. Host: {Host}, BasePath: {BasePath}, Endpoint: GetPersonalByPersonalCode",
+                        serviceUri.Host, serviceUri.AbsolutePath);
                 var lookupTimer = System.Diagnostics.Stopwatch.StartNew();
                 var person = WebApiManager.GetPersonalByPersonCode(
-                    personCode, accessToken);
+                    personCode, accessToken, out personnelHttpStatus);
                 lookupTimer.Stop();
                 var returnedCode = person?.personalCode?.Trim().ToEnglishNumber();
-                var lookupResult = person == null ? "NotFound" :
-                    returnedCode != personCode ? "CodeMismatch" :
-                    person.Id <= 0 ? "InvalidPersonId" :
-                    isPendingInitialLogin && person.Id != pendingPersonId ? "PersonIdMismatch" : "Found";
+                returnedCodeLength = returnedCode?.Length;
+
+                // ZP transmits an integer and may strip leading zeroes from
+                // the official personnel code. Accept only the same numeric identity.
+                var sameCode = string.Equals(returnedCode, personCode, StringComparison.Ordinal);
+                if (!sameCode &&
+                    long.TryParse(returnedCode, out var returnedNumericCode) &&
+                    long.TryParse(personCode, out var requestedNumericCode))
+                    sameCode = returnedNumericCode == requestedNumericCode;
+
+                var lookupResult = person == null
+                    ? personnelHttpStatus == 404 ? "NotFound" : "EmptyResponse"
+                    : !sameCode ? "CodeMismatch"
+                    : person.Id <= 0 ? "InvalidPersonId"
+                    : isPendingInitialLogin && person.Id != pendingPersonId ? "PersonIdMismatch" : "Found";
                 lookupOutcome = lookupResult;
                 _logger.LogInformation(
-                    "ورود چهره: نتیجه استعلام سرویس پرسنل. KioskId: {KioskId}, EnrollId: {EnrollId}, Result: {Result}, DurationMs: {DurationMs}",
-                    kioskId, enrollId, lookupResult, lookupTimer.ElapsedMilliseconds);
+                    "ورود چهره: نتیجه استعلام پرسنل. KioskId: {KioskId}, EnrollId: {EnrollId}, HttpStatus: {HttpStatus}, Result: {Result}, RequestedCodeLength: {RequestedLength}, ReturnedCodeLength: {ReturnedLength}, DurationMs: {DurationMs}",
+                    kioskId, enrollId, personnelHttpStatus, lookupResult,
+                    lookupCodeLength, returnedCodeLength, lookupTimer.ElapsedMilliseconds);
 
                 if (lookupResult != "Found")
                 {
-                    _logger.LogWarning("ورود چهره: پاسخ سرویس پرسنل برای ورود قابل قبول نبود. KioskId: {KioskId}, EnrollId: {EnrollId}, Result: {Result}",
-                        kioskId, enrollId, lookupResult);
-                    TempData["FaceLoginMessage"] =
-                        "کد پرسنلی شناسایی‌شده در سرویس معتبر پرسنلی یافت نشد.";
+                    TempData["FaceLoginMessage"] = lookupResult switch
+                    {
+                        "NotFound" =>
+                            "سرویس پرسنلی برای کد دریافت‌شده از دستگاه پاسخی پیدا نکرد. کد دستگاه و نشانی سرویس را بررسی کنید.",
+                        "EmptyResponse" =>
+                            "سرویس پرسنلی پاسخ موفق اما بدون اطلاعات قابل استفاده برگرداند.",
+                        "CodeMismatch" =>
+                            "کد پرسنلی پاسخ سرویس با کد شناسایی‌شده توسط دستگاه مطابقت ندارد.",
+                        "InvalidPersonId" =>
+                            "اطلاعات پرسنلی دریافت شد، اما شناسه فرد در سرویس معتبر نیست.",
+                        _ =>
+                            "هویت پرسنل با درخواست ورود اولیه مطابقت ندارد."
+                    };
                     return FaceFailure();
                 }
+
+                // Use the official code from the verified personnel response
+                // for new face accounts; password-based first login retains its
+                // originally requested code for the separate identity check.
+                if (!isPendingInitialLogin)
+                    personCode = returnedCode;
 
                 var fullName = !string.IsNullOrWhiteSpace(person.FullName)
                     ? person.FullName
@@ -745,8 +783,8 @@ public class AuthenticationController : Controller
                 if (lookupOutcome == "NotStarted") lookupOutcome = "ServiceError";
                 else accountOutcome = "Failed";
                 _logger.LogError(ex,
-                    "استعلام و ساخت حساب در اولین ورود با چهره ناموفق بود. EnrollId: {EnrollId}",
-                    enrollId);
+                    "استعلام و ساخت حساب در اولین ورود با چهره ناموفق بود. EnrollId: {EnrollId}, HttpStatus: {HttpStatus}",
+                    enrollId, personnelHttpStatus);
                 TempData["FaceLoginMessage"] =
                     "در حال حاضر ایجاد حساب از طریق سرویس پرسنلی امکان‌پذیر نیست.";
                 return FaceFailure();
@@ -840,7 +878,7 @@ public class AuthenticationController : Controller
                 _logger.LogInformation(
                     "ورود اولیه پس از تأیید چهره تکمیل شد؛ ارجاع به تغییر رمز. UserId: {UserId}",
                     user.Id);
-                if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, redirectUrl = Url.Action("ChangePassword", "Profile", new { area = "Admin" }) });
+                if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, personnelHttpStatus, lookupCodeLength, returnedCodeLength, redirectUrl = Url.Action("ChangePassword", "Profile", new { area = "Admin" }) });
                 return RedirectToAction("ChangePassword", "Profile",
                     new { area = "Admin" });
             }
@@ -850,7 +888,7 @@ public class AuthenticationController : Controller
             "ورود بیومتریک: موفق؛ انتقال به داشبورد. UserId: {UserId}",
             user.Id);
 
-        if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, redirectUrl = Url.Action("Index", "Dashboard", new { area = "Admin" }) });
+        if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, personnelHttpStatus, lookupCodeLength, returnedCodeLength, redirectUrl = Url.Action("Index", "Dashboard", new { area = "Admin" }) });
         return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
     }
     #endregion
