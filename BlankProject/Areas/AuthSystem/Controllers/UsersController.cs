@@ -143,7 +143,58 @@ namespace Food.Areas.AuthSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ImportMealBookers(IFormFile file)
+        public IActionResult PreviewMealBookersColumns(IFormFile file, bool hasHeader)
+        {
+            if (!CanImportMealBookers())
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { status = false, message = "دسترسی به ثبت گروهی کاربران ندارید." });
+
+            if (file == null || file.Length == 0)
+                return Json(new { status = false, message = "فایل اکسل را انتخاب کنید." });
+            if (!string.Equals(Path.GetExtension(file.FileName), ".xlsx",
+                    StringComparison.OrdinalIgnoreCase) || file.Length > 5 * 1024 * 1024)
+                return Json(new { status = false,
+                    message = "فقط فایل xlsx با حجم حداکثر ۵ مگابایت پذیرفته می‌شود." });
+
+            try
+            {
+                using var stream = file.OpenReadStream();
+                using var workbook = new XLWorkbook(stream);
+                var sheet = workbook.Worksheets.FirstOrDefault();
+                if (sheet?.FirstRowUsed() == null || sheet.FirstRowUsed().RowNumber() != 1)
+                    return Json(new { status = false, message = "اطلاعات اکسل باید از ردیف اول شروع شود." });
+
+                var count = sheet.LastColumnUsed()?.ColumnNumber() ?? 0;
+                if (count == 0 || count > 200)
+                    return Json(new { status = false,
+                        message = "فایل باید بین ۱ تا ۲۰۰ ستون داده داشته باشد." });
+
+                var columns = Enumerable.Range(1, count).Select(index =>
+                {
+                    var header = sheet.Cell(1, index);
+                    var sample = sheet.Cell(hasHeader ? 2 : 1, index);
+                    return new
+                    {
+                        index,
+                        letter = header.Address.ColumnLetter,
+                        title = hasHeader && !header.HasFormula
+                            ? header.GetFormattedString()?.Trim() : "",
+                        sample = sample.HasFormula ? "" : sample.GetFormattedString()?.Trim()
+                    };
+                }).ToArray();
+                return Json(new { status = true, columns });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "پیش‌نمایش ستون‌های اکسل کاربران خوانده نشد.");
+                return Json(new { status = false, message = "فایل اکسل خوانده نشد." });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ImportMealBookers(IFormFile file, int codeColumn,
+            int nameColumn, int familyColumn, bool hasHeader)
         {
             if (!CanImportMealBookers())
                 return StatusCode(StatusCodes.Status403Forbidden,
@@ -166,30 +217,24 @@ namespace Food.Areas.AuthSystem.Controllers
                 if (sheet == null || sheet.FirstRowUsed() == null)
                     return Json(new { status = false, message = "فایل اکسل فاقد اطلاعات است." });
 
-                var headerRow = sheet.FirstRowUsed();
-                if (headerRow.RowNumber() != 1 ||
-                    headerRow.Cell(1).HasFormula || headerRow.Cell(2).HasFormula ||
-                    headerRow.Cell(3).HasFormula)
+                var lastColumn = sheet.LastColumnUsed()?.ColumnNumber() ?? 0;
+                if (sheet.FirstRowUsed().RowNumber() != 1 || lastColumn > 200 ||
+                    codeColumn < 1 || codeColumn > lastColumn ||
+                    nameColumn < 1 || nameColumn > lastColumn ||
+                    codeColumn == nameColumn ||
+                    familyColumn < 0 || familyColumn > lastColumn ||
+                    (familyColumn != 0 &&
+                     (familyColumn == codeColumn || familyColumn == nameColumn)))
                     return Json(new { status = false,
-                        message = "عنوان ستون‌ها باید در ردیف اول و بدون فرمول باشد." });
+                        message = "انتخاب ستون‌های اکسل معتبر نیست؛ فایل را دوباره بررسی کنید." });
 
-                var codeHeader = NormalizeImportHeader(headerRow.Cell(1).GetString());
-                var nameHeader = NormalizeImportHeader(headerRow.Cell(2).GetString());
-                var familyHeader = NormalizeImportHeader(headerRow.Cell(3).GetString());
-                var combinedName = nameHeader is "نامونشان" or "نامکامل" or
-                    "نامونامخانوادگی" or "fullname";
-                var splitName = (nameHeader == "نام" || nameHeader == "firstname") &&
-                    (familyHeader == "نامخانوادگی" || familyHeader == "lastname" ||
-                     familyHeader == "familyname");
-
-                if (codeHeader is not ("کدپرسنلی" or "personcode" or "personnelcode") ||
-                    (!combinedName && !splitName))
-                    return Json(new { status = false,
-                        message = "ستون‌ها باید «کد پرسنلی، نام، نام خانوادگی» یا «کد پرسنلی، نام و نشان» باشند. فایل نمونه را دریافت کنید." });
-
-                var rows = sheet.RowsUsed().Skip(1)
-                    .Where(row => Enumerable.Range(1, combinedName ? 2 : 3)
-                        .Any(column => !row.Cell(column).IsEmpty()))
+                var combinedName = familyColumn == 0;
+                var selectedColumns = combinedName
+                    ? new[] { codeColumn, nameColumn }
+                    : new[] { codeColumn, nameColumn, familyColumn };
+                var rows = sheet.RowsUsed()
+                    .Where(row => (!hasHeader || row.RowNumber() != 1) &&
+                        selectedColumns.Any(column => !row.Cell(column).IsEmpty()))
                     .Take(1001).ToList();
                 if (rows.Count == 0)
                     return Json(new { status = false, message = "فایل اکسل ردیف پرسنلی ندارد." });
@@ -210,13 +255,12 @@ namespace Food.Areas.AuthSystem.Controllers
                     var fullName = "";
                     try
                     {
-                        if (Enumerable.Range(1, combinedName ? 2 : 3)
-                            .Any(column => row.Cell(column).HasFormula))
+                        if (selectedColumns.Any(column => row.Cell(column).HasFormula))
                             throw new ArgumentException("استفاده از فرمول در ستون‌های اطلاعات پرسنل مجاز نیست.");
 
-                        personCode = row.Cell(1).GetFormattedString()?.Trim().ToEnglishNumber() ?? "";
-                        var firstOrFullName = row.Cell(2).GetFormattedString()?.Trim() ?? "";
-                        var lastName = combinedName ? "" : row.Cell(3).GetFormattedString()?.Trim() ?? "";
+                        personCode = row.Cell(codeColumn).GetFormattedString()?.Trim().ToEnglishNumber() ?? "";
+                        var firstOrFullName = row.Cell(nameColumn).GetFormattedString()?.Trim() ?? "";
+                        var lastName = combinedName ? "" : row.Cell(familyColumn).GetFormattedString()?.Trim() ?? "";
                         fullName = combinedName
                             ? firstOrFullName
                             : $"{firstOrFullName} {lastName}".Trim();
@@ -224,9 +268,12 @@ namespace Food.Areas.AuthSystem.Controllers
                         if (personCode.Length < 6 || personCode.Length > 19 ||
                             personCode.Any(c => c < '0' || c > '9'))
                             throw new ArgumentException("کد پرسنلی باید ۶ تا ۱۹ رقم باشد. ستون کد را در اکسل از نوع Text قرار دهید.");
-                        if (string.IsNullOrWhiteSpace(firstOrFullName) ||
-                            (!combinedName && string.IsNullOrWhiteSpace(lastName)))
-                            throw new ArgumentException("نام و نام خانوادگی هر دو الزامی هستند.");
+                        if (string.IsNullOrWhiteSpace(firstOrFullName))
+                            throw new ArgumentException(combinedName
+                                ? "نام و نشان در ستون انتخاب‌شده خالی است."
+                                : "نام در ستون انتخاب‌شده خالی است.");
+                        if (!combinedName && string.IsNullOrWhiteSpace(lastName))
+                            throw new ArgumentException("نام خانوادگی در ستون انتخاب‌شده خالی است.");
                         if (fullName.Length > 50)
                             throw new ArgumentException("نام کامل نباید بیشتر از ۵۰ کاراکتر باشد.");
                         if (!seen.Add(personCode))
@@ -309,11 +356,6 @@ namespace Food.Areas.AuthSystem.Controllers
                     message = "فایل اکسل خوانده نشد. فایل نمونه با پسوند xlsx را بررسی کنید." });
             }
         }
-
-        private static string NormalizeImportHeader(string value) =>
-            new string((value ?? "").Trim()
-                .Replace('ي', 'ی').Replace('ك', 'ک')
-                .Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
 
         #endregion
 
