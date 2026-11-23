@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Domain.Constants;
 using Food.Hubs.ZP;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -72,7 +71,7 @@ public sealed class KioskManagementController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(long? editId, CancellationToken cancellationToken)
     {
-        if (!IsAdministrator()) return Forbid();
+        if (!HasKioskManagementPermission()) return Forbid();
         try
         {
             var devices = await LoadDevicesAsync(cancellationToken);
@@ -104,7 +103,7 @@ public sealed class KioskManagementController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> PairBrowser(long deviceRecordId, CancellationToken cancellationToken)
     {
-        if (!IsAdministrator()) return Forbid();
+        if (!HasKioskManagementPermission()) return Forbid();
         try
         {
             var device = (await _identity.GetDevicesAsync(_options.ConnectionString!, cancellationToken))
@@ -130,7 +129,7 @@ public sealed class KioskManagementController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Save(DeviceFormModel model, CancellationToken cancellationToken)
     {
-        if (!IsAdministrator()) return Forbid();
+        if (!HasKioskManagementPermission()) return Forbid();
         if (!ModelState.IsValid || model.KioskId <= 0)
         {
             TempData["KioskError"] = "عنوان دستگاه و شناسه کیوسک معتبر را وارد کنید.";
@@ -154,10 +153,13 @@ public sealed class KioskManagementController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private bool IsAdministrator()
+    private bool HasKioskManagementPermission()
     {
         var user = HttpContext.Session.GetUser();
-        return user?.IsEnabled == true && user.RoleId == RoleConstant.Admin;
+        return user?.IsEnabled == true && user.Menus?.Any(menu =>
+            string.IsNullOrWhiteSpace(menu.Area) &&
+            string.Equals(menu.Controller, "kioskmanagement", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(menu.Action, "index", StringComparison.OrdinalIgnoreCase)) == true;
     }
 
     private async Task<List<DeviceFormModel>> LoadDevicesAsync(CancellationToken cancellationToken)
