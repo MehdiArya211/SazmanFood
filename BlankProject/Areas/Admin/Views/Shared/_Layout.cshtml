@@ -104,15 +104,6 @@
 
 
                 <ul class="nav main-nav">
-                    @if (User?.RoleId == Domain.Constants.RoleConstant.Admin)
-                    {
-                        <li class="nav-item @(CController == "kioskmanagement" ? "active" : "")">
-                            <a class="nav-link" asp-area="" asp-controller="KioskManagement" asp-action="Index">
-                                <span class="sidebar-mini"><span class="material-icons">devices</span></span>
-                                <span class="sidebar-normal">مدیریت کیوسک‌ها و دستگاه‌ها</span>
-                            </a>
-                        </li>
-                    }
                     <li class="nav-item @(CController == "reserve" ? "active" : "")">
                         <a class="nav-link"
                            asp-area="ReserveManagment"
