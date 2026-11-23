@@ -57,6 +57,26 @@ internal class Program
         services.AddRazorPages();
 
         #region DB Context
+        var kioskRegistryConnectionString = builder.Configuration.GetConnectionString("KioskRegistry");
+        if (!string.IsNullOrWhiteSpace(kioskRegistryConnectionString))
+        {
+            var kioskRegistryBuilder = new System.Data.Common.DbConnectionStringBuilder
+            {
+                ConnectionString = kioskRegistryConnectionString
+            };
+            var timeout = 15;
+            if (kioskRegistryBuilder.TryGetValue("Connect Timeout", out var configuredTimeout) ||
+                kioskRegistryBuilder.TryGetValue("Connection Timeout", out configuredTimeout))
+                int.TryParse(configuredTimeout?.ToString(), out timeout);
+            kioskRegistryBuilder["Connect Timeout"] = Math.Clamp(timeout <= 0 ? 15 : timeout, 3, 10);
+            kioskRegistryConnectionString = kioskRegistryBuilder.ConnectionString;
+        }
+
+        services.AddSingleton(new KioskRegistryOptions
+        {
+            ConnectionString = kioskRegistryConnectionString
+        });
+
         // Main DB Connection String
         var connectionString = builder.Configuration.GetConnectionString("ApplicationContext"); // خوندن از appsetting
         if (string.IsNullOrWhiteSpace(connectionString))

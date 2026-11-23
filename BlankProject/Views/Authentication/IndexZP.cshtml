@@ -6,6 +6,7 @@
     var message = TempData["FaceLoginMessage"] as string;
     var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
     var kioskId = ViewBag.KioskId is int configuredKioskId ? configuredKioskId : 0;
+    var kioskRegistryError = ViewBag.KioskRegistryError as string;
     var loginMessage = Settings.GetLoginPageMessage(true);
 }
 
@@ -60,6 +61,10 @@
                 <span class="connection-dot" aria-hidden="true"></span>
                 <span id="connectionStatus">در حال آماده‌سازی اتصال...</span>
             </div>
+            @if (!string.IsNullOrWhiteSpace(kioskRegistryError))
+            {
+                <div class="auth-alert" role="alert"><i class="material-icons" aria-hidden="true">error_outline</i><span>@kioskRegistryError</span></div>
+            }
             <p class="auth-subtitle">شناسه این کیوسک برای ثبت در سرویس دستگاه: <strong dir="ltr">@kioskId</strong></p>
 
             <div>
@@ -75,7 +80,7 @@
 @section Scripts {
     <script>
         window.API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(apiBaseUrl));
-        window.ZP_KIOSK_ID = @kioskId;
+        window.ZP_KIOSK_ID = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(kioskId));
         window.ZP_FACE_CHALLENGE =
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.FaceChallenge ?? ""));
         window.ZP_LEGACY_FACE_LOGIN =
