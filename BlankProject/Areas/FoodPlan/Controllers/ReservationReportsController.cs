@@ -53,16 +53,16 @@ namespace Food.Areas.FoodPlan.Controllers
             var current = FoodTimingRules.GetIranNow().Date;
             var firstDay = Persian.ToDateTime(Persian.GetYear(current), Persian.GetMonth(current), 1, 0, 0, 0, 0);
             var defaultEnd = firstDay.AddDays(Persian.GetDaysInMonth(Persian.GetYear(current), Persian.GetMonth(current)) - 1);
-            var from = (fromDate ?? firstDay).Date;
+            var startDate = (fromDate ?? firstDay).Date;
             var to = (toDate ?? defaultEnd).Date;
 
-            if (to < from || (to - from).TotalDays > 366)
+            if (to < startDate || (to - startDate).TotalDays > 366)
             {
                 ModelState.AddModelError("", "بازه تاریخ باید مرتب باشد و حداکثر ۳۶۷ روز را شامل شود.");
                 return View("Index", new ReservationReportDTO
                 {
                     Kind = kind, Title = GetTitle(kind), GroupBy = groupBy,
-                    FromDate = from, ToDate = to, MealId = mealId, FoodId = foodId
+                    FromDate = startDate, ToDate = to, MealId = mealId, FoodId = foodId
                 });
             }
 
@@ -72,7 +72,7 @@ namespace Food.Areas.FoodPlan.Controllers
             var model = new ReservationReportDTO
             {
                 Kind = kind, Title = GetTitle(kind), GroupBy = groupBy,
-                FromDate = from, ToDate = to, MealId = mealId, FoodId = foodId,
+                FromDate = startDate, ToDate = to, MealId = mealId, FoodId = foodId,
                 Meals = _db.Meal.AsNoTracking().OrderBy(x => x.SortName)
                     .Select(x => new ReservationReportOptionDTO { Id = x.Id, Title = x.Title }).ToList(),
                 Foods = _db.Foods.AsNoTracking().Where(x => x.IsDeleted != true)
@@ -88,7 +88,7 @@ namespace Food.Areas.FoodPlan.Controllers
                 join account in _db.Users.AsNoTracking() on reserve.UserId equals account.Id into accounts
                 from account in accounts.DefaultIfEmpty()
                 where reserve.WeekStartDate < to.AddDays(1) &&
-                      reserve.WeekEndDate >= from &&
+                      reserve.WeekEndDate >= startDate &&
                       (!mealId.HasValue || detail.MealId == mealId.Value) &&
                       (kind != "food" || !foodId.HasValue || detail.MainFoodId == foodId.Value)
                 select new
@@ -114,7 +114,7 @@ namespace Food.Areas.FoodPlan.Controllers
                     PersonId = x.PersonId,
                     PersonCode = x.PersonCode
                 })
-                .Where(x => x.Date >= from && x.Date <= to).ToList();
+                .Where(x => x.Date >= startDate && x.Date <= to).ToList();
 
             SetPersonalTypes(items);
 
