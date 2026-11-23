@@ -1,0 +1,191 @@
+@model DTO.Entities.FoodReservation.ReservationReportDTO
+@using Utilities.Extentions
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var actionName = Model.Kind == "daily" ? "Daily" : Model.Kind == "calendar" ? "Calendar" : "ByFood";
+}
+
+<div class="col-md-12 reservation-reports" dir="rtl">
+    <div class="card">
+        <div class="card-header card-header-icon" data-background-color="purple">
+            <i class="material-icons">assessment</i>
+        </div>
+        <div class="card-content">
+            <div class="report-top">
+                <div>
+                    <h4 class="card-title">@Model.Title</h4>
+                    <p class="text-muted">تعداد وعده‌های رزروشده برای تاریخ مصرف غذا؛ بدون محاسبه چاپ مجدد ژتون</p>
+                </div>
+                <button type="button" class="btn btn-default no-print" onclick="window.print()"><i class="material-icons">print</i> چاپ گزارش</button>
+            </div>
+
+            <nav class="report-tabs no-print" aria-label="گزارش‌های رزرو">
+                <a class="@(Model.Kind == "daily" ? "active" : "")" href="@Url.Action("Daily", "ReservationReports", new { area = "FoodPlan" })">روزانه و نوع پرسنل</a>
+                <a class="@(Model.Kind == "calendar" ? "active" : "")" href="@Url.Action("Calendar", "ReservationReports", new { area = "FoodPlan" })">روز هفته و ماه</a>
+                <a class="@(Model.Kind == "food" ? "active" : "")" href="@Url.Action("ByFood", "ReservationReports", new { area = "FoodPlan" })">به تفکیک غذا</a>
+            </nav>
+
+            <form method="get" action="@Url.Action(actionName, "ReservationReports", new { area = "FoodPlan" })" class="row report-filters no-print">
+                <div class="col-md-2 col-sm-6 form-group">
+                    <label>از تاریخ</label>
+                    <div id="VueReportFromDate" data-date="@Model.FromDate.ToPersianDateTime().ToString().Split(' ')[0]">
+                        <date-picker v-model="date" type="date" editable="true" auto-submit="true"
+                                     input-class="form-control" alt-format="YYYY-MM-DD HH:mm:ss" alt-name="fromDate"></date-picker>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-6 form-group">
+                    <label>تا تاریخ</label>
+                    <div id="VueReportToDate" data-date="@Model.ToDate.ToPersianDateTime().ToString().Split(' ')[0]">
+                        <date-picker v-model="date" type="date" editable="true" auto-submit="true"
+                                     input-class="form-control" alt-format="YYYY-MM-DD HH:mm:ss" alt-name="toDate"></date-picker>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-6 form-group">
+                    <label for="reportMeal">وعده</label>
+                    <select name="mealId" id="reportMeal" class="form-control">
+                        <option value="">همه وعده‌ها</option>
+                        @foreach (var option in Model.Meals)
+                        {
+                            <option value="@option.Id" selected="@(Model.MealId == option.Id ? "selected" : null)">@option.Title</option>
+                        }
+                    </select>
+                </div>
+                @if (Model.Kind == "food")
+                {
+                    <div class="col-md-2 col-sm-6 form-group">
+                        <label for="reportFood">غذای اصلی</label>
+                        <select name="foodId" id="reportFood" class="form-control">
+                            <option value="">همه غذاها</option>
+                            @foreach (var option in Model.Foods)
+                            {
+                                <option value="@option.Id" selected="@(Model.FoodId == option.Id ? "selected" : null)">@option.Title</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6 form-group">
+                        <label for="reportGroup">گروه‌بندی</label>
+                        <select name="groupBy" id="reportGroup" class="form-control">
+                            <option value="daily" selected="@(Model.GroupBy == "daily" ? "selected" : null)">روزانه</option>
+                            <option value="weekly" selected="@(Model.GroupBy == "weekly" ? "selected" : null)">هفتگی</option>
+                            <option value="monthly" selected="@(Model.GroupBy == "monthly" ? "selected" : null)">ماهانه</option>
+                        </select>
+                    </div>
+                }
+                <div class="col-md-2 col-sm-6 form-group filter-submit">
+                    <button type="submit" class="btn btn-info btn-block"><i class="material-icons">search</i> نمایش</button>
+                </div>
+            </form>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-warning">@Html.ValidationSummary()</div>
+            }
+
+            <div class="row report-totals">
+                <div class="col-sm-3 col-xs-6"><div class="total-card all"><span>مجموع رزرو</span><strong>@Model.Total.ToString("N0")</strong></div></div>
+                <div class="col-sm-3 col-xs-6"><div class="total-card cadre"><span>کادر</span><strong>@Model.Official.ToString("N0")</strong></div></div>
+                <div class="col-sm-3 col-xs-6"><div class="total-card duty"><span>وظیفه</span><strong>@Model.Duty.ToString("N0")</strong></div></div>
+                <div class="col-sm-3 col-xs-6"><div class="total-card unknown"><span>نوع نامشخص / سایر</span><strong>@Model.Unknown.ToString("N0")</strong></div></div>
+            </div>
+
+            @if (Model.Kind == "calendar")
+            {
+                <p class="report-hint">هر سطر، مجموع همان روز هفته در ماه شمسی انتخاب‌شده است؛ برای مثال همه شنبه‌های یک ماه.</p>
+            }
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover report-grid">
+                    <thead>
+                        <tr>
+                            <th>@(Model.Kind == "daily" ? "تاریخ" : Model.Kind == "calendar" ? "ماه / روز هفته" : "بازه")</th>
+                            @if (Model.Kind == "food") { <th>غذای اصلی</th> }
+                            <th>وعده</th><th>کادر</th><th>وظیفه</th><th>نامشخص / سایر</th><th>مجموع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Rows.Count == 0)
+                        {
+                            <tr><td colspan="@(Model.Kind == "food" ? 7 : 6)" class="empty-report">در بازه انتخاب‌شده رزروی پیدا نشد.</td></tr>
+                        }
+                        else
+                        {
+                            foreach (var row in Model.Rows)
+                            {
+                                <tr>
+                                    <td>@row.Period</td>
+                                    @if (Model.Kind == "food") { <td>@row.Food</td> }
+                                    <td>@row.Meal</td>
+                                    <td>@row.Official.ToString("N0")</td>
+                                    <td>@row.Duty.ToString("N0")</td>
+                                    <td>@row.Unknown.ToString("N0")</td>
+                                    <td><strong>@row.Total.ToString("N0")</strong></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                    @if (Model.Rows.Count > 0)
+                    {
+                        <tfoot><tr><th>جمع کل</th>@if (Model.Kind == "food") { <th></th> }<th></th>
+                            <th>@Model.Official.ToString("N0")</th><th>@Model.Duty.ToString("N0")</th>
+                            <th>@Model.Unknown.ToString("N0")</th><th>@Model.Total.ToString("N0")</th></tr></tfoot>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/assets/VuePersianDateTimePicker/vue.min.js"></script>
+<script src="~/assets/VuePersianDateTimePicker/moment/moment.min.js"></script>
+<script src="~/assets/VuePersianDateTimePicker/moment/moment-jalaali.js"></script>
+<script src="~/assets/VuePersianDateTimePicker/dist/vue-persian-datetime-picker-browser.js"></script>
+<script>
+    $(function () {
+        function picker(id) {
+            var element = $(id);
+            return new Vue({
+                el: id,
+                data: { date: element.data("date") || "" },
+                components: { DatePicker: VuePersianDatetimePicker }
+            });
+        }
+        var from = picker("#VueReportFromDate");
+        var to = picker("#VueReportToDate");
+        $(".report-filters").on("submit", function (event) {
+            var a = $(this).find("input[name='fromDate']").val();
+            var b = $(this).find("input[name='toDate']").val();
+            if (!from.date || !to.date || !a || !b || a > b) {
+                event.preventDefault();
+                showNotification("تاریخ شروع و پایان را به ترتیب انتخاب کنید.", "danger");
+            }
+        });
+    });
+</script>
+}
+
+@section styles {
+<style>
+.reservation-reports .report-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.reservation-reports .report-top p{margin:6px 0 0}
+.reservation-reports .report-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.reservation-reports .report-tabs a{padding:10px 14px;border-radius:8px;background:#f3f4f8;color:#43475b}
+.reservation-reports .report-tabs a.active{background:#5e35b1;color:white}
+.reservation-reports .report-filters{background:#f7f8fa;border-radius:10px;padding:12px 8px;margin:0 0 18px}
+.reservation-reports .report-filters label{font-size:12px;color:#555}
+.reservation-reports .filter-submit{padding-top:18px}
+.reservation-reports .total-card{padding:12px 15px;border:1px solid #e8e8ef;border-right:4px solid #888;border-radius:9px;margin-bottom:12px;background:white}
+.reservation-reports .total-card span{display:block;font-size:12px;color:#666}
+.reservation-reports .total-card strong{display:block;font-size:23px;margin-top:6px}
+.reservation-reports .total-card.all{border-right-color:#673ab7}
+.reservation-reports .total-card.cadre{border-right-color:#2196f3}
+.reservation-reports .total-card.duty{border-right-color:#4caf50}
+.reservation-reports .total-card.unknown{border-right-color:#ff9800}
+.reservation-reports .report-grid th{white-space:nowrap}
+.reservation-reports .report-grid td,.reservation-reports .report-grid th{text-align:right}
+.reservation-reports .empty-report{text-align:center!important;padding:36px!important;color:#777}
+.reservation-reports .report-hint{color:#666;font-size:13px}
+@@media print{.no-print,.sidebar,.navbar{display:none!important}.main-panel{width:100%!important}.card{box-shadow:none!important}.content{margin:0!important;padding:0!important}}
+</style>
+}
