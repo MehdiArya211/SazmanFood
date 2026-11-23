@@ -36,6 +36,7 @@ public class AuthenticationController : Controller
     private readonly IMemoryCache _faceEventCache;
     private readonly IReservationUserProvisioningManager _reservationUserProvisioning;
     private readonly FaceKioskIdentity _faceKioskIdentity;
+    private readonly KioskRegistryOptions _kioskRegistryOptions;
     private static readonly object FaceProofSync = new();
     private const string FaceChallengeSessionKey = "FaceLoginChallenge";
     private const string FaceKioskSessionKey = "FaceLoginKioskId";
@@ -99,6 +100,7 @@ public class AuthenticationController : Controller
         IMemoryCache faceEventCache,
         IReservationUserProvisioningManager reservationUserProvisioning,
         FaceKioskIdentity faceKioskIdentity,
+        KioskRegistryOptions kioskRegistryOptions,
         IFajrLogManager fajrLogManager = null
         ) : base()
     {
@@ -110,6 +112,7 @@ public class AuthenticationController : Controller
         _faceEventCache = faceEventCache;
         _reservationUserProvisioning = reservationUserProvisioning;
         _faceKioskIdentity = faceKioskIdentity;
+        _kioskRegistryOptions = kioskRegistryOptions;
         AuthManager = _AuthManager;
         UserLogManager = _UserLogManager;
         Redis = _Redis;
@@ -375,7 +378,7 @@ public class AuthenticationController : Controller
     #region ZP
 
     [HttpGet]
-    public IActionResult IndexZP(long? mid)
+    public IActionResult IndexZP(long? mid, long? deviceId)
     {
         var hubBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
 
@@ -386,7 +389,20 @@ public class AuthenticationController : Controller
                 return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
         }
 
-        var browserKioskId = _faceKioskIdentity.GetOrCreate(HttpContext);
+        int browserKioskId;
+        try
+        {
+            browserKioskId = _faceKioskIdentity.GetOrCreateAsync(
+                HttpContext, _logger, _kioskRegistryOptions, deviceId).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "بازیابی شناسه کیوسک از بانک دستگاه‌ها ناموفق بود.");
+            ViewBag.KioskId = 0;
+            ViewBag.ApiBaseUrl = hubBaseUrl;
+            ViewBag.KioskRegistryError = "شناسه این دستگاه از بانک دستگاه‌ها دریافت نشد. تنظیم اتصال و رکورد دستگاه را بررسی کنید.";
+            return View("IndexZP");
+        }
 
         // برای هر نمایش صفحه یک چالش تصادفیِ مستقل از کد پرسنلی ساخته
         // می‌شود. سرویس معتبر ZP باید همان چالش را در رویداد امضاشده
@@ -915,7 +931,7 @@ public class AuthenticationController : Controller
             HttpContext.Response.Cookies.Delete("_session.cookie"); // توجه: اسم کوکی باید دقیق باشه
         }
 
-        return RedirectToAction("IndexZP", "Authentication");
+        return RedirectToAction("IndexZP", "Authentication", new { deviceId = _configuration.GetValue<long?>("FaceLogin:DeviceRecordId") });
     }
     #endregion
 

@@ -1,12 +1,13 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Data.SqlClient;
 
 namespace Food.Hubs.ZP;
 
 /// <summary>
-/// یک شناسه پایدار برای هر مرورگر کیوسک صادر می‌کند. مقدار کوکی امضا و رمزگذاری
-/// می‌شود تا مرورگر نتواند شناسه کیوسک دیگری را به سرور معرفی کند.
+/// شناسه کیوسک را در هر درخواست از رکورد دستگاه در بانک API تازه می‌کند.
+/// مقدار کوکی محافظت‌شده است و در صورت تغییر KioskId خودکار جایگزین می‌شود.
 /// </summary>
 public sealed class FaceKioskIdentity
 {
@@ -18,13 +19,37 @@ public sealed class FaceKioskIdentity
         _protector = dataProtectionProvider.CreateProtector("Food.FaceKiosk.Identity.v1");
     }
 
-    public int GetOrCreate(HttpContext context)
+    public async Task<int> GetOrCreateAsync(HttpContext context, ILogger logger,
+        KioskRegistryOptions registryOptions, long? requestedDeviceRecordId = null)
     {
-        if (TryGet(context, out var kioskId))
+        var connectionString = registryOptions.ConnectionString;
+        var deviceRecordId = requestedDeviceRecordId ?? registryOptions.DeviceRecordId;
+        if (string.IsNullOrWhiteSpace(connectionString) || deviceRecordId <= 0)
+            throw new InvalidOperationException(
+                "Configure ConnectionStrings:KioskRegistry and FaceLogin:DeviceRecordId.");
+
+        int kioskId;
+        await using (var connection = new SqlConnection(connectionString))
+        {
+            await connection.OpenAsync(context.RequestAborted);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT KioskId FROM dbo.Devices WHERE Id = @Id";
+            command.Parameters.Add("@Id", System.Data.SqlDbType.BigInt).Value = deviceRecordId;
+            var result = await command.ExecuteScalarAsync(context.RequestAborted);
+            if (result is null || result is DBNull ||
+                !int.TryParse(Convert.ToString(result, CultureInfo.InvariantCulture), out kioskId) ||
+                kioskId is < 100000 or > 999999)
+                throw new InvalidOperationException(
+                    $"Device record {deviceRecordId} is missing or has an invalid six-digit KioskId.");
+        }
+
+        if (TryGet(context, out var current) && current == kioskId)
             return kioskId;
 
-        // قرارداد سرویس ZP برای کیوسک شناسه شش‌رقمی است.
-        kioskId = RandomNumberGenerator.GetInt32(100000, 1000000);
+        logger.LogInformation(
+            "Kiosk ID refreshed from registry. DeviceRecordId: {DeviceRecordId}, KioskId: {KioskId}",
+            deviceRecordId, kioskId);
+
         context.Response.Cookies.Append(CookieName,
             _protector.Protect(kioskId.ToString(CultureInfo.InvariantCulture)),
             new CookieOptions
@@ -34,7 +59,8 @@ public sealed class FaceKioskIdentity
                 SameSite = SameSiteMode.Strict,
                 IsEssential = true,
                 Path = "/",
-                Expires = DateTimeOffset.UtcNow.AddYears(2)
+                Expires = DateTimeOffset.UtcNow.AddYears(2),
+                MaxAge = TimeSpan.FromDays(730)
             });
         return kioskId;
     }
@@ -48,8 +74,8 @@ public sealed class FaceKioskIdentity
 
         try
         {
-            if (int.TryParse(_protector.Unprotect(value),
-                    NumberStyles.None, CultureInfo.InvariantCulture, out var parsedId) &&
+            if (int.TryParse(_protector.Unprotect(value), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out var parsedId) &&
                 parsedId is >= 100000 and <= 999999)
             {
                 kioskId = parsedId;

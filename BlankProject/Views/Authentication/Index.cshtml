@@ -120,7 +120,7 @@
             </form>
 
             <div class="text-center">
-                <a asp-controller="Authentication" asp-action="IndexZP" class="auth-alt-link">
+                <a asp-controller="Authentication" asp-action="IndexZP" asp-route-deviceId="@Context.Request.Query["deviceId"]" class="auth-alt-link">
                     <i class="material-icons" aria-hidden="true">face</i>
                     ورود با تشخیص چهره
                 </a>
