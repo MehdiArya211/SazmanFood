@@ -10,7 +10,7 @@
                 <div>
                     <span class="meal-import-kicker">مدیریت کاربران</span>
                     <h3>ثبت گروهی کاربران رزرو غذا</h3>
-                    <p>کد پرسنلی، نام و نام خانوادگی را از اکسل وارد کنید. نتیجهٔ ثبت هر نفر در همین صفحه نمایش داده می‌شود.</p>
+                    <p>هر فایل اکسل را بارگذاری کنید و ستون‌های کد پرسنلی، نام و نام خانوادگی را از همان فایل مشخص کنید. نتیجهٔ هر نفر در همین صفحه نمایش داده می‌شود.</p>
                 </div>
                 <a asp-area="AuthSystem" asp-controller="Users" asp-action="Index" class="btn btn-default">
                     <i class="material-icons">arrow_forward</i> بازگشت به کاربران
@@ -18,9 +18,9 @@
             </div>
 
             <div class="meal-import-guide">
-                <div><strong>۱</strong><span>فایل نمونه را دریافت و ستون‌ها را تکمیل کنید.</span></div>
+                <div><strong>۱</strong><span>اکسل خودتان را بارگذاری کنید یا فایل نمونه را دریافت کنید.</span></div>
                 <div><strong>۲</strong><span>کد پرسنلی را در اکسل به‌صورت Text نگه دارید تا صفرهای ابتدایی حفظ شوند.</span></div>
-                <div><strong>۳</strong><span>فایل را بارگذاری کنید و نتیجهٔ هر ردیف را بررسی کنید.</span></div>
+                <div><strong>۳</strong><span>ستون‌های موردنظر را انتخاب کنید، سپس نتیجهٔ هر ردیف را بررسی کنید.</span></div>
             </div>
 
             <div class="meal-import-actions">
@@ -31,6 +31,7 @@
 
             <form id="mealbooker-import-form"
                   action="@Url.Action("ImportMealBookers", "Users", new { area = "AuthSystem" })"
+                  data-preview-url="@Url.Action("PreviewMealBookersColumns", "Users", new { area = "AuthSystem" })"
                   method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <label class="meal-import-file" for="mealbooker-file">
@@ -43,8 +44,26 @@
                 </label>
                 <input id="mealbooker-file" name="file" type="file" accept=".xlsx"
                        class="meal-import-hidden" required />
+                <div id="mealbooker-mapping" class="meal-import-mapping" hidden>
+                    <h4>ستون‌های اکسل را مشخص کنید</h4>
+                    <p>پیش‌نمایش از اولین برگه فایل خوانده می‌شود. ستون‌های اضافی در ثبت نادیده گرفته می‌شوند.</p>
+                    <label class="meal-import-check"><input id="mealbooker-has-header" type="checkbox" checked /> ردیف اول عنوان ستون‌هاست</label>
+                    <div class="meal-import-map-grid">
+                        <label>کد پرسنلی <span>ضروری</span>
+                            <select id="mealbooker-code-column" name="codeColumn" class="form-control" required></select>
+                        </label>
+                        <label>نام یا نام و نشان <span>ضروری</span>
+                            <select id="mealbooker-name-column" name="nameColumn" class="form-control" required></select>
+                        </label>
+                        <label id="mealbooker-family-field">نام خانوادگی <span>در حالت دو ستون</span>
+                            <select id="mealbooker-family-column" name="familyColumn" class="form-control"></select>
+                        </label>
+                    </div>
+                    <label class="meal-import-check"><input id="mealbooker-combined-name" type="checkbox" /> نام و نام خانوادگی در یک ستون هستند</label>
+                    <p id="mealbooker-name-hint" class="meal-import-hint">اگر نام و نام خانوادگی در یک خانه است، گزینه بالا را بزنید؛ متن کامل همان ستون در حساب ذخیره می‌شود.</p>
+                </div>
                 <div class="meal-import-submit">
-                    <button id="mealbooker-submit" type="submit" class="btn btn-primary btn-lg">
+                    <button id="mealbooker-submit" type="submit" class="btn btn-primary btn-lg" disabled>
                         <i class="material-icons">group_add</i> بررسی و ایجاد حساب‌ها
                     </button>
                     <p>نام کاربری و رمز اولیهٔ حساب‌های جدید، کد پرسنلی است. هنگام اولین ورود با رمز، تغییر آن الزامی است. حساب‌های موجود دست‌نخورده می‌مانند.</p>
@@ -112,6 +131,16 @@
         .meal-import-file .btn { margin: 0; }
         .meal-import-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; }
         .meal-import-hidden:focus + .meal-import-file, .meal-import-file:focus-within { outline: 3px solid #a1d4ba; }
+        .meal-import-mapping { margin-top: 20px; padding: 20px; background: #f7faf9; border: 1px solid #dceae3; border-radius: 14px; }
+        .meal-import-mapping h4 { margin: 0 0 8px; font-weight: 800; color: #25344a; }
+        .meal-import-mapping > p { color: #66758a; line-height: 1.8; }
+        .meal-import-map-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+        .meal-import-map-grid label { font-weight: 700; color: #25344a; }
+        .meal-import-map-grid label span { display: block; font-size: 12px; font-weight: 400; color: #68788a; }
+        .meal-import-map-grid select { margin-top: 6px; background: #fff; }
+        .meal-import-check { display: flex; align-items: center; gap: 8px; margin: 10px 0; cursor: pointer; }
+        .meal-import-check input { margin: 0; }
+        .meal-import-hint { margin-bottom: 0; }
         .meal-import-submit { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
         .meal-import-submit p { flex: 1 1 340px; color: #68788a; line-height: 1.8; }
         .meal-import-alert { margin-top: 17px; padding: 13px 16px; background: #fff1f0; color: #a1262b; border: 1px solid #f4c6c6; border-radius: 10px; }
@@ -132,6 +161,7 @@
             .meal-import-card .card-content { padding: 16px; }
             .meal-import-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .meal-import-file { flex-wrap: wrap; }
+            .meal-import-map-grid { grid-template-columns: 1fr; }
         }
     </style>
 }
