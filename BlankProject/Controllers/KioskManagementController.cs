@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Domain.Constants;
 using Food.Hubs.ZP;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -157,7 +156,10 @@ public sealed class KioskManagementController : Controller
     private bool HasKioskManagementPermission()
     {
         var user = HttpContext.Session.GetUser();
-        return user?.IsEnabled == true && user.RoleId == RoleConstant.Admin;
+        return user?.IsEnabled == true && user.Menus?.Any(menu =>
+            string.IsNullOrWhiteSpace(menu.Area) &&
+            string.Equals(menu.Controller, "kioskmanagement", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(menu.Action, "index", StringComparison.OrdinalIgnoreCase)) == true;
     }
 
     private async Task<List<DeviceFormModel>> LoadDevicesAsync(CancellationToken cancellationToken)
