@@ -69,6 +69,20 @@ namespace Food.Areas.AuthSystem.Controllers
             CustomSettings.Instance.ROPC_UserName,
             CustomSettings.Instance.ROPC_Password).GetAwaiter().GetResult();
 
+        private static string NormalizePersonCode(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "";
+
+            var normalized = value.Trim().ToEnglishNumber();
+            // Excel numeric cells may be formatted like 099013084.0.
+            if (decimal.TryParse(normalized, System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture, out var number))
+                normalized = decimal.Truncate(number).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            return normalized;
+        }
+
         private bool CanImportMealBookers() =>
             Session.GetUser()?.RoleId == RoleConstant.Admin;
 
@@ -258,7 +272,12 @@ namespace Food.Areas.AuthSystem.Controllers
                         if (selectedColumns.Any(column => row.Cell(column).HasFormula))
                             throw new ArgumentException("استفاده از فرمول در ستون‌های اطلاعات پرسنل مجاز نیست.");
 
-                        personCode = row.Cell(codeColumn).GetFormattedString()?.Trim().ToEnglishNumber() ?? "";
+                        personCode = NormalizePersonCode(row.Cell(codeColumn).GetFormattedString());
+                        // صفرهای ابتداییِ واردشده در فایل اکسل را حذف می‌کنیم؛
+                        // سرویس پرسنلی کد را بدون صفر ابتدایی می‌پذیرد.
+                        personCode = personCode.TrimStart('0');
+                        if (personCode.Length == 0)
+                            personCode = "0";
                         var firstOrFullName = row.Cell(nameColumn).GetFormattedString()?.Trim() ?? "";
                         var lastName = combinedName ? "" : row.Cell(familyColumn).GetFormattedString()?.Trim() ?? "";
                         fullName = combinedName
