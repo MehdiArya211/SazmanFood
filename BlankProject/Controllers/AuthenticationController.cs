@@ -400,7 +400,9 @@ public class AuthenticationController : Controller
             _logger.LogError(ex, "بازیابی شناسه کیوسک از بانک دستگاه‌ها ناموفق بود.");
             ViewBag.KioskId = 0;
             ViewBag.ApiBaseUrl = hubBaseUrl;
-            ViewBag.KioskRegistryError = "شناسه این دستگاه از بانک دستگاه‌ها دریافت نشد. تنظیم اتصال و رکورد دستگاه را بررسی کنید.";
+            ViewBag.KioskRegistryError = ex.Message.Contains("این مرورگر هنوز به دستگاهی متصل نشده", StringComparison.Ordinal)
+                ? "این مرورگر هنوز به دستگاهی متصل نشده است. مدیر سامانه باید از منوی «مدیریت کیوسک‌ها و دستگاه‌ها» این مرورگر را به دستگاه مربوط وصل کند."
+                : "شناسه این دستگاه از بانک دستگاه‌ها دریافت نشد. اتصال بانک دستگاه‌ها و رکورد دستگاه را بررسی کنید.";
             return View("IndexZP");
         }
 

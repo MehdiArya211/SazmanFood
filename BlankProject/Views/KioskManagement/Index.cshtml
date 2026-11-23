@@ -1,0 +1,123 @@
+@model Food.Controllers.KioskManagementController.IndexModel
+@{
+    ViewData["Title"] = "مدیریت کیوسک‌ها و دستگاه‌ها";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var form = Model.Editing ?? new Food.Controllers.KioskManagementController.DeviceFormModel();
+}
+
+<style>
+    .kiosk-page { direction: rtl; padding: 16px 8px 40px; }
+    .kiosk-card { background: #fff; border-radius: 14px; box-shadow: 0 5px 24px #18263a12; padding: 22px; margin-bottom: 20px; }
+    .kiosk-card h3 { margin: 0 0 8px; color: #17324d; font-weight: 700; }
+    .kiosk-help { color: #65758a; margin: 0 0 18px; }
+    .kiosk-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 12px 16px; }
+    .kiosk-grid .form-group { margin: 0; }
+    .kiosk-grid label { display:block; font-weight:600; color:#394b5f; margin-bottom:5px; }
+    .kiosk-grid input, .kiosk-grid textarea, .kiosk-grid select { width:100%; border:1px solid #d7e0e9; border-radius:8px; padding:9px 11px; min-height:40px; }
+    .kiosk-grid textarea { min-height:76px; }
+    .kiosk-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    .kiosk-actions .btn { border-radius:8px; }
+    .kiosk-table-wrap { overflow-x:auto; }
+    .kiosk-table { width:100%; min-width:760px; border-collapse:collapse; }
+    .kiosk-table th,.kiosk-table td { padding:11px 10px; border-bottom:1px solid #edf0f4; text-align:right; white-space:nowrap; }
+    .kiosk-table th { background:#f5f8fb; color:#465a70; }
+    .kiosk-table .active-device { background:#eef9f6; }
+    .kiosk-alert { border-radius:9px; padding:11px 14px; margin-bottom:14px; }
+    .kiosk-alert.success { color:#176145; background:#e8f7ef; }
+    .kiosk-alert.error { color:#8b2632; background:#fff0f1; }
+    .kiosk-pair { display:flex; align-items:end; gap:12px; flex-wrap:wrap; }
+    .kiosk-pair .form-group { min-width:260px; flex:1; margin:0; }
+    @@media(max-width:600px) { .kiosk-card { padding:16px; } }
+</style>
+
+<div class="col-md-12 kiosk-page">
+    <h2 style="font-weight:700;color:#17324d;margin:4px 0 18px">مدیریت کیوسک‌ها و دستگاه‌ها</h2>
+    @if (TempData["KioskMessage"] is string success)
+    { <div class="kiosk-alert success">@success</div> }
+    @if (TempData["KioskError"] is string error)
+    { <div class="kiosk-alert error">@error</div> }
+
+    <section class="kiosk-card">
+        <h3>اتصال این مرورگر به یک کیوسک</h3>
+        <p class="kiosk-help">این فرم را روی همان مرورگری باز کنید که قرار است روی کیوسک استفاده شود. اتصال در کوکی امن همان مرورگر ذخیره می‌شود و آدرس ورود برای همه دستگاه‌ها یکسان می‌ماند.</p>
+        <form asp-action="PairBrowser" method="post" class="kiosk-pair">
+            @Html.AntiForgeryToken()
+            <div class="form-group">
+                <label for="deviceRecordId">انتخاب دستگاه</label>
+                <select id="deviceRecordId" name="deviceRecordId" class="form-control" required>
+                    <option value="">یک دستگاه را انتخاب کنید</option>
+                    @foreach (var device in Model.PairOptions)
+                    {
+                        if (Model.PairedDeviceId == device.Id)
+                        {
+                            <option value="@device.Id" selected>@device.Title — سریال @device.SerialNumber — کیوسک @device.KioskId</option>
+                        }
+                        else
+                        {
+                            <option value="@device.Id">@device.Title — سریال @device.SerialNumber — کیوسک @device.KioskId</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button class="btn btn-primary" type="submit"><i class="material-icons">link</i> اتصال این مرورگر</button>
+            @if (Model.PairedDeviceId.HasValue)
+            { <a asp-controller="Authentication" asp-action="Logout" class="btn btn-default">خروج از مدیریت و شروع ورود چهره</a> }
+        </form>
+    </section>
+
+    <section class="kiosk-card">
+        <h3>@(form.Id > 0 ? "ویرایش مشخصات دستگاه" : "ثبت دستگاه جدید")</h3>
+        <p class="kiosk-help">اطلاعات این فرم مستقیماً در بانک دستگاه‌ها ذخیره می‌شود. شناسه رکورد هنگام ثبت دستگاه جدید به‌صورت خودکار توسط SQL Server ساخته می‌شود.</p>
+        <form asp-action="Save" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Id" value="@form.Id" />
+            <input type="hidden" name="Guid" value="@form.Guid" />
+            <div class="kiosk-grid">
+                <div class="form-group"><label>عنوان دستگاه</label><input name="Title" value="@form.Title" required /></div>
+                <div class="form-group"><label>شناسه کیوسک</label><input name="KioskId" type="number" min="1" value="@form.KioskId" required /></div>
+                <div class="form-group"><label>شماره سریال</label><input name="SerialNumber" value="@form.SerialNumber" /></div>
+                <div class="form-group"><label>آدرس IP</label><input name="Ip" value="@form.Ip" dir="ltr" /></div>
+                <div class="form-group"><label>پورت</label><input name="Port" type="number" value="@form.Port" required /></div>
+                <div class="form-group"><label>نوع اتصال</label><input name="ConnectType" type="number" value="@form.ConnectType" required /></div>
+                <div class="form-group"><label>برند دستگاه</label><input name="DeviceBrand" type="number" value="@form.DeviceBrand" required /></div>
+                <div class="form-group"><label>نوع SDK</label><input name="SdkType" type="number" value="@form.SdkType" required /></div>
+                <div class="form-group"><label>کلید اتصال</label><input name="ConnectionKey" value="@form.ConnectionKey" /></div>
+                <div class="form-group"><label>زمان تأخیر</label><input name="DelayTime" type="number" value="@form.DelayTime" /></div>
+                <div class="form-group"><label>شناسه فایل</label><input name="FileForSaveId" type="number" value="@form.FileForSaveId" /></div>
+                <div class="form-group"><label>شناسه API</label><input name="ApiId" type="number" value="@form.ApiId" /></div>
+                <div class="form-group"><label>شناسه پایگاه داده</label><input name="DBId" type="number" value="@form.DBId" /></div>
+                <div class="form-group"><label>رنگ</label><input name="Color" type="number" value="@form.Color" required /></div>
+                <div class="form-group"><label>حالت‌های شناسایی</label><textarea name="EnIdentificationModes">@form.EnIdentificationModes</textarea></div>
+                <div class="form-group"><label>ایجادکننده</label><input name="CreatedBy" value="@form.CreatedBy" /></div>
+                <div class="form-group"><label>آخرین ویرایشگر</label><input name="LastModifyBy" value="@form.LastModifyBy" /></div>
+            </div>
+            @if (form.Id > 0)
+            {
+                <p class="kiosk-help" style="margin-top:12px">شناسه رکورد: <b dir="ltr">@form.Id</b> · تاریخ ایجاد: <span dir="ltr">@form.CreateDate</span></p>
+            }
+            <div class="kiosk-actions">
+                <button class="btn btn-success" type="submit"><i class="material-icons">save</i> ذخیره اطلاعات</button>
+                @if (form.Id > 0) { <a asp-action="Index" class="btn btn-default">ثبت دستگاه جدید</a> }
+            </div>
+        </form>
+    </section>
+
+    <section class="kiosk-card">
+        <h3>فهرست دستگاه‌ها</h3>
+        <div class="kiosk-table-wrap">
+            <table class="kiosk-table">
+                <thead><tr><th>شناسه رکورد</th><th>عنوان</th><th>IP</th><th>شماره سریال</th><th>KioskId</th><th>پورت</th><th>عملیات</th></tr></thead>
+                <tbody>
+                @foreach (var device in Model.Devices)
+                {
+                    <tr class="@(Model.PairedDeviceId == device.Id ? "active-device" : "")">
+                        <td dir="ltr">@device.Id</td><td>@device.Title</td><td dir="ltr">@device.Ip</td><td dir="ltr">@device.SerialNumber</td><td dir="ltr">@device.KioskId</td><td dir="ltr">@device.Port</td>
+                        <td><a asp-action="Index" asp-route-editId="@device.Id" class="btn btn-sm btn-info">ویرایش</a></td>
+                    </tr>
+                }
+                @if (Model.Devices.Count == 0) { <tr><td colspan="7">رکوردی برای نمایش وجود ندارد.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
