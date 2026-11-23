@@ -931,7 +931,12 @@ public class AuthenticationController : Controller
             HttpContext.Response.Cookies.Delete("_session.cookie"); // توجه: اسم کوکی باید دقیق باشه
         }
 
-        return RedirectToAction("IndexZP", "Authentication", new { deviceId = _configuration.GetValue<long?>("FaceLogin:DeviceRecordId") });
+        return RedirectToAction("IndexZP", "Authentication", new
+        {
+            deviceId = long.TryParse(Request.Query["deviceId"], out var requestedDeviceId)
+                ? requestedDeviceId
+                : _configuration.GetValue<long?>("FaceLogin:DeviceRecordId")
+        });
     }
     #endregion
 
