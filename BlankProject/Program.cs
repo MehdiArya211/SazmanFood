@@ -74,8 +74,7 @@ internal class Program
 
         services.AddSingleton(new KioskRegistryOptions
         {
-            ConnectionString = kioskRegistryConnectionString,
-            DeviceRecordId = builder.Configuration.GetValue<long?>("FaceLogin:DeviceRecordId") ?? 0
+            ConnectionString = kioskRegistryConnectionString
         });
 
         // Main DB Connection String

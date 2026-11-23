@@ -7,7 +7,6 @@
     var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
     var kioskId = ViewBag.KioskId is int configuredKioskId ? configuredKioskId : 0;
     var kioskRegistryError = ViewBag.KioskRegistryError as string;
-    var deviceRecordId = Context.Request.Query["deviceId"].ToString();
     var loginMessage = Settings.GetLoginPageMessage(true);
 }
 
@@ -82,12 +81,11 @@
     <script>
         window.API_BASE_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(apiBaseUrl));
         window.ZP_KIOSK_ID = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(kioskId));
-        window.ZP_DEVICE_RECORD_ID = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(deviceRecordId));
         window.ZP_FACE_CHALLENGE =
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.FaceChallenge ?? ""));
         window.ZP_LEGACY_FACE_LOGIN =
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllowLegacyFaceLogin ?? false));
-        console.info("[ورود بیومتریک][Page] صفحه آماده شد.", { deviceRecordId: window.ZP_DEVICE_RECORD_ID || null, kioskId: window.ZP_KIOSK_ID });
+        console.info("[ورود بیومتریک][Page] صفحه آماده شد.", { kioskId: window.ZP_KIOSK_ID });
         function faceScriptFailed(script) {
             console.error("[ورود بیومتریک][Script] فایل ورود چهره بارگذاری نشد.", script);
             document.getElementById("connectionStatus").textContent =

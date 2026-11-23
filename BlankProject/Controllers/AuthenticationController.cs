@@ -378,7 +378,7 @@ public class AuthenticationController : Controller
     #region ZP
 
     [HttpGet]
-    public IActionResult IndexZP(long? mid, long? deviceId)
+    public IActionResult IndexZP(long? mid)
     {
         var hubBaseUrl = _configuration["ApiAddress:Refit"]?.TrimEnd('/');
 
@@ -393,7 +393,7 @@ public class AuthenticationController : Controller
         try
         {
             browserKioskId = _faceKioskIdentity.GetOrCreateAsync(
-                HttpContext, _logger, _kioskRegistryOptions, deviceId).GetAwaiter().GetResult();
+                HttpContext, _logger, _kioskRegistryOptions).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -931,12 +931,7 @@ public class AuthenticationController : Controller
             HttpContext.Response.Cookies.Delete("_session.cookie"); // توجه: اسم کوکی باید دقیق باشه
         }
 
-        return RedirectToAction("IndexZP", "Authentication", new
-        {
-            deviceId = long.TryParse(Request.Query["deviceId"], out var requestedDeviceId)
-                ? requestedDeviceId
-                : _configuration.GetValue<long?>("FaceLogin:DeviceRecordId")
-        });
+        return RedirectToAction("IndexZP", "Authentication");
     }
     #endregion
 

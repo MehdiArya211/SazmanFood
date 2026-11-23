@@ -20,35 +20,39 @@ public sealed class FaceKioskIdentity
     }
 
     public async Task<int> GetOrCreateAsync(HttpContext context, ILogger logger,
-        KioskRegistryOptions registryOptions, long? requestedDeviceRecordId = null)
+        KioskRegistryOptions registryOptions)
     {
         var connectionString = registryOptions.ConnectionString;
-        var deviceRecordId = requestedDeviceRecordId ?? registryOptions.DeviceRecordId;
-        if (string.IsNullOrWhiteSpace(connectionString) || deviceRecordId <= 0)
+        var clientIp = context.Connection.RemoteIpAddress?.MapToIPv4().ToString();
+        if (string.IsNullOrWhiteSpace(connectionString) || string.IsNullOrWhiteSpace(clientIp))
             throw new InvalidOperationException(
-                "Configure ConnectionStrings:KioskRegistry and FaceLogin:DeviceRecordId.");
+                "Kiosk registry connection or client IP is unavailable.");
 
         int kioskId;
         await using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync(context.RequestAborted);
             await using var command = connection.CreateCommand();
-            command.CommandText = "SELECT KioskId FROM dbo.Devices WHERE Id = @Id";
-            command.Parameters.Add("@Id", System.Data.SqlDbType.BigInt).Value = deviceRecordId;
-            var result = await command.ExecuteScalarAsync(context.RequestAborted);
-            if (result is null || result is DBNull ||
-                !int.TryParse(Convert.ToString(result, CultureInfo.InvariantCulture), out kioskId) ||
+            command.CommandText = "SELECT TOP (2) Id, KioskId FROM dbo.Devices WHERE LTRIM(RTRIM(Ip)) = @Ip";
+            command.Parameters.Add("@Ip", System.Data.SqlDbType.NVarChar, 45).Value = clientIp;
+            await using var reader = await command.ExecuteReaderAsync(context.RequestAborted);
+            if (!await reader.ReadAsync(context.RequestAborted))
+                throw new InvalidOperationException($"No kiosk is registered for client IP {clientIp}.");
+
+            var deviceRecordId = reader.GetInt64(0);
+            if (!int.TryParse(Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture), out kioskId) ||
                 kioskId is < 100000 or > 999999)
-                throw new InvalidOperationException(
-                    $"Device record {deviceRecordId} is missing or has an invalid six-digit KioskId.");
+                throw new InvalidOperationException($"Device record {deviceRecordId} has an invalid six-digit KioskId.");
+            if (await reader.ReadAsync(context.RequestAborted))
+                throw new InvalidOperationException($"More than one kiosk is registered for client IP {clientIp}.");
         }
 
         if (TryGet(context, out var current) && current == kioskId)
             return kioskId;
 
         logger.LogInformation(
-            "Kiosk ID refreshed from registry. DeviceRecordId: {DeviceRecordId}, KioskId: {KioskId}",
-            deviceRecordId, kioskId);
+            "Kiosk ID refreshed from registry for client IP {ClientIp}. KioskId: {KioskId}",
+            clientIp, kioskId);
 
         context.Response.Cookies.Append(CookieName,
             _protector.Protect(kioskId.ToString(CultureInfo.InvariantCulture)),
