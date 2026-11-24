@@ -237,6 +237,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
 
             long userId = user.Id;
+            var isFaceKiosk = HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
 
             try
             {
@@ -244,7 +245,6 @@ namespace Food.Areas.ReserveManagment.Controllers
                 int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
                 DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
-                var isFaceKiosk = HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
                 if (isFaceKiosk && (selectedDay < 1 || selectedDay > 7 ||
                     weekStartDate.AddDays(selectedDay - 1).Date < now.Date))
                     return BadRequest("روز انتخاب‌شده برای رزرو معتبر نیست.");
