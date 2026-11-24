@@ -904,11 +904,11 @@ public class AuthenticationController : Controller
         }
 
         _logger.LogInformation(
-            "ورود بیومتریک: موفق؛ انتقال به داشبورد. UserId: {UserId}",
+            "ورود بیومتریک: موفق؛ انتقال به رزرو غذا. UserId: {UserId}",
             user.Id);
 
-        if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, personnelHttpStatus, lookupCodeLength, returnedCodeLength, redirectUrl = Url.Action("Index", "Dashboard", new { area = "Admin" }) });
-        return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        if (browserStatus) return Json(new { status = true, lookup = lookupOutcome, account = accountOutcome, personnelHttpStatus, lookupCodeLength, returnedCodeLength, redirectUrl = Url.Action("Index", "Reserve", new { area = "ReserveManagment" }) });
+        return RedirectToAction("Index", "Reserve", new { area = "ReserveManagment" });
     }
     #endregion
 
