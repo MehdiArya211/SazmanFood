@@ -14,3 +14,4 @@ Stack:    at Microsoft.EntityFrameworkCore.Storage.ExecutionStrategy.OnFirstExec
    at System.Linq.Queryable.Single[TSource](IQueryable`1 source)
    at BLL.ReserveManagment.FoodReserveManager.RecordPrintAttempt(IReadOnlyCollection`1 detailIds, Int64 userId, Int32 maxPrintCount) in C:\Users\95003599\source\repos\SazmanFood\BLL\ReserveManagment\FoodReserveManager.cs:line 378
 
+--------*******************----------
