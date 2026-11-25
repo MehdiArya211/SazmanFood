@@ -255,6 +255,33 @@
     box-shadow: 0 0 0 6px rgba(233,174,63,.15);
     animation: auth-pulse 1.6s ease-in-out infinite;
 }
+.connection-box--blocked { color: #805a18; background: #fff7e8; }
+.connection-box--blocked .connection-dot { background: #e5a52f; box-shadow: 0 0 0 6px rgba(229,165,47,.16); animation: none; }
+.connection-box--error { color: #a5332c; background: #fff1ef; }
+.connection-box--error .connection-dot { background: #d9534f; box-shadow: 0 0 0 6px rgba(217,83,79,.13); animation: none; }
+.connection-box--success { color: #176b4d; background: #edf8f2; }
+.connection-box--success .connection-dot { background: #21865d; box-shadow: 0 0 0 6px rgba(33,134,93,.13); animation: none; }
+
+.face-feedback {
+    display: flex; align-items: flex-start; gap: 13px;
+    width: min(100%, 620px); margin: 14px auto 18px; padding: 15px 17px;
+    border: 1px solid; border-radius: 16px; text-align: right; line-height: 1.85;
+    box-shadow: 0 8px 22px rgba(34,58,48,.05);
+}
+.face-feedback[hidden] { display: none !important; }
+.face-feedback--error { color: #81352e; border-color: #f0c4bf; background: linear-gradient(135deg,#fff8f7,#fff1ef); }
+.face-feedback--warning { color: #73521b; border-color: #ead7a8; background: linear-gradient(135deg,#fffdf7,#fff7e5); }
+.face-feedback--success { color: #195c43; border-color: #b9dfcb; background: linear-gradient(135deg,#f7fcf9,#edf8f2); }
+.face-feedback--info { color: #28536b; border-color: #c6dce8; background: linear-gradient(135deg,#f8fcff,#eff7fb); }
+.face-feedback-icon {
+    display: grid; flex: 0 0 38px; place-items: center; width: 38px; height: 38px;
+    border-radius: 12px; background: rgba(255,255,255,.78);
+}
+.face-feedback-icon .material-icons { font-size: 22px; }
+.face-feedback-copy { display: grid; gap: 2px; min-width: 0; }
+.face-feedback-copy strong { font-size: 14px; font-weight: 800; }
+.face-feedback-copy > span { color: inherit; opacity: .9; font-size: 13px; overflow-wrap: anywhere; }
+.face-kiosk-id { color: var(--auth-muted); }
 
 .auth-footer { position: relative; z-index: 1; padding: 0 0 18px; color: #789087; text-align: center; font-size: 12px; }
 
@@ -275,6 +302,7 @@
     .auth-visual-side { padding: 28px 22px; }
     .auth-title { font-size: 24px; }
     .face-orbit { width: 158px; height: 158px; }
+    .face-feedback { gap: 10px; padding: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }

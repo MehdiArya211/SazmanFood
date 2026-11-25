@@ -7,6 +7,7 @@
     var apiBaseUrl = (ViewBag.ApiBaseUrl as string) ?? string.Empty;
     var kioskId = ViewBag.KioskId is int configuredKioskId ? configuredKioskId : 0;
     var kioskRegistryError = ViewBag.KioskRegistryError as string;
+    var browserNotMapped = kioskRegistryError?.Contains("مرورگر هنوز", StringComparison.Ordinal) == true;
     var loginMessage = Settings.GetLoginPageMessage(true);
 }
 
@@ -37,9 +38,9 @@
 
             @if (!string.IsNullOrWhiteSpace(message))
             {
-                <div class="auth-alert" role="alert">
-                    <i class="material-icons" aria-hidden="true">error_outline</i>
-                    <span>@message</span>
+                <div class="face-feedback face-feedback--error" role="alert" aria-live="assertive">
+                    <span class="face-feedback-icon"><i class="material-icons" aria-hidden="true">error_outline</i></span>
+                    <span class="face-feedback-copy"><strong>ورود انجام نشد</strong><span>@message</span></span>
                 </div>
             }
 
@@ -57,15 +58,24 @@
                 <input type="hidden" name="enrollId" />
             </form>
 
-            <div class="connection-box" role="status" aria-live="polite">
+            <div class="connection-box @(string.IsNullOrWhiteSpace(kioskRegistryError) ? "" : "connection-box--blocked")" role="status" aria-live="polite">
                 <span class="connection-dot" aria-hidden="true"></span>
-                <span id="connectionStatus">در حال آماده‌سازی اتصال...</span>
+                <span id="connectionStatus">@(string.IsNullOrWhiteSpace(kioskRegistryError) ? "در حال آماده‌سازی اتصال..." : "نیازمند تنظیم مدیر سامانه")</span>
             </div>
-            @if (!string.IsNullOrWhiteSpace(kioskRegistryError))
+            <div id="faceConnectionFeedback"
+                 class="face-feedback @(string.IsNullOrWhiteSpace(kioskRegistryError) ? "face-feedback--info" : "face-feedback--warning")"
+                 role="alert" aria-live="assertive"
+                 hidden="@(string.IsNullOrWhiteSpace(kioskRegistryError) ? "hidden" : null)">
+                <span class="face-feedback-icon"><i id="faceConnectionFeedbackIcon" class="material-icons" aria-hidden="true">@(browserNotMapped ? "phonelink_setup" : "settings_suggest")</i></span>
+                <span class="face-feedback-copy">
+                    <strong id="faceConnectionFeedbackTitle">@(browserNotMapped ? "این مرورگر به کیوسک وصل نیست" : "اتصال به دستگاه برقرار نشد")</strong>
+                    <span id="faceConnectionFeedbackMessage">@kioskRegistryError</span>
+                </span>
+            </div>
+            @if (kioskId > 0)
             {
-                <div class="auth-alert" role="alert"><i class="material-icons" aria-hidden="true">error_outline</i><span>@kioskRegistryError</span></div>
+                <p class="face-kiosk-id">شناسه کیوسک <strong dir="ltr">@kioskId</strong></p>
             }
-            <p class="auth-subtitle">شناسه این کیوسک برای ثبت در سرویس دستگاه: <strong dir="ltr">@kioskId</strong></p>
 
             <div>
                 <a asp-controller="Authentication" asp-action="Login" class="auth-alt-link">
@@ -85,11 +95,19 @@
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.FaceChallenge ?? ""));
         window.ZP_LEGACY_FACE_LOGIN =
             @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllowLegacyFaceLogin ?? false));
+        window.ZP_KIOSK_CONFIGURED = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(kioskId > 0 && !string.IsNullOrWhiteSpace(ViewBag.FaceChallenge as string)));
         console.info("[ورود بیومتریک][Page] صفحه آماده شد.", { kioskId: window.ZP_KIOSK_ID });
         function faceScriptFailed(script) {
             console.error("[ورود بیومتریک][Script] فایل ورود چهره بارگذاری نشد.", script);
-            document.getElementById("connectionStatus").textContent =
-                "فایل ارتباط با دستگاه بارگذاری نشد؛ اتصال شبکه و فایل‌های سامانه را بررسی کنید.";
+            document.getElementById("connectionStatus").textContent = "آماده اتصال نیست";
+            const feedback = document.getElementById("faceConnectionFeedback");
+            if (feedback) {
+                feedback.className = "face-feedback face-feedback--error";
+                document.getElementById("faceConnectionFeedbackIcon").textContent = "cloud_off";
+                document.getElementById("faceConnectionFeedbackTitle").textContent = "فایل ارتباط با دستگاه بارگذاری نشد";
+                document.getElementById("faceConnectionFeedbackMessage").textContent = "اتصال شبکه یا فایل‌های سامانه را بررسی کنید و صفحه را دوباره بارگذاری کنید.";
+                feedback.hidden = false;
+            }
         }
     </script>
     <script src="~/assets/signalr/signalr2.js" onerror="faceScriptFailed('SignalR')"></script>

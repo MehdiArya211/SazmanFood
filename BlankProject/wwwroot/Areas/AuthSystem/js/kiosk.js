@@ -26,11 +26,38 @@
         console.error("[ورود بیومتریک] " + message + detail);
     }
 
-    function setStatus(message) {
+    function setStatus(message, state, title) {
+        const text = String(message || "");
+        const inferred = /ناموفق|معتبر نیست|انجام نشد|برقرار نشد|خطا|یافت نشد/.test(text)
+            ? "error"
+            : /نیازمند|متعلق نیست|تأیید معتبر|هنوز پیامی/.test(text) ? "warning"
+            : /شناسایی شد|ورود تأیید شد|اتصال برقرار است/.test(text) ? "success" : "info";
+        state = state || inferred;
+        title = title || (state === "error" ? "اتصال یا ورود با چهره انجام نشد"
+            : state === "warning" ? "نیاز به بررسی دستگاه"
+            : state === "success" ? "وضعیت ورود با چهره" : "وضعیت ورود با چهره");
         const element = document.getElementById("connectionStatus");
         if (element) {
-            element.textContent = message;
+            element.textContent = text;
+            element.parentElement?.classList.remove("connection-box--blocked", "connection-box--error", "connection-box--success");
+            if (state === "error") element.parentElement?.classList.add("connection-box--error");
+            if (state === "warning") element.parentElement?.classList.add("connection-box--blocked");
+            if (state === "success") element.parentElement?.classList.add("connection-box--success");
         }
+        const feedback = document.getElementById("faceConnectionFeedback");
+        if (!feedback) return;
+        const variants = {
+            error: ["face-feedback--error", "error_outline"],
+            warning: ["face-feedback--warning", "info_outline"],
+            success: ["face-feedback--success", "check_circle_outline"],
+            info: ["face-feedback--info", "info_outline"]
+        };
+        const variant = variants[state] || variants.info;
+        feedback.className = "face-feedback " + variant[0];
+        document.getElementById("faceConnectionFeedbackIcon").textContent = variant[1];
+        document.getElementById("faceConnectionFeedbackTitle").textContent = title;
+        document.getElementById("faceConnectionFeedbackMessage").textContent = text;
+        feedback.hidden = false;
     }
 
     function getKioskId() {
@@ -247,9 +274,10 @@
             const output =
                 `[ورود بیومتریک][${step}] ${message}`;
 
-            // پیام‌های دستگاه باید روی صفحه هم دیده شوند؛ Console برای کاربر کیوسک قابل مشاهده نیست.
+            // پیام‌های دستگاه را با ظاهر یکپارچه روی صفحه هم نشان می‌دهیم.
             if (!redirected && ["error", "warning", "warn", "success"].includes(level)) {
-                setStatus(String(message).slice(0, 200));
+                const state = level === "error" ? "error" : (level === "success" ? "success" : "warning");
+                setStatus(String(message).slice(0, 200), state, step);
             }
 
             switch (level) {
@@ -395,6 +423,7 @@
                     ? "اتصال به Hub برنامه یا سرویس ZP برقرار نشد؛ جزئیات در Console مرورگر و لاگ سرور ثبت شده است."
                     : "اتصال به سرویس ZP برقرار نشد؛ تنظیمات انتشار را بررسی کنید.";
             }
+            setStatus(connectionFailure, "error", "اتصال به دستگاه برقرار نشد");
 
             try {
                 await connection.stop();
@@ -408,6 +437,10 @@
 
     async function initialize() {
         try {
+            if (window.ZP_KIOSK_CONFIGURED === false) {
+                logWarning("تنظیم کیوسک برای این مرورگر کامل نیست؛ اتصال آغاز نشد.");
+                return;
+            }
             if (!window.signalR?.HubConnectionBuilder) {
                 throw new Error("کتابخانه SignalR بارگذاری نشده است.");
             }
