@@ -471,7 +471,7 @@
                 </div>
             }
 
-            <form id="food-timing-form" method="post"
+            <!form id="food-timing-form" method="post"
                   action="@Url.Action("SaveTimingPolicy", "QuotaControl", new { area = "Admin" })">
                 @Html.AntiForgeryToken()
 
@@ -544,7 +544,7 @@
                                     <label class="timing-bulk-day">
                                         <input type="checkbox" class="timing-bulk-day-input"
                                                data-weekday="@weekDay.DayOfWeek"
-                                               checked />
+                                               checked="checked" />
                                         @weekDay.Title
                                     </label>
                                 }
@@ -673,7 +673,7 @@
                         ذخیره تنظیمات رزرو و چاپ
                     </button>
                 </div>
-            </form>
+            </!form>
             <div id="food-timing-notice" class="timing-notice" role="status"></div>
         </div>
         <div class="timing-card" id="login-page-settings">
