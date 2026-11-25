@@ -30,6 +30,8 @@
     var selectedDay = ViewBag.SelectedDay is int chosenDay ? chosenDay : 1;
     var maxPrintCount = ViewBag.MaxPrintCount is int printLimit ? printLimit : 3;
     var printableDetailIds = ViewBag.PrintableDetailIds as HashSet<long> ?? new HashSet<long>();
+    DateTime? reservationOpenFrom = ViewBag.ReservationOpenFrom is DateTime openFrom ? openFrom : null;
+    DateTime? reservationOpenTo = ViewBag.ReservationOpenTo is DateTime openTo ? openTo : null;
 
     DateTime weekStartDate = ViewBag.WeekStartDate != null
         ? (DateTime)ViewBag.WeekStartDate
@@ -485,6 +487,13 @@
         .kiosk-nav-button[disabled] { opacity: .42; cursor: not-allowed; }
         .kiosk-current-day { text-align: center; color: #234358; font-weight: 900; font-size: 25px; line-height: 1.5; }
         .kiosk-current-day small { display: block; color: #71859a; font-size: 15px; }
+        .kiosk-range-card { display: none; align-items: center; gap: 12px; max-width: 660px; margin: 12px 20px 2px auto; padding: 10px 14px; border: 1px solid #c9e3e3; border-radius: 15px; background: #f2fbfa; color: #204f58; }
+        .kiosk-mode .kiosk-range-card { display: flex; }
+        .kiosk-range-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 38px; height: 38px; border-radius: 11px; background: #d9f3ef; color: #187f73; }
+        .kiosk-range-label { font-size: 12px; font-weight: 800; color: #528087; }
+        .kiosk-range-dates { font-size: 15px; font-weight: 900; line-height: 1.7; }
+        .kiosk-range-note { font-size: 11px; color: #718994; }
+        .kiosk-range-dates b { display: inline-block; direction: ltr; unicode-bidi: isolate; }
         .kiosk-mode .reserve-table, .kiosk-mode .reserve-table tbody { display: block; width: 100%; }
         .kiosk-mode .reserve-table { border: 0; }
         .kiosk-mode .reserve-table .kiosk-hidden { display: none !important; }
@@ -627,6 +636,8 @@
         }
 
         @@media (max-width: 575px) {
+            .kiosk-range-card { margin: 10px 10px 0; padding: 9px 11px; }
+            .kiosk-range-dates { font-size: 13px; }
             .kiosk-mode .reserve-table > tbody > tr.meal-row > td:first-child,
             .kiosk-mode .reserve-table > tbody > tr.meal-row > td:nth-child(2),
             .kiosk-mode .reserve-table > tbody > tr.meal-row > td:nth-child(n+3) { flex-basis: 100%; width: 100%; }
@@ -795,6 +806,23 @@
                         <button class="kiosk-nav-button" type="button" disabled title="برنامه فعلاً تا پایان هفته آینده قابل نمایش است">روز بعد ←</button>
                     }
                 </nav>
+                <div class="kiosk-range-card" role="status" aria-label="بازه فعلی رزرو غذا">
+                    <span class="kiosk-range-icon"><i class="material-icons" aria-hidden="true">event_available</i></span>
+                    <div>
+                        <div class="kiosk-range-label">بازه فعلی رزرو</div>
+                        @if (reservationOpenFrom.HasValue && reservationOpenTo.HasValue)
+                        {
+                            <div class="kiosk-range-dates">
+                                از <b>@Shamsi(reservationOpenFrom.Value)</b> تا <b>@Shamsi(reservationOpenTo.Value)</b>
+                            </div>
+                            <div class="kiosk-range-note">وعده‌های قابل رزرو هر روز به برنامه غذا و سهمیه شما بستگی دارد.</div>
+                        }
+                        else
+                        {
+                            <div class="kiosk-range-dates">فعلاً وعده‌ای برای رزرو باز نیست.</div>
+                        }
+                    </div>
+                </div>
             }
 
             <div class="reserve-guide">

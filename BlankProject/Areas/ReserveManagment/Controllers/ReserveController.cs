@@ -85,17 +85,17 @@ namespace Food.Areas.ReserveManagment.Controllers
             var freeReservationEnabled =
                 _constantManager.IsFreeFoodReservationEnabled();
 
+            var firstBrowsableWeek = weekStartDate.AddDays(-week * 7);
+            var allQuotaSlots = freeReservationEnabled
+                ? null
+                : _unitQuotaManager.GetReservableSlots(
+                    user.PersonId, personalCode, nationalCode, user.OmdOrgId,
+                    firstBrowsableWeek, firstBrowsableWeek.AddDays(13)).ToHashSet();
+
             var reservableSlots = freeReservationEnabled
                 ? GetOpenReservableSlots(weekStartDate)
-                : _unitQuotaManager
-                    .GetReservableSlots(
-                        user.PersonId,
-                        personalCode,
-                        nationalCode,
-                        user.OmdOrgId,
-                        weekStartDate,
-                        weekEndDate)
-                    .ToHashSet();
+                : allQuotaSlots!.Where(slot =>
+                    slot.Date.Date >= weekStartDate && slot.Date.Date <= weekEndDate).ToHashSet();
 
             var timingPolicy = _constantManager.GetFoodTimingPolicy();
             var slotsBeforeTiming = reservableSlots.Count;
@@ -110,6 +110,32 @@ namespace Food.Areas.ReserveManagment.Controllers
                 !mealCodes.TryGetValue(slot.MealId, out var code) ||
                 !timingPolicy.IsMealVisible(code) ||
                 !timingPolicy.IsMealReservable(code));
+
+            // بازه نمایش‌داده‌شده به کاربر هر دو هفته قابل پیمایش را پوشش می‌دهد.
+            // فقط روزهایی که اکنون حداقل یک وعده مجاز دارند در بازه لحاظ می‌شوند.
+            if (isDailyReservation)
+            {
+                var otherWeekStart = weekStartDate.AddDays(week == 0 ? 7 : -7);
+                var otherWeekEnd = otherWeekStart.AddDays(6);
+                var otherSlots = freeReservationEnabled
+                    ? GetOpenReservableSlots(otherWeekStart)
+                    : allQuotaSlots!.Where(slot =>
+                        slot.Date.Date >= otherWeekStart && slot.Date.Date <= otherWeekEnd).ToHashSet();
+
+                var openDates = reservableSlots
+                    .Concat(otherSlots.Where(slot =>
+                        slot.Date.Date >= now.Date &&
+                        FoodTimingRules.CanReserve(timingPolicy, slot.Date, now, out _) &&
+                        mealCodes.TryGetValue(slot.MealId, out var code) &&
+                        timingPolicy.IsMealVisible(code) &&
+                        timingPolicy.IsMealReservable(code)))
+                    .Select(slot => slot.Date.Date)
+                    .Where(date => date >= now.Date)
+                    .ToList();
+
+                ViewBag.ReservationOpenFrom = openDates.Count > 0 ? (DateTime?)openDates.Min() : null;
+                ViewBag.ReservationOpenTo = openDates.Count > 0 ? (DateTime?)openDates.Max() : null;
+            }
 
             ViewBag.FoodPolicy = timingPolicy;
             ViewBag.TodayIranDate = now.Date;
