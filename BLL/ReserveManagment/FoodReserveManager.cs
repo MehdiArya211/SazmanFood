@@ -4,6 +4,7 @@ using DTO.Entities.FoodReservation;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
@@ -337,11 +338,33 @@ namespace BLL.ReserveManagment
                 var counts = new Dictionary<long, int>();
                 foreach (var id in ids)
                 {
-                    var changed = _db.Set<FoodReserveDetail>()
-                        .Where(x => x.Id == id && x.FoodReserve.UserId == userId &&
-                                    x.PrintCount < maxPrintCount)
-                        .ExecuteUpdate(setters => setters
-                            .SetProperty(x => x.PrintCount, x => x.PrintCount + 1));
+                    // ExecuteUpdate روی SQL Server ممکن است به‌خاطر OUTPUT و triggerهای
+                    // قدیمی جدول شکست بخورد. این UPDATE پارامتری همان کنترل مالکیت و
+                    // سقف چاپ را در تراکنش Serializable به‌صورت اتمیک انجام می‌دهد.
+                    using var command = _db.Database.GetDbConnection().CreateCommand();
+                    command.Transaction = transaction.GetDbTransaction();
+                    command.CommandText = @"
+UPDATE d SET d.PrintCount = d.PrintCount + 1
+FROM [dbo].[FoodReserveDetails] AS d
+INNER JOIN [dbo].[FoodReserves] AS r ON r.Id = d.FoodReserveId
+WHERE d.Id = @detailId AND r.UserId = @userId AND d.PrintCount < @maxPrintCount;
+SELECT @@ROWCOUNT;";
+                    var detailParameter = command.CreateParameter();
+                    detailParameter.ParameterName = "@detailId";
+                    detailParameter.DbType = DbType.Int64;
+                    detailParameter.Value = id;
+                    command.Parameters.Add(detailParameter);
+                    var userParameter = command.CreateParameter();
+                    userParameter.ParameterName = "@userId";
+                    userParameter.DbType = DbType.Int64;
+                    userParameter.Value = userId;
+                    command.Parameters.Add(userParameter);
+                    var limitParameter = command.CreateParameter();
+                    limitParameter.ParameterName = "@maxPrintCount";
+                    limitParameter.DbType = DbType.Int32;
+                    limitParameter.Value = maxPrintCount;
+                    command.Parameters.Add(limitParameter);
+                    var changed = Convert.ToInt32(command.ExecuteScalar());
                     if (changed != 1)
                         return new BaseResult(false,
                             $"ژتون شماره {id} پیدا نشد یا سقف {maxPrintCount} نوبت چاپ آن پر شده است.");
@@ -357,8 +380,13 @@ namespace BLL.ReserveManagment
             }
             catch (Exception ex)
             {
-                _printLogger.LogError(ex, "ثبت نوبت چاپ ژتون ناموفق بود. UserId: {UserId}", userId);
-                return new BaseResult(false, "ثبت نوبت چاپ انجام نشد. دوباره تلاش کنید.");
+                _printLogger.LogError(ex,
+                    "ثبت نوبت چاپ ژتون ناموفق بود. UserId: {UserId}, DetailIds: {DetailIds}",
+                    userId, string.Join(",", ids));
+                if (ex is Microsoft.Data.SqlClient.SqlException sql && sql.Number == 207)
+                    return new BaseResult(false,
+                        "ستون شمارنده چاپ در بانک فعلی وجود ندارد. اتصال بانک و اجرای migration مربوط به PrintCount را بررسی کنید.");
+                return new BaseResult(false, "ثبت نوبت چاپ انجام نشد. جزئیات خطا در لاگ سرور ثبت شد.");
             }
         }
 
