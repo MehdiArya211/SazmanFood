@@ -49,12 +49,13 @@
             font: bold 14px Tahoma, sans-serif;
             cursor: pointer;
         }
-        .tickets { padding: 20px 8px; }
+        .tickets { padding: 20px 8px; display: flex; flex-direction: column; align-items: center; }
         .ticket {
             background: #fff;
-            width: 56mm;
+            width: 50mm;
+            max-width: 100%;
             margin: 0 auto 18px;
-            padding: 3mm;
+            padding: 2.5mm;
             border: 1px solid #d9dee3;
             border-radius: 6px;
             box-shadow: 0 6px 22px rgba(0, 0, 0, .10);
@@ -160,21 +161,25 @@
             margin-top: 10px;
         }
         @@media print {
-            @@page { margin: 0; }
+            @@page { size: 58mm auto; margin: 0; }
             html, body {
                 background: #fff;
                 margin: 0;
                 padding: 0;
+                width: 58mm;
+                min-width: 58mm;
             }
             .print-toolbar { display: none !important; }
             .tickets { padding: 0; }
             .ticket {
+                display: block;
                 border: 0;
                 border-radius: 0;
                 box-shadow: none;
-                margin: 0;
-                padding: 3mm;
-                width: 56mm;
+                margin: 0 auto;
+                padding: 2.5mm;
+                width: 50mm;
+                max-width: 50mm;
                 break-inside: avoid;
                 page-break-inside: avoid;
                 break-after: page;
