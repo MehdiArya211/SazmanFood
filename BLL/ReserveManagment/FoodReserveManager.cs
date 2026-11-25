@@ -3,9 +3,11 @@ using DTO.Base;
 using DTO.Entities.FoodReservation;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Data;
@@ -24,18 +26,22 @@ namespace BLL.ReserveManagment
         private readonly ILogger<FoodReserveManager> _printLogger;
         private readonly string _configuredPrinterName;
         private readonly ApplicationContext _db;
+        private readonly IWebHostEnvironment _webEnvironment;
+        private static readonly object PrintDiagnosticLock = new();
 
         public FoodReserveManager(
             DbContexts context,
             IHttpContextAccessor httpContextAccessor,
             IFoodReserveDetailManager foodReserveDetailManager,
             IOptions<PrinterOptions> printerOptions,
-            ILogger<FoodReserveManager> printLogger) : base(context, httpContextAccessor)
+            ILogger<FoodReserveManager> printLogger,
+            IWebHostEnvironment webEnvironment) : base(context, httpContextAccessor)
         {
             this.httpContextAccessor = httpContextAccessor;
             Session = httpContextAccessor.HttpContext?.Session;
             _foodReserveDetailManager = foodReserveDetailManager;
             _printLogger = printLogger;
+            _webEnvironment = webEnvironment;
             _db = (ApplicationContext)context["ApplicationContext"];
 
             // هرگز بدون پیکربندی صریح به یک نام چاپگر قدیمی و احتمالاً
@@ -383,10 +389,37 @@ SELECT @@ROWCOUNT;";
                 _printLogger.LogError(ex,
                     "ثبت نوبت چاپ ژتون ناموفق بود. UserId: {UserId}, DetailIds: {DetailIds}",
                     userId, string.Join(",", ids));
+                WriteLocalPrintDiagnostic(ex);
                 if (ex is Microsoft.Data.SqlClient.SqlException sql && sql.Number == 207)
                     return new BaseResult(false,
                         "ستون شمارنده چاپ در بانک فعلی وجود ندارد. اتصال بانک و اجرای migration مربوط به PrintCount را بررسی کنید.");
                 return new BaseResult(false, "ثبت نوبت چاپ انجام نشد. جزئیات خطا در لاگ سرور ثبت شد.");
+            }
+        }
+
+        private void WriteLocalPrintDiagnostic(Exception exception)
+        {
+            if (!_webEnvironment.IsDevelopment()) return;
+
+            try
+            {
+                var root = _webEnvironment.WebRootPath
+                    ?? Path.Combine(_webEnvironment.ContentRootPath, "wwwroot");
+                var directory = Path.Combine(root, "diagnostics");
+                Directory.CreateDirectory(directory);
+                var sql = exception as Microsoft.Data.SqlClient.SqlException;
+                var entry = $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}] RecordPrintAttempt\n" +
+                    $"Type: {exception.GetType().FullName}\n" +
+                    $"SQL Number: {(sql?.Number.ToString() ?? "-")}\n" +
+                    $"Message: {exception.Message}\n" +
+                    $"Inner: {exception.InnerException?.Message ?? "-"}\n" +
+                    $"Stack: {exception.StackTrace}\n\n";
+                lock (PrintDiagnosticLock)
+                    File.AppendAllText(Path.Combine(directory, "food-ticket-print.txt"), entry);
+            }
+            catch (Exception logError)
+            {
+                _printLogger.LogWarning(logError, "نوشتن لاگ چاپ در wwwroot ناموفق بود.");
             }
         }
 
