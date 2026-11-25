@@ -328,7 +328,12 @@
             const printStartTime = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PrintStartTime ?? "12:00"));
             const maxPrintCount = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MaxPrintCount ?? 3));
             window.addEventListener('message', event => {
-                if (event.origin !== window.location.origin || event.data?.type !== 'food-ticket-print') return;
+                if (event.origin !== window.location.origin) return;
+                if (event.data?.type === 'food-ticket-printed-logout') {
+                    window.location.assign('/Authentication/Logout');
+                    return;
+                }
+                if (event.data?.type !== 'food-ticket-print') return;
                 (event.data.items || []).forEach(printed => {
                     const item = weeklyFoodData.find(x => Number(x.FoodReserveDetaileId) === Number(printed.FoodReserveDetaileId));
                     if (!item) return;

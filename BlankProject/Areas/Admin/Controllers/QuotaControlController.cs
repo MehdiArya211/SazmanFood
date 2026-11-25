@@ -107,6 +107,30 @@ public class QuotaControlController : Controller
         });
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult SaveFaceLoginOptions(bool logoutFaceUserAfterPrint)
+    {
+        var user = HttpContext.Session.GetUser();
+        if (user == null || user.RoleId != RoleConstant.Admin || !user.IsEnabled)
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                Status = false,
+                Message = "فقط مدیر سیستم مجاز به تغییر تنظیمات ورود چهره است."
+            });
+
+        var policy = _constantManager.GetFoodTimingPolicy();
+        policy.LogoutFaceUserAfterPrint = logoutFaceUserAfterPrint;
+        var result = _constantManager.SaveFoodTimingPolicy(policy);
+        if (!result.Status)
+            return BadRequest(new { Status = false, result.Message });
+
+        _logger.LogInformation(
+            "تنظیم خروج پس از چاپ در ورود چهره تغییر کرد. AdminUserId: {AdminUserId}, LogoutAfterPrint: {LogoutAfterPrint}",
+            user.Id, logoutFaceUserAfterPrint);
+        return Json(new { Status = true, Message = "تنظیمات ورود چهره ذخیره شد." });
+    }
+
     /// <summary>
     /// فقط مدیر می‌تواند برای سهمیه‌های ثبت‌شده قبلی حساب اولیه بسازد.
     /// هیچ کلمه عبور موجودی در این مسیر تغییر داده نمی‌شود.
@@ -168,6 +192,9 @@ public class QuotaControlController : Controller
             Message = "فقط مدیر سیستم مجاز به تغییر تنظیمات رزرو است."
             });
 
+        // فرم زمان‌بندی این گزینه را ارسال نمی‌کند؛ مقدار ذخیره‌شده را حفظ کن.
+        policy.LogoutFaceUserAfterPrint =
+            _constantManager.GetFoodTimingPolicy().LogoutFaceUserAfterPrint;
         var result = _constantManager.SaveFoodTimingPolicy(policy);
         if (!result.Status)
         {

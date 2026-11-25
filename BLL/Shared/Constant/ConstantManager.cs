@@ -177,7 +177,7 @@ namespace BLL
                 return new FoodTimingPolicyDTO();
 
             var sections = setting.Value.Split('|');
-            if ((sections.Length != 3 && sections.Length != 5 && sections.Length != 6) ||
+            if ((sections.Length != 3 && sections.Length != 5 && sections.Length != 6 && sections.Length != 7) ||
                 !sections[0].StartsWith("p", StringComparison.Ordinal) ||
                 !sections[1].StartsWith("r", StringComparison.Ordinal))
             {
@@ -233,17 +233,27 @@ namespace BLL
             }
 
             var maxPrintCount = 3;
-            if (sections.Length == 6 &&
+            var logoutFaceUserAfterPrint = false;
+            if (sections.Length >= 6 &&
                 (!sections[5].StartsWith("c", StringComparison.Ordinal) ||
                  !int.TryParse(sections[5].Substring(1), out maxPrintCount) ||
                  maxPrintCount < 1 || maxPrintCount > 20))
                 throw new InvalidOperationException("حداکثر تعداد چاپ ژتون معتبر نیست.");
+            if (sections.Length == 7)
+            {
+                var faceOptions = sections[6];
+                if (!faceOptions.StartsWith("f", StringComparison.Ordinal) ||
+                    faceOptions.Length != 2 || (faceOptions[1] != '0' && faceOptions[1] != '1'))
+                    throw new InvalidOperationException("تنظیمات رفتار ورود چهره معتبر نیست.");
+                logoutFaceUserAfterPrint = faceOptions[1] == '1';
+            }
 
             return new FoodTimingPolicyDTO
             {
                 PrintTimeEnabled = printParts[0] == "1",
                 PrintStartTime = printParts[1],
                 MaxPrintCount = maxPrintCount,
+                LogoutFaceUserAfterPrint = logoutFaceUserAfterPrint,
                 ReservationDeadlineEnabled = sections[1] == "r1",
                 BlockPastDays = sections.Length >= 5 && sections[3] == "b1",
                 BreakfastReservable = flags[0] == '1',
@@ -298,7 +308,8 @@ namespace BLL
                     policy.DessertReservable, policy.DessertVisible,
                     policy.SideDishReservable, policy.SideDishVisible
                 }.Select(x => x ? "1" : "0")) +
-                "|c" + policy.MaxPrintCount;
+                "|c" + policy.MaxPrintCount +
+                "|f" + (policy.LogoutFaceUserAfterPrint ? "1" : "0");
 
             if (serialized.Length > 300)
                 return new BaseResult(false, "مقادیر تنظیمات زمان‌بندی بیش از حد مجاز است.");

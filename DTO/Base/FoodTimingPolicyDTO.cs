@@ -18,6 +18,9 @@ namespace DTO.Base
         public bool BlockPastDays { get; set; } = false;
         public int MaxPrintCount { get; set; } = 3;
 
+        /// <summary>پس از چاپ مرورگری ژتون در نشست چهره، نشست کاربر بسته شود.</summary>
+        public bool LogoutFaceUserAfterPrint { get; set; } = false;
+
         public bool BreakfastReservable { get; set; } = true;
         public bool BreakfastVisible { get; set; } = true;
         public bool LunchReservable { get; set; } = true;
