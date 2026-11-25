@@ -1,0 +1,104 @@
+@model Food.Areas.LogSystem.Models.DiagnosticLogViewModel
+@using Food.Areas.LogSystem.Models
+@{
+    ViewData["Title"] = "گزارش خطاهای سامانه";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    DiagnosticLogRow? selected = ViewBag.Selected as DiagnosticLogRow;
+}
+
+<style>
+    .diag-wrap{direction:rtl;color:#263746}
+    .diag-hero{background:linear-gradient(120deg,#123c33,#187b63);color:#fff;border-radius:16px;padding:24px;margin:12px 0 20px;box-shadow:0 10px 24px #14392d22}
+    .diag-hero h2{margin:0 0 8px;font-weight:700}.diag-hero p{margin:0;opacity:.9}
+    .diag-card{background:#fff;border:1px solid #e5ebf0;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 5px 18px #2437460b}
+    .diag-filters{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.diag-filters label{display:block;margin-bottom:6px;font-weight:600}
+    .diag-filters input{min-width:280px;height:42px;border:1px solid #d9e2e8;border-radius:9px;padding:8px 11px}
+    .diag-table{width:100%;border-collapse:collapse}.diag-table th,.diag-table td{padding:12px 10px;border-bottom:1px solid #edf0f2;text-align:right;vertical-align:top}
+    .diag-table th{background:#f6f8fa;color:#526575}.diag-badge{display:inline-block;border-radius:30px;padding:4px 10px;background:#fff0ec;color:#b3442c;font-weight:700}
+    .diag-muted{color:#758696;font-size:13px}.diag-detail{border-right:4px solid #17a184;background:#f5faf8}
+    .diag-detail h3{margin:0 0 8px}.diag-detail h4{margin:18px 0 6px}
+    .diag-detail pre{direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;background:#17212a;color:#e8eef2;padding:14px;border-radius:10px;max-height:380px;overflow:auto;font-size:12px}
+    .diag-pagination{display:flex;gap:8px;justify-content:center;padding-top:16px}.diag-empty{text-align:center;padding:35px;color:#778899}
+    .diag-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+    .diag-meta div{background:#fff;border:1px solid #e7edf0;border-radius:9px;padding:10px}.diag-meta b{display:block;color:#71818b;font-size:12px;margin-bottom:4px}
+</style>
+
+<div class="diag-wrap">
+    <section class="diag-hero">
+        <h2><i class="material-icons" style="vertical-align:middle">troubleshoot</i> گزارش خطاهای سامانه</h2>
+        <p>زمان شمسی، صفحه و عملیات هر خطا را ببینید؛ جزئیات فنی و موارد پیشنهادی برای بررسی هم در دسترس است.</p>
+    </section>
+
+    <section class="diag-card">
+        <form method="get" asp-area="LogSystem" asp-controller="SeriLog" asp-action="Diagnostics" class="diag-filters">
+            <div>
+                <label for="q">جستجو</label>
+                <input id="q" name="q" value="@Model.Query" placeholder="شناسه پیگیری، صفحه، پیام خطا یا کاربر" />
+            </div>
+            <button class="btn btn-success" type="submit"><i class="material-icons">search</i> جستجو</button>
+            <a class="btn btn-default" asp-area="LogSystem" asp-controller="SeriLog" asp-action="Diagnostics">پاک کردن</a>
+        </form>
+    </section>
+
+    @if (selected != null)
+    {
+        <section class="diag-card diag-detail" id="details">
+            <h3>جزئیات خطا <span class="diag-badge">@selected.Reference</span></h3>
+            <p>@selected.Message</p>
+            <div class="diag-meta">
+                <div><b>تاریخ و ساعت شمسی</b>@selected.PersianDate</div>
+                <div><b>صفحه</b>@selected.Path</div>
+                <div><b>عملیات</b>@selected.Method @selected.Endpoint</div>
+                <div><b>کاربر</b>@(string.IsNullOrWhiteSpace(selected.Username) ? "ثبت نشده" : selected.Username)</div>
+                <div><b>نوع خطا</b>@selected.ExceptionType</div>
+                <div><b>شناسه درخواست</b>@selected.TraceId</div>
+            </div>
+            <h4>معنی خطا</h4><p>@selected.Meaning</p>
+            <h4>چه چیزی را بررسی کنم؟</h4><p>@selected.WhatToCheck</p>
+            <h4>پیام فنی</h4><pre>@selected.ExceptionMessage</pre>
+            <details><summary style="cursor:pointer;color:#137d67;font-weight:600">نمایش Stack Trace کامل</summary><pre>@selected.StackTrace</pre></details>
+        </section>
+    }
+
+    <section class="diag-card">
+        <h3 style="margin-top:0">رخدادهای ثبت‌شده <span class="diag-muted">(@Model.TotalCount مورد)</span></h3>
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="diag-empty">
+                <i class="material-icons" style="font-size:38px">task_alt</i>
+                <p>خطایی ثبت نشده یا با عبارت جستجو‌شده موردی پیدا نشد.</p>
+            </div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="diag-table">
+                    <thead><tr><th>زمان شمسی</th><th>شرح خطا</th><th>صفحه و عملیات</th><th>شناسه پیگیری</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            <td>@row.PersianDate</td>
+                            <td><span class="diag-badge">@row.Level</span><br />@row.Message<br /><span class="diag-muted">@row.ExceptionType: @row.ExceptionMessage</span></td>
+                            <td>@row.Path<br /><span class="diag-muted">@row.Method @row.Endpoint</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(row.Reference) ? "—" : row.Reference)</td>
+                            <td><a class="btn btn-sm btn-info" href="@Url.Action("Diagnostics", "SeriLog", new { area = "LogSystem", id = row.Id, q = Model.Query, page = Model.Page })#details">بررسی</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="diag-pagination">
+                @if (Model.Page > 1)
+                {
+                    <a class="btn btn-default" asp-area="LogSystem" asp-controller="SeriLog" asp-action="Diagnostics" asp-route-page="@(Model.Page - 1)" asp-route-q="@Model.Query">صفحه قبل</a>
+                }
+                <span class="btn btn-simple">صفحه @Model.Page از @Model.TotalPages</span>
+                @if (Model.Page < Model.TotalPages)
+                {
+                    <a class="btn btn-default" asp-area="LogSystem" asp-controller="SeriLog" asp-action="Diagnostics" asp-route-page="@(Model.Page + 1)" asp-route-q="@Model.Query">صفحه بعد</a>
+                }
+            </div>
+        }
+    </section>
+</div>
