@@ -5,6 +5,8 @@
     var CAction = ViewContext.RouteData.Values["Action"]?.ToString()?.ToLower();
 
     var User = Context.Session.GetUser();
+    var signedFaceLogin = Context.Session.GetString("VerifiedFaceLogin") == "true";
+    var hideFaceMenus = signedFaceLogin;
 }
 
 <!doctype html>
@@ -46,6 +48,8 @@
 
 <body>
     <div class="wrapper">
+        @if (!hideFaceMenus)
+        {
         <div class="sidebar" data-active-color="rose" data-background-color="black" data-image="/assets/img/sidebar-1.jpg">
 
             <div class="logo">
@@ -130,7 +134,14 @@
                 </ul>
             </div>
         </div>
-        <div class="main-panel">
+        }
+        <div class="main-panel @(hideFaceMenus ? "face-kiosk-panel" : "")">
+            @if (hideFaceMenus)
+            {
+                <style>.face-kiosk-panel{float:none;width:100%!important;margin:0!important}.face-kiosk-panel>.content{margin-top:0!important}</style>
+            }
+            @if (!hideFaceMenus)
+            {
             <nav class="navbar navbar-transparent navbar-absolute">
                 <div class="container-fluid">
                     <div class="navbar-minimize">
@@ -328,9 +339,14 @@
                     </div>
                 </div>
             </nav>
+            }
 
 
-            <div class="content main-content">
+            <div class="content main-content @(hideFaceMenus ? "face-kiosk-content" : "")">
+                @if (hideFaceMenus)
+                {
+                    <style>.face-kiosk-content{margin-left:0!important;width:100%!important;padding:12px!important}.face-kiosk-content>.row{margin:0}</style>
+                }
                 <div class="row">
                                 <!-- تصویر خوش آمد -->
 

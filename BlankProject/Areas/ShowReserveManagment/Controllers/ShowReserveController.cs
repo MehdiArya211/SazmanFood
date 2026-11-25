@@ -138,6 +138,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             var user = HttpContext.Session.GetUser();
             if (user == null)
                 return Unauthorized("نشست کاربری منقضی شده است.");
+            var faceLogin = HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
+            var facePolicy = _constantManager.GetFoodTimingPolicy();
 
             var ids = (foodReserveDetaileIds ?? string.Empty)
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -205,6 +207,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                 item.PrintCount = printCounts![item.FoodReserveDetaileId];
 
             ViewBag.PrintUserName = user.FullName;
+            ViewBag.FaceLoginLogoutAfterPrint =
+                faceLogin && facePolicy.LogoutFaceUserAfterPrint;
             var siteBaseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
             ViewBag.DeliveryQrImages = _foodReserveManager.GetLegacyDeliveryQrImages(
                 ids, user.Id, siteBaseUrl);
@@ -276,6 +280,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
 
             try
             {
+                var faceLogin = HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
                 var reservations =
                     await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
                 var owned = reservations
@@ -283,7 +288,8 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                     .ToList();
 
                 var permittedIds = GetPrintableIds(user, owned);
-                var maxPrintCount = _constantManager.GetFoodTimingPolicy().MaxPrintCount;
+                var facePolicy = _constantManager.GetFoodTimingPolicy();
+                var maxPrintCount = facePolicy.MaxPrintCount;
                 if (owned.Any(x => x.PrintCount >= maxPrintCount))
                     return StatusCode(StatusCodes.Status409Conflict,
                         new { Status = false, Message = $"سقف {maxPrintCount} نوبت چاپ برای ژتون پر شده است." });
@@ -356,6 +362,35 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                             "تمدید نشست پس از ارسال چاپ ناموفق بود. UserId: {UserId}",
                             user.Id);
                     }
+
+                    var logoutAfterPrint = faceLogin && facePolicy.LogoutFaceUserAfterPrint;
+                    if (logoutAfterPrint)
+                    {
+                        try
+                        {
+                            await _redis.db.RemoveLoginToken(user.Id);
+                        }
+                        catch (Exception logoutException)
+                        {
+                            // حذف کوکی و نشست محلی را انجام می‌دهیم حتی اگر Redis در دسترس نباشد.
+                            _logger.LogError(logoutException,
+                                "حذف توکن Redis پس از چاپ ناموفق بود. UserId: {UserId}", user.Id);
+                        }
+                        finally
+                        {
+                            HttpContext.Session.RemoveUser();
+                            HttpContext.Session.Remove("VerifiedFaceLogin");
+                            HttpContext.Response.Cookies.Delete("_session.cookie");
+                        }
+                    }
+
+                    return Json(new
+                    {
+                        Status = true,
+                        Message = result.Message,
+                        Model = result.Model,
+                        Logout = logoutAfterPrint
+                    });
                 }
 
                 return Json(new

@@ -9,6 +9,7 @@
     var printUserName = ViewBag.PrintUserName as string ?? "-";
     var deliveryQrImages = ViewBag.DeliveryQrImages as IReadOnlyDictionary<long, string>
         ?? new Dictionary<long, string>();
+    var logoutFaceAfterPrint = ViewBag.FaceLoginLogoutAfterPrint is bool logout && logout;
 }
 
 <!DOCTYPE html>
@@ -263,10 +264,19 @@
                     @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(x => new { x.FoodReserveDetaileId, x.PrintCount })))
                 }, window.location.origin);
             }
+            const logoutFaceAfterPrint = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(logoutFaceAfterPrint));
+            window.foodTicketLogoutAfterPrint = logoutFaceAfterPrint;
             // مرورگر روی همان دستگاهی که کاربر وارد شده است چاپ را شروع می‌کند.
             window.print();
         });
-        window.addEventListener('afterprint', function () { window.close(); });
+        window.addEventListener('afterprint', function () {
+            if (window.foodTicketLogoutAfterPrint && window.opener) {
+                window.opener.postMessage({
+                    type: 'food-ticket-printed-logout',
+                }, window.location.origin);
+            }
+            window.close();
+        });
     </script>
 </body>
 </html>
