@@ -154,7 +154,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             // داده‌ها فقط از رزروهای همین کاربر خوانده می‌شوند؛
             // شناسه‌های ارسالی مرورگر به تنهایی مجوز چاپ ایجاد نمی‌کنند.
             var userReservations =
-                await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
+                await _foodReserveManager.GetFoodReservesForPrint(user.Id, ids);
 
             var printableItems = userReservations
                 .Where(item => ids.Contains(item.FoodReserveDetaileId))
@@ -282,7 +282,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             {
                 var faceLogin = HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
                 var reservations =
-                    await _foodReserveManager.GetWeeklyFoodReserve(user.Id);
+                    await _foodReserveManager.GetFoodReservesForPrint(user.Id, ids);
                 var owned = reservations
                     .Where(x => ids.Contains(x.FoodReserveDetaileId))
                     .ToList();

@@ -17,6 +17,7 @@ namespace BLL.ReserveManagment
         public BaseResult AddToReserveAndReserveDetail(FoodReserveDTO model);
 
         Task<List<WeeklyFoodReserveDTO>> GetWeeklyFoodReserve(long userId);
+        Task<List<WeeklyFoodReserveDTO>> GetFoodReservesForPrint(long userId, IReadOnlyCollection<long> detailIds);
         BaseResult RecordPrintAttempt(IReadOnlyCollection<long> detailIds, long userId, int maxPrintCount);
         IReadOnlyDictionary<long, string> GetLegacyDeliveryQrImages(
             IReadOnlyCollection<long> detailIds, long userId, string siteBaseUrl);

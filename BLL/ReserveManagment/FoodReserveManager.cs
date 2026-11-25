@@ -98,121 +98,113 @@ namespace BLL.ReserveManagment
 
             try
             {
-                // EnableRetryOnFailure requires the complete explicit transaction
-                // to run inside the SQL Server execution strategy.
-                var strategy = _db.Database.CreateExecutionStrategy();
-                return strategy.Execute(() =>
+                using var transaction = _db.Database.BeginTransaction(IsolationLevel.Serializable);
+                var existing = UOW.FoodReserve.Get(
+                    x => x.UserId == model.UserId &&
+                         x.WeekStartDate == model.WeekStartDate.Date &&
+                         x.WeekEndDate == model.WeekEndDate.Date)
+                    .FirstOrDefault();
+
+                var newDetails = model.Details.Select(item => new FoodReserveDetail
                 {
-                    // A retried attempt must not reuse entities tracked by a failed attempt.
-                    _db.ChangeTracker.Clear();
-                    using var transaction = _db.Database.BeginTransaction(IsolationLevel.Serializable);
-                    var existing = UOW.FoodReserve.Get(
-                        x => x.UserId == model.UserId &&
-                             x.WeekStartDate == model.WeekStartDate.Date &&
-                             x.WeekEndDate == model.WeekEndDate.Date)
-                        .FirstOrDefault();
+                    DayId = item.DayId,
+                    MealId = item.MealId,
+                    MainFoodId = item.MainFoodId,
+                    DessertId = item.DessertId,
+                    SideDishId = item.SideDishId
+                }).ToList();
 
-                    var newDetails = model.Details.Select(item => new FoodReserveDetail
+                if (existing == null)
+                {
+                    if (newDetails.Count == 0)
+                        return new BaseResult(false, "لطفاً حداقل یک غذا را انتخاب کنید.");
+
+                    var now = FoodTimingRules.GetIranNow();
+                    UOW.FoodReserve.Add(new FoodReserve
                     {
-                        DayId = item.DayId,
-                        MealId = item.MealId,
-                        MainFoodId = item.MainFoodId,
-                        DessertId = item.DessertId,
-                        SideDishId = item.SideDishId
-                    }).ToList();
+                        UserId = model.UserId,
+                        WeekStartDate = model.WeekStartDate.Date,
+                        WeekEndDate = model.WeekEndDate.Date,
+                        Year = now.Year,
+                        Month = now.Month,
+                        CreatedAt = now,
+                        Details = newDetails
+                    });
+                }
+                else
+                {
+                    // برخلاف حذف رزرو اصلی و ایجاد مجدد آن، فقط جزئیات روزها و وعده‌های
+                    // قابل‌ویرایش تغییر می‌کنند. موارد قفل‌شده همان شناسه را دارند.
+                    var allExisting = UOW.FoodReserveDetail.Get(
+                        x => x.FoodReserveId == existing.Id)
+                        .ToList();
+                    var editableExisting = allExisting
+                        .Where(x => slots.Contains((x.DayId, x.MealId)) && x.PrintCount == 0)
+                        .ToList();
 
-                    if (existing == null)
+                    // ژتون چاپ‌شده هرگز با حذف انتخاب از فرم یا تغییر غذا جایگزین نمی‌شود.
+                    if (allExisting.Any(x => x.PrintCount > 0 &&
+                        slots.Contains((x.DayId, x.MealId)) &&
+                         newDetails.Any(d => d.DayId == x.DayId && d.MealId == x.MealId &&
+                             (d.MainFoodId != x.MainFoodId || d.DessertId != x.DessertId ||
+                              d.SideDishId != x.SideDishId))))
+                        return new BaseResult(false, "ژتون این وعده قبلاً چاپ شده و غذای آن قابل تغییر یا حذف نیست.");
+
+                    if (newDetails.Count == 0 && editableExisting.Count == 0)
+                        return new BaseResult(false, "غذایی برای تغییر انتخاب نشده است.");
+
+                    var incoming = newDetails.ToDictionary(
+                        x => (x.DayId, x.MealId));
+
+                    // مقدار یکسانِ ارسالی برای ژتون چاپ‌شده نیز نباید دوباره درج شود.
+                    foreach (var printed in allExisting.Where(x => x.PrintCount > 0))
+                        incoming.Remove((printed.DayId, printed.MealId));
+
+                    foreach (var oldDetail in editableExisting)
                     {
-                        if (newDetails.Count == 0)
-                            return new BaseResult(false, "لطفاً حداقل یک غذا را انتخاب کنید.");
-
-                        var now = FoodTimingRules.GetIranNow();
-                        UOW.FoodReserve.Add(new FoodReserve
+                        var key = (oldDetail.DayId, oldDetail.MealId);
+                        if (incoming.TryGetValue(key, out var incomingDetail))
                         {
-                            UserId = model.UserId,
-                            WeekStartDate = model.WeekStartDate.Date,
-                            WeekEndDate = model.WeekEndDate.Date,
-                            Year = now.Year,
-                            Month = now.Month,
-                            CreatedAt = now,
-                            Details = newDetails
-                        });
-                    }
-                    else
-                    {
-                        // برخلاف حذف رزرو اصلی و ایجاد مجدد آن، فقط جزئیات روزها و وعده‌های
-                        // قابل‌ویرایش تغییر می‌کنند. موارد قفل‌شده همان شناسه را دارند.
-                        var allExisting = UOW.FoodReserveDetail.Get(
-                            x => x.FoodReserveId == existing.Id)
-                            .ToList();
-                        var editableExisting = allExisting
-                            .Where(x => slots.Contains((x.DayId, x.MealId)) && x.PrintCount == 0)
-                            .ToList();
-
-                        // ژتون چاپ‌شده هرگز با حذف انتخاب از فرم یا تغییر غذا جایگزین نمی‌شود.
-                        if (allExisting.Any(x => x.PrintCount > 0 &&
-                            slots.Contains((x.DayId, x.MealId)) &&
-                             newDetails.Any(d => d.DayId == x.DayId && d.MealId == x.MealId &&
-                                 (d.MainFoodId != x.MainFoodId || d.DessertId != x.DessertId ||
-                                  d.SideDishId != x.SideDishId))))
-                            return new BaseResult(false, "ژتون این وعده قبلاً چاپ شده و غذای آن قابل تغییر یا حذف نیست.");
-
-                        if (newDetails.Count == 0 && editableExisting.Count == 0)
-                            return new BaseResult(false, "غذایی برای تغییر انتخاب نشده است.");
-
-                        var incoming = newDetails.ToDictionary(
-                            x => (x.DayId, x.MealId));
-
-                        // مقدار یکسانِ ارسالی برای ژتون چاپ‌شده نیز نباید دوباره درج شود.
-                        foreach (var printed in allExisting.Where(x => x.PrintCount > 0))
-                            incoming.Remove((printed.DayId, printed.MealId));
-
-                        foreach (var oldDetail in editableExisting)
-                        {
-                            var key = (oldDetail.DayId, oldDetail.MealId);
-                            if (incoming.TryGetValue(key, out var incomingDetail))
+                            // در صورت ویرایش فقط محتوای غذا به‌روزرسانی شود؛
+                            // شناسه ژتون برای همان روز/وعده ثابت می‌ماند.
+                            if (oldDetail.MainFoodId != incomingDetail.MainFoodId ||
+                                oldDetail.DessertId != incomingDetail.DessertId ||
+                                oldDetail.SideDishId != incomingDetail.SideDishId)
                             {
-                                // در صورت ویرایش فقط محتوای غذا به‌روزرسانی شود؛
-                                // شناسه ژتون برای همان روز/وعده ثابت می‌ماند.
-                                if (oldDetail.MainFoodId != incomingDetail.MainFoodId ||
-                                    oldDetail.DessertId != incomingDetail.DessertId ||
-                                    oldDetail.SideDishId != incomingDetail.SideDishId)
-                                {
-                                    oldDetail.MainFoodId = incomingDetail.MainFoodId;
-                                    oldDetail.DessertId = incomingDetail.DessertId;
-                                    oldDetail.SideDishId = incomingDetail.SideDishId;
-                                    UOW.FoodReserveDetail.Update(oldDetail);
-                                }
+                                oldDetail.MainFoodId = incomingDetail.MainFoodId;
+                                oldDetail.DessertId = incomingDetail.DessertId;
+                                oldDetail.SideDishId = incomingDetail.SideDishId;
+                                UOW.FoodReserveDetail.Update(oldDetail);
+                            }
 
-                                incoming.Remove(key);
-                            }
-                            else
-                            {
-                                // صرفاً وعده حذف‌شده از فرم و هنوز قابل‌ویرایش.
-                                UOW.FoodReserveDetail.Remove(oldDetail);
-                            }
+                            incoming.Remove(key);
                         }
-
-                        foreach (var newDetail in incoming.Values)
+                        else
                         {
-                            newDetail.FoodReserveId = existing.Id;
-                            UOW.FoodReserveDetail.Add(newDetail);
+                            // صرفاً وعده حذف‌شده از فرم و هنوز قابل‌ویرایش.
+                            UOW.FoodReserveDetail.Remove(oldDetail);
                         }
-
-                        if (newDetails.Count == 0 && allExisting.Count == editableExisting.Count)
-                            UOW.FoodReserve.Remove(existing);
                     }
 
-                    // همه حذف‌ها و درج‌ها در یک SaveChanges دیتابیس انجام می‌شوند.
-                    // EF Core تغییرات یک SaveChanges را به صورت تراکنشی ذخیره می‌کند.
-                    var success = UOW.Commit();
-                    if (success) transaction.Commit();
-                    return new BaseResult(
-                        success,
-                        success
-                            ? "برنامه غذایی با موفقیت ثبت شد."
-                            : "ذخیره رزرو انجام نشد؛ رزرو قبلی را بررسی کنید.");
-                });
+                    foreach (var newDetail in incoming.Values)
+                    {
+                        newDetail.FoodReserveId = existing.Id;
+                        UOW.FoodReserveDetail.Add(newDetail);
+                    }
+
+                    if (newDetails.Count == 0 && allExisting.Count == editableExisting.Count)
+                        UOW.FoodReserve.Remove(existing);
+                }
+
+                // همه حذف‌ها و درج‌ها در یک SaveChanges دیتابیس انجام می‌شوند.
+                // EF Core تغییرات یک SaveChanges را به صورت تراکنشی ذخیره می‌کند.
+                var success = UOW.Commit();
+                if (success) transaction.Commit();
+                return new BaseResult(
+                    success,
+                    success
+                        ? "برنامه غذایی با موفقیت ثبت شد."
+                        : "ذخیره رزرو انجام نشد؛ رزرو قبلی را بررسی کنید.");
             }
             catch (Exception ex)
             {
@@ -310,6 +302,29 @@ namespace BLL.ReserveManagment
             return list;
         }
 
+        public Task<List<WeeklyFoodReserveDTO>> GetFoodReservesForPrint(long userId, IReadOnlyCollection<long> detailIds)
+        {
+            var ids = detailIds.Distinct().ToArray();
+            if (ids.Length == 0)
+                return Task.FromResult(new List<WeeklyFoodReserveDTO>());
+
+            var items = _db.FoodReserveDetails.AsNoTracking()
+                .Where(d => ids.Contains(d.Id) && d.FoodReserve.UserId == userId)
+                .Select(d => new WeeklyFoodReserveDTO
+                {
+                    Date = d.FoodReserve.WeekStartDate.AddDays(d.Day.Code - 1),
+                    DayTitle = d.Day.Title,
+                    FoodReserveDetaileId = d.Id,
+                    PrintCount = d.PrintCount,
+                    MealId = d.MealId,
+                    MealTitle = d.Meal.Title,
+                    MainFood = d.MainFood != null ? d.MainFood.Title : "-",
+                    Dessert = d.Dessert != null ? d.Dessert.Title : "-",
+                    SideDish = d.SideDish != null ? d.SideDish.Title : "-"
+                }).ToList();
+            return Task.FromResult(items);
+        }
+
         public BaseResult RecordPrintAttempt(IReadOnlyCollection<long> detailIds, long userId, int maxPrintCount)
         {
             var ids = detailIds?.Distinct().OrderBy(x => x).ToList();
@@ -318,55 +333,27 @@ namespace BLL.ReserveManagment
 
             try
             {
-                // The print-count transaction must be replayed as one unit when
-                // SQL Server connection retries are enabled.
-                var strategy = _db.Database.CreateExecutionStrategy();
-                Dictionary<long, int> lastAttemptCounts = null;
-                return strategy.Execute(() =>
+                using var transaction = _db.Database.BeginTransaction(IsolationLevel.Serializable);
+                var counts = new Dictionary<long, int>();
+                foreach (var id in ids)
                 {
-                    _db.ChangeTracker.Clear();
-                    using var transaction = _db.Database.BeginTransaction(IsolationLevel.Serializable);
+                    var changed = _db.Set<FoodReserveDetail>()
+                        .Where(x => x.Id == id && x.FoodReserve.UserId == userId &&
+                                    x.PrintCount < maxPrintCount)
+                        .ExecuteUpdate(setters => setters
+                            .SetProperty(x => x.PrintCount, x => x.PrintCount + 1));
+                    if (changed != 1)
+                        return new BaseResult(false,
+                            $"ژتون شماره {id} پیدا نشد یا سقف {maxPrintCount} نوبت چاپ آن پر شده است.");
 
-                    // If the connection dropped during Commit, verify whether the
-                    // previous attempt persisted before incrementing any ticket again.
-                    if (lastAttemptCounts != null)
-                    {
-                        var persisted = _db.Set<FoodReserveDetail>()
-                            .AsNoTracking()
-                            .Where(x => ids.Contains(x.Id) && x.FoodReserve.UserId == userId)
-                            .ToDictionary(x => x.Id, x => x.PrintCount);
-                        if (persisted.Count == ids.Count &&
-                            ids.All(id => persisted[id] == lastAttemptCounts[id]))
-                            return new BaseResult(true, "درخواست چاپ ثبت شد.", lastAttemptCounts);
+                    counts[id] = _db.Set<FoodReserveDetail>()
+                        .AsNoTracking().Where(x => x.Id == id)
+                        .Select(x => x.PrintCount).Single();
+                }
 
-                        if (persisted.Any(x => lastAttemptCounts.TryGetValue(x.Key, out var count) &&
-                                               x.Value > count))
-                            return new BaseResult(false,
-                                "وضعیت چاپ ژتون در درخواست هم‌زمان تغییر کرد. دوباره بررسی کنید.");
-                    }
-
-                    var counts = new Dictionary<long, int>();
-                    foreach (var id in ids)
-                    {
-                        var changed = _db.Set<FoodReserveDetail>()
-                            .Where(x => x.Id == id && x.FoodReserve.UserId == userId &&
-                                        x.PrintCount < maxPrintCount)
-                            .ExecuteUpdate(setters => setters
-                                .SetProperty(x => x.PrintCount, x => x.PrintCount + 1));
-                        if (changed != 1)
-                            return new BaseResult(false,
-                                $"ژتون شماره {id} پیدا نشد یا سقف {maxPrintCount} نوبت چاپ آن پر شده است.");
-
-                        counts[id] = _db.Set<FoodReserveDetail>()
-                            .AsNoTracking().Where(x => x.Id == id)
-                            .Select(x => x.PrintCount).Single();
-                    }
-
-                    lastAttemptCounts = counts;
-                    transaction.Commit();
-                    _db.ChangeTracker.Clear();
-                    return new BaseResult(true, "درخواست چاپ ثبت شد.", counts);
-                });
+                transaction.Commit();
+                _db.ChangeTracker.Clear();
+                return new BaseResult(true, "درخواست چاپ ثبت شد.", counts);
             }
             catch (Exception ex)
             {
