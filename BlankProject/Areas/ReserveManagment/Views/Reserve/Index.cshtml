@@ -1,7 +1,4 @@
-Warning: truncated output (original token count: 13937)
-Total output lines: 1206
-
-﻿@model DTO.Entities.FoodPlanReserveDTO
+@model DTO.Entities.FoodPlanReserveDTO
 @using DTO.Entities
 @using Domain.Entities.FoodManage
 @using Services.SessionServices
@@ -660,7 +657,180 @@ Total output lines: 1206
             }
 
             .reserve-card {
-                border-radius…1937 tokens truncated…و در صورت تمایل دسر و دورچین را مشخص کنید.</span>
+                border-radius: 13px;
+            }
+
+            .reserve-head {
+                padding: 14px;
+            }
+
+            .reserve-head-icon {
+                width: 44px;
+                height: 44px;
+                flex-basis: 44px;
+                border-radius: 12px;
+            }
+
+            .reserve-title {
+                font-size: 18px;
+            }
+
+            .reserve-hint {
+                font-size: 11px;
+            }
+
+            .reserve-week {
+                width: 100%;
+                justify-content: center;
+                font-size: 11px;
+            }
+
+            .day-header-inner {
+                min-height: 50px;
+                padding: 9px 10px;
+            }
+
+            .day-name {
+                font-size: 13px;
+            }
+
+            .reserve-table > tbody > tr.meal-row > td {
+                grid-template-columns: 70px minmax(0, 1fr);
+                padding: 9px 10px !important;
+            }
+        }
+    </style>
+}
+@if (freeReservationEnabled)
+{
+    <div class="alert alert-info text-center" role="status" style="font-size:14px;font-weight:700;">
+        <i class="material-icons" aria-hidden="true">info</i>
+        حالت رزرو آزاد فعال است؛ رزرو طبق برنامه غذایی موجود و بدون نیاز به سهمیه فردی انجام می‌شود.
+    </div>
+}
+@if (reservationDeadlineEnabled)
+{
+    <div class="alert alert-info text-center" role="status"
+         style="font-size:13px;font-weight:700;">
+        <i class="material-icons" aria-hidden="true">schedule</i>
+        محدودیت مهلت رزرو فعال است.
+        @if (closedReservationSlotsCount > 0)
+        {
+            <span>
+                مهلت رزرو @closedReservationSlotsCount وعده از این هفته به پایان رسیده است.
+                رزروهای ثبت‌شده قبلی این روزها حذف نمی‌شوند و ژتون آن‌ها طبق شرایط چاپ قابل دریافت است.
+            </span>
+        }
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(ViewBag.QuotaError as string))
+{
+    <div class="alert alert-warning text-center" role="alert" style="font-size:16px;font-weight:bold;">
+        <i class="material-icons" aria-hidden="true">warning</i>
+        @ViewBag.QuotaError
+    </div>
+}
+
+@if (saveSuccess != null || saveError != null)
+{
+    <div id="reserve-result" data-kind="@(saveSuccess != null ? "success" : "error")"
+         data-message="@(saveSuccess ?? saveError)" hidden></div>
+}
+
+<form method="post"
+      action="@Url.Action("Index", "Reserve", new { area = "ReserveManagment" })"
+      class="reserve-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="week" value="@weekOffset" />
+    @if (isDailyReservation) { <input type="hidden" name="selectedDay" value="@selectedDay" /> }
+    <div class="reserve-page @(isDailyReservation ? "kiosk-mode" : "")">
+    <div class="container reserve-container">
+        <div class="reserve-card">
+
+            <div class="reserve-head">
+                <div class="reserve-head-main">
+                    <div class="reserve-head-icon">
+                        <i class="material-icons">restaurant_menu</i>
+                    </div>
+                    <div>
+                        <h2 class="reserve-title">@(isDailyReservation ? "رزرو غذای امروز و روزهای آینده" : "رزرو غذای هفتگی")</h2>
+                        <div class="reserve-hint">
+                            برای هر وعده غذای موردنظر را انتخاب کنید. انتخاب دسر و دورچین اختیاری است.
+                        </div>
+                    </div>
+                </div>
+
+                @if (isDailyReservation)
+                {
+                    <div class="kiosk-range-card" role="status" aria-label="بازه فعلی رزرو غذا">
+                        <span class="kiosk-range-icon"><i class="material-icons" aria-hidden="true">event_available</i></span>
+                        @if (reservationOpenFrom.HasValue && reservationOpenTo.HasValue)
+                        {
+                            <span class="kiosk-range-dates">از تاریخ <b>@Shamsi(reservationOpenFrom.Value)</b> تا تاریخ <b>@Shamsi(reservationOpenTo.Value)</b></span>
+                        }
+                        else
+                        {
+                            <span class="kiosk-range-dates">فعلاً رزرو باز نیست.</span>
+                        }
+                    </div>
+                }
+
+                <div class="reserve-week-actions">
+                    <div class="reserve-week">
+                        <i class="material-icons">date_range</i>
+                        <span>@Shamsi(weekStartDate) تا @Shamsi(weekStartDate.AddDays(6))</span>
+                    </div>
+                    @if (weekOffset == 0)
+                    {
+                        <a class="reserve-week-navigation"
+                           href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = 1 })">
+                            هفته آینده <i class="material-icons" aria-hidden="true">chevron_left</i>
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="reserve-week-navigation"
+                           href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = 0 })">
+                            <i class="material-icons" aria-hidden="true">chevron_right</i> هفته جاری
+                        </a>
+                    }
+                </div>
+            </div>
+
+            @if (isDailyReservation)
+            {
+                <nav class="kiosk-day-navigation" aria-label="انتخاب روز رزرو">
+                    @if (previousAllowed)
+                    {
+                        <a class="kiosk-nav-button" href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = previousWeek, day = previousDay })">→ روز قبل</a>
+                    }
+                    else
+                    {
+                        <button class="kiosk-nav-button" type="button" disabled title="رزرو روزهای گذشته امکان‌پذیر نیست">→ روز قبل</button>
+                    }
+                    <span class="kiosk-current-day" aria-live="polite">
+                        @(Model.Days.FirstOrDefault(x => x.Code == selectedDay)?.Title ?? "روز انتخاب‌شده")
+                        <small>@Shamsi(shownDate)</small>
+                    </span>
+                    @if (nextAllowed)
+                    {
+                        <a class="kiosk-nav-button" href="@Url.Action("Index", "Reserve", new { area = "ReserveManagment", week = nextWeek, day = nextDay })">روز بعد ←</a>
+                    }
+                    else
+                    {
+                        <button class="kiosk-nav-button" type="button" disabled title="برنامه فعلاً تا پایان هفته آینده قابل نمایش است">روز بعد ←</button>
+                    }
+                </nav>
+            }
+
+            <div class="reserve-guide">
+                <div class="reserve-guide-item">
+                    <span class="reserve-guide-number">۱</span>
+                        <span>همه روزهای هفته و وعده‌های قابل نمایش را می‌بینید؛ موارد بسته فقط برای مشاهده هستند.</span>
+                </div>
+                <div class="reserve-guide-item">
+                    <span class="reserve-guide-number">۲</span>
+                    <span>غذای اصلی را انتخاب کنید و در صورت تمایل دسر و دورچین را مشخص کنید.</span>
                 </div>
                 <div class="reserve-guide-item">
                     <span class="reserve-guide-number">۳</span>
