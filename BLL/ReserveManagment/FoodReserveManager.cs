@@ -375,9 +375,17 @@ SELECT @@ROWCOUNT;";
                         return new BaseResult(false,
                             $"ژتون شماره {id} پیدا نشد یا سقف {maxPrintCount} نوبت چاپ آن پر شده است.");
 
-                    counts[id] = _db.Set<FoodReserveDetail>()
-                        .AsNoTracking().Where(x => x.Id == id)
-                        .Select(x => x.PrintCount).Single();
+                    // پرس‌وجوی EF داخل تراکنش دستی با SqlServerRetryingExecutionStrategy
+                    // ناسازگار است؛ شمارنده را با همان اتصال و تراکنش بخوان.
+                    using var countCommand = _db.Database.GetDbConnection().CreateCommand();
+                    countCommand.Transaction = transaction.GetDbTransaction();
+                    countCommand.CommandText = "SELECT [PrintCount] FROM [dbo].[FoodReserveDetails] WHERE [Id] = @detailId";
+                    var countIdParameter = countCommand.CreateParameter();
+                    countIdParameter.ParameterName = "@detailId";
+                    countIdParameter.DbType = DbType.Int64;
+                    countIdParameter.Value = id;
+                    countCommand.Parameters.Add(countIdParameter);
+                    counts[id] = Convert.ToInt32(countCommand.ExecuteScalar());
                 }
 
                 transaction.Commit();
