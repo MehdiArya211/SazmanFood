@@ -105,6 +105,11 @@ namespace BLL.ReserveManagment
 
             try
             {
+                // تراکنش دستی باید داخل execution strategy اجرا شود؛ در غیر این صورت
+                // SqlServerRetryingExecutionStrategy بلافاصله عملیات را متوقف می‌کند.
+                var strategy = _db.Database.CreateExecutionStrategy();
+                return strategy.Execute(() =>
+                {
                 using var transaction = _db.Database.BeginTransaction(IsolationLevel.Serializable);
                 var existing = UOW.FoodReserve.Get(
                     x => x.UserId == model.UserId &&
@@ -213,6 +218,7 @@ namespace BLL.ReserveManagment
                         ? "برنامه غذایی با موفقیت ثبت شد."
                         : "ذخیره رزرو انجام نشد؛ رزرو قبلی را بررسی کنید.");
             }
+                });
             catch (Exception ex)
             {
                 _printLogger.LogError(
