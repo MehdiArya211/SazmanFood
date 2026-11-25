@@ -3,6 +3,7 @@ using System.Text.Json;
 using BLL;
 using BLL.Interface;
 using DTO;
+using Domain.Constants;
 using Filters;
 using Food.Areas.LogSystem.Models;
 using Infrastructure.Data;
@@ -47,8 +48,15 @@ namespace Food.Areas.LogSystem.Controllers
         public async Task<IActionResult> Diagnostics(string? q, int page = 1, long? id = null)
         {
             var user = HttpContext.Session.GetUser();
-            if (user == null || !user.HasMenu("logsystem", "serilog", "diagnostics"))
-                return Forbid();
+            if (user == null)
+                return RedirectToAction("Index", "Authentication", new { area = "" });
+
+            // این برنامه مجوزدهی را با Session و UserAuthorize انجام می‌دهد
+            // و Authentication Scheme برای Forbid() ندارد. مدیر سامانه نیز
+            // باید حتی پیش از تازه‌سازی منوهای سشن به صفحهٔ گزارش دسترسی داشته باشد.
+            if (user.RoleId != RoleConstant.Admin &&
+                !user.HasMenu("logsystem", "serilog", "diagnostics"))
+                return RedirectToAction("Index", "Forbidden", new { area = "Admin" });
 
             var query = db.SeriLog.AsNoTracking().Where(x => x.LogEvent == DiagnosticCode);
             if (!string.IsNullOrWhiteSpace(q))
