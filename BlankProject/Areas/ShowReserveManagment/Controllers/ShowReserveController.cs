@@ -197,6 +197,10 @@ namespace Food.Areas.ShowReserveManagment.Controllers
                     timingError ?? "برای چاپ این ژتون سهمیه فعال ندارید.");
             }
 
+            var siteBaseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+            var deliveryQrImages = _foodReserveManager.GetLegacyDeliveryQrImages(
+                ids, user.Id, siteBaseUrl);
+
             var printAttempt = _foodReserveManager.RecordPrintAttempt(
                 ids, user.Id, maxPrintCount);
             if (!printAttempt.Status)
@@ -209,9 +213,7 @@ namespace Food.Areas.ShowReserveManagment.Controllers
             ViewBag.PrintUserName = user.FullName;
             ViewBag.FaceLoginLogoutAfterPrint =
                 faceLogin && facePolicy.LogoutFaceUserAfterPrint;
-            var siteBaseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
-            ViewBag.DeliveryQrImages = _foodReserveManager.GetLegacyDeliveryQrImages(
-                ids, user.Id, siteBaseUrl);
+            ViewBag.DeliveryQrImages = deliveryQrImages;
             _logger.LogInformation(
                 "پیش‌نمایش چاپ ژتون در مرورگر ایجاد شد. UserId: {UserId}, DetailIds: {DetailIds}",
                 user.Id,
