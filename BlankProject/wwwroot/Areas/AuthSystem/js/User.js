@@ -548,12 +548,12 @@ var user = {
                             buttonsStyling: false
                         }).then(function (isConfirm) {
                             if (res.model === true)
-                                window.location.href = "/Admin/Dashboard";
+                                window.location.href = "/ReserveManagment/Reserve";
                         });
 
                         if (res.model === true) {
                             setTimeout(() => {
-                                window.location.href = "/Admin/Dashboard";
+                                window.location.href = "/ReserveManagment/Reserve";
                             }, 3000);
                         }
                     }

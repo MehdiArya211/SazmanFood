@@ -26,7 +26,7 @@
     var closedReservationSlotsCount =
         ViewBag.ClosedReservationSlotsCount is int closedCount ? closedCount : 0;
     var weekOffset = ViewBag.WeekOffset is int selectedWeek ? selectedWeek : 0;
-    var isFaceKiosk = ViewBag.IsFaceKiosk is bool faceKiosk && faceKiosk;
+    var isDailyReservation = ViewBag.IsDailyReservation is bool dailyMode && dailyMode;
     var selectedDay = ViewBag.SelectedDay is int chosenDay ? chosenDay : 1;
     var maxPrintCount = ViewBag.MaxPrintCount is int printLimit ? printLimit : 3;
     var printableDetailIds = ViewBag.PrintableDetailIds as HashSet<long> ?? new HashSet<long>();
@@ -709,8 +709,8 @@
       class="reserve-form">
     @Html.AntiForgeryToken()
     <input type="hidden" name="week" value="@weekOffset" />
-    @if (isFaceKiosk) { <input type="hidden" name="selectedDay" value="@selectedDay" /> }
-    <div class="reserve-page @(isFaceKiosk ? "kiosk-mode" : "")">
+    @if (isDailyReservation) { <input type="hidden" name="selectedDay" value="@selectedDay" /> }
+    <div class="reserve-page @(isDailyReservation ? "kiosk-mode" : "")">
     <div class="container reserve-container">
         <div class="reserve-card">
 
@@ -720,7 +720,7 @@
                         <i class="material-icons">restaurant_menu</i>
                     </div>
                     <div>
-                        <h2 class="reserve-title">@(isFaceKiosk ? "رزرو غذای امروز و روزهای آینده" : "رزرو غذای هفتگی")</h2>
+                        <h2 class="reserve-title">@(isDailyReservation ? "رزرو غذای امروز و روزهای آینده" : "رزرو غذای هفتگی")</h2>
                         <div class="reserve-hint">
                             برای هر وعده غذای موردنظر را انتخاب کنید. انتخاب دسر و دورچین اختیاری است.
                         </div>
@@ -749,7 +749,7 @@
                 </div>
             </div>
 
-            @if (isFaceKiosk)
+            @if (isDailyReservation)
             {
                 <nav class="kiosk-day-navigation" aria-label="انتخاب روز رزرو">
                     @if (previousAllowed)
@@ -808,7 +808,7 @@
                             var dayDate = weekStartDate.AddDays(day.Code - 1).Date;
                             var dayReservations = Model.ExistingReserveDetails?.Count(detail => detail.DayId == day.Id) ?? 0;
 
-                            <tr class="day-header-row @(isFaceKiosk && day.Code != selectedDay ? "kiosk-hidden" : "")">
+                            <tr class="day-header-row @(isDailyReservation && day.Code != selectedDay ? "kiosk-hidden" : "")">
                                 <td colspan="@(2 + (foodPolicy.DessertVisible ? 1 : 0) + (foodPolicy.SideDishVisible ? 1 : 0))" class="day-header">
                                     <div class="day-header-inner">
                                         <div class="day-title">
@@ -835,14 +835,14 @@
                                 var mealCanChange = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}");
                                 var mealEditable = mealCanChange && mainFoods.Count > 0 &&
                                     (savedDetail == null || savedDetail.PrintCount == 0);
-                                <tr class="meal-row @(isFaceKiosk && day.Code != selectedDay ? "kiosk-hidden" : "")" data-day-id="@day.Id" data-meal-id="@meal.Id" data-reserved="@(savedDetail != null ? "true" : "false")">
+                                <tr class="meal-row @(isDailyReservation && day.Code != selectedDay ? "kiosk-hidden" : "")" data-day-id="@day.Id" data-meal-id="@meal.Id" data-reserved="@(savedDetail != null ? "true" : "false")">
                                     <td data-label="وعده">
                                         <span class="meal-badge">@meal.Title</span>
                                         @if (!mealEditable)
                                         {
                                             <small class="reserve-readonly-note">@(savedDetail != null && savedDetail.PrintCount > 0 ? $"ژتون چاپ شده (نوبت {savedDetail.PrintCount})؛ فقط مشاهده" : foodPolicy.BlockPastDays && dayDate < todayIranDate ? "فقط مشاهده" : "انتخاب غیرفعال")</small>
                                         }
-                                        @if (isFaceKiosk && savedDetail != null && day.Code == selectedDay)
+                                        @if (isDailyReservation && savedDetail != null && day.Code == selectedDay)
                                         {
                                             var canPrintDetail = printableDetailIds.Contains(savedDetail.Id);
                                             var printMessage = savedDetail.PrintCount >= maxPrintCount
@@ -979,7 +979,7 @@
                             <span id="selectionCount">۰</span>&nbsp;وعده انتخاب‌شده
                         </span>
                     </div>
-                    @if (hasReservationQuota && (!isFaceKiosk || kioskHasEditableMeal))
+                    @if (hasReservationQuota && (!isDailyReservation || kioskHasEditableMeal))
                     {
                         <button type="submit" class="btn btn-rose btn-lg reserve-submit">
                             <i class="material-icons" style="vertical-align:middle;font-size:19px;">check_circle</i>
@@ -1002,7 +1002,7 @@
     </div>
     </div>
 </form>
-@if (isFaceKiosk)
+@if (isDailyReservation)
 {
     <form id="kiosk-print-form" method="post" target="food-print-window"
           action="@Url.Action("PrintPreview", "ShowReserve", new { area = "ShowReserveManagment" })" hidden>
@@ -1055,7 +1055,7 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            var kioskMode = @(isFaceKiosk ? "true" : "false");
+            var kioskMode = @(isDailyReservation ? "true" : "false");
             if (kioskMode) $('.meal-row.kiosk-hidden input').prop('disabled', true);
             $('.kiosk-print-button').on('click', function () {
                 var button = this;

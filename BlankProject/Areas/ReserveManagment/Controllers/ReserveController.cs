@@ -67,12 +67,12 @@ namespace Food.Areas.ReserveManagment.Controllers
             int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
             DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
             DateTime weekEndDate = weekStartDate.AddDays(6).Date;
-            var isFaceKiosk = HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
+            var isDailyReservation = true;
             var todayCode = diff + 1;
             var selectedDay = week == 0 ? todayCode : 1;
             if (day >= 1 && day <= 7 && weekStartDate.AddDays(day - 1).Date >= now.Date)
                 selectedDay = day;
-            ViewBag.IsFaceKiosk = isFaceKiosk;
+            ViewBag.IsDailyReservation = isDailyReservation;
             ViewBag.SelectedDay = selectedDay;
 
             var personalCode =
@@ -155,7 +155,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                     .ToList();
             }
             var printPolicy = timingPolicy;
-            var printSlots = !isFaceKiosk || existingReserveDetails == null || freeReservationEnabled
+            var printSlots = !isDailyReservation || existingReserveDetails == null || freeReservationEnabled
                 ? null
                 : _unitQuotaManager.GetReservableSlots(
                     user.PersonId, personalCode, nationalCode, user.OmdOrgId,
@@ -163,7 +163,7 @@ namespace Food.Areas.ReserveManagment.Controllers
             var dayCodes = ((List<Days>)_foodPlanDayManager.GetAllDay().Model)
                 .ToDictionary(x => x.Id, x => x.Code);
             ViewBag.MaxPrintCount = printPolicy.MaxPrintCount;
-            ViewBag.PrintableDetailIds = (!isFaceKiosk ? new List<FoodReserveDetail>() :
+            ViewBag.PrintableDetailIds = (!isDailyReservation ? new List<FoodReserveDetail>() :
                 existingReserveDetails ?? new List<FoodReserveDetail>())
                 .Where(d => dayCodes.TryGetValue(d.DayId, out var code) && code >= 1 && code <= 7 &&
                     (freeReservationEnabled || printSlots!.Contains((weekStartDate.AddDays(code - 1).Date, d.MealId))) &&
@@ -237,7 +237,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 return RedirectToAction("IndexZP", "Authentication", new { area = "" });
 
             long userId = user.Id;
-            var isFaceKiosk = HttpContext.Session.GetString("VerifiedFaceLogin") == "true";
+            var isDailyReservation = true;
 
             try
             {
@@ -245,7 +245,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 int diff = (7 + (now.DayOfWeek - DayOfWeek.Saturday)) % 7;
                 DateTime weekStartDate = now.AddDays(-1 * diff + week * 7).Date;
                 DateTime weekEndDate = weekStartDate.AddDays(6).Date;
-                if (isFaceKiosk && (selectedDay < 1 || selectedDay > 7 ||
+                if (isDailyReservation && (selectedDay < 1 || selectedDay > 7 ||
                     weekStartDate.AddDays(selectedDay - 1).Date < now.Date))
                     return BadRequest("روز انتخاب‌شده برای رزرو معتبر نیست.");
 
@@ -296,7 +296,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                             : freeReservationEnabled
                                 ? "برنامه غذایی قابل رزرو یافت نشد."
                                 : "سهمیه‌ای برای شما ثبت نشده است و امکان رزرو غذا ندارید.";
-                    return RedirectToAction("Index", new { week, day = isFaceKiosk ? selectedDay : 0 });
+                    return RedirectToAction("Index", new { week, day = isDailyReservation ? selectedDay : 0 });
                 }
 
                 // جستجوی رزرو قبلی برای هفته جاری
@@ -337,14 +337,14 @@ namespace Food.Areas.ReserveManagment.Controllers
                 // فقط روز و وعده‌ای پذیرفته می‌شود که برای کد پرسنلی سهمیه داشته باشد.
                 foreach (var day in days)
                 {
-                    if (isFaceKiosk && day.Code != selectedDay)
+                    if (isDailyReservation && day.Code != selectedDay)
                     {
                         if (meals.Any(meal =>
                             !string.IsNullOrEmpty(form[$"MainFood_{day.Id}{meal.Id}"]) ||
                             !string.IsNullOrEmpty(form[$"Dessert_{day.Id}{meal.Id}"]) ||
                             !string.IsNullOrEmpty(form[$"SideDish_{day.Id}{meal.Id}"])))
                         {
-                            return BadRequest("در کیوسک فقط وعده‌های روز انتخاب‌شده قابل ثبت هستند.");
+                            return BadRequest("در نمای روزانه فقط وعده‌های روز انتخاب‌شده قابل ثبت هستند.");
                         }
                         continue;
                     }
@@ -430,14 +430,14 @@ namespace Food.Areas.ReserveManagment.Controllers
                         (freeReservationEnabled
                             ? "فقط روزها و وعده‌های موجود در برنامه غذایی قابل رزرو هستند."
                             : "امکان ثبت غذا برای روز یا وعده‌ای که سهمیه ندارید وجود ندارد.");
-                    return RedirectToAction("Index", new { week, day = isFaceKiosk ? selectedDay : 0 });
+                    return RedirectToAction("Index", new { week, day = isDailyReservation ? selectedDay : 0 });
                 }
 
                 if (invalidFoodSelection)
                 {
                     TempData["Error"] =
                         "غذا، دسر یا دورچین انتخاب‌شده با برنامه غذایی این روز و وعده مطابقت ندارد.";
-                    return RedirectToAction("Index", new { week, day = isFaceKiosk ? selectedDay : 0 });
+                    return RedirectToAction("Index", new { week, day = isDailyReservation ? selectedDay : 0 });
                 }
 
                 // فقط روز و وعده‌های واقعاً مجاز در این درخواست تغییر می‌کنند.
@@ -450,7 +450,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                 foreach (var slot in reservableSlots)
                 {
                     var dayCode = (int)(slot.Date.Date - weekStartDate).TotalDays + 1;
-                    if (isFaceKiosk && dayCode != selectedDay) continue;
+                    if (isDailyReservation && dayCode != selectedDay) continue;
                     if (dayCodes.TryGetValue(dayCode, out long dayId))
                     {
                         editableSlots.Add((dayId, slot.MealId));
@@ -477,12 +477,12 @@ namespace Food.Areas.ReserveManagment.Controllers
                             user.Id);
                     }
 
-                    return RedirectToAction("Index", new { week, day = isFaceKiosk ? selectedDay : 0 });
+                    return RedirectToAction("Index", new { week, day = isDailyReservation ? selectedDay : 0 });
                 }
                 else
                 {
                     TempData["Error"] = "خطا در ثبت برنامه غذایی: " + result.Message;
-                    return RedirectToAction("Index", new { week, day = isFaceKiosk ? selectedDay : 0 });
+                    return RedirectToAction("Index", new { week, day = isDailyReservation ? selectedDay : 0 });
                 }
             }
             catch (Exception ex)
@@ -491,7 +491,7 @@ namespace Food.Areas.ReserveManagment.Controllers
                     "خطای ثبت برنامه غذایی هفتگی. UserId: {UserId}", userId);
                 TempData["Error"] =
                     "خطا در ثبت برنامه غذایی رخ داد. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.";
-                return RedirectToAction("Index", new { week, day = isFaceKiosk ? selectedDay : 0 });
+                return RedirectToAction("Index", new { week, day = isDailyReservation ? selectedDay : 0 });
             }
         }
 

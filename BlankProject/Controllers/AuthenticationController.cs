@@ -356,11 +356,11 @@ public class AuthenticationController : Controller
                 new { area = "Admin" });
         }
 
-        // فقط بازگشت به مسیرهای داخلی مجاز است تا از Open Redirect جلوگیری شود.
-        if (!string.IsNullOrWhiteSpace(RetUrl) && Url.IsLocalUrl(RetUrl))
+        // احراز هویت مجدد منو، کاربر را به همان مسیر داخلی برمی‌گرداند.
+        if (MenuId.HasValue && !string.IsNullOrWhiteSpace(RetUrl) && Url.IsLocalUrl(RetUrl))
             return LocalRedirect(RetUrl);
 
-        return RedirectToAction("index", "Dashboard", new { area = "Admin" });
+        return RedirectToAction("Index", "Reserve", new { area = "ReserveManagment" });
     }
     #endregion
 
