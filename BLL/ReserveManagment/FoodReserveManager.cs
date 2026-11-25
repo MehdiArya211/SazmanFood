@@ -217,8 +217,8 @@ namespace BLL.ReserveManagment
                     success
                         ? "برنامه غذایی با موفقیت ثبت شد."
                         : "ذخیره رزرو انجام نشد؛ رزرو قبلی را بررسی کنید.");
-            }
                 });
+            }
             catch (Exception ex)
             {
                 _printLogger.LogError(
