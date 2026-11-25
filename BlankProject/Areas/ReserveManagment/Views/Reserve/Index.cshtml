@@ -44,6 +44,10 @@
     var previousDay = selectedDay == 1 ? 7 : selectedDay - 1;
     var nextWeek = selectedDay == 7 ? weekOffset + 1 : weekOffset;
     var nextDay = selectedDay == 7 ? 1 : selectedDay + 1;
+    var selectedDayId = Model.Days.FirstOrDefault(d => d.Code == selectedDay)?.Id;
+    var selectedDayReservations = Model.ExistingReserveDetails?.Count(detail => detail.DayId == selectedDayId) ?? 0;
+    var selectedDayHasPrintedTicket = Model.ExistingReserveDetails?.Any(detail =>
+        detail.DayId == selectedDayId && detail.PrintCount > 0) == true;
     var kioskHasEditableMeal = Model.Meals.Any(meal =>
         allowedSlots.Contains($"{shownDate:yyyyMMdd}_{meal.Id}") &&
         (Model.ExistingReserveDetails?.FirstOrDefault(detail =>
@@ -481,22 +485,34 @@
         .kiosk-nav-button[disabled] { opacity: .42; cursor: not-allowed; }
         .kiosk-current-day { text-align: center; color: #234358; font-weight: 900; font-size: 25px; line-height: 1.5; }
         .kiosk-current-day small { display: block; color: #71859a; font-size: 15px; }
-        .kiosk-mode .reserve-table, .kiosk-mode .reserve-table tbody, .kiosk-mode .reserve-table tr.day-header-row, .kiosk-mode .reserve-table tr.meal-row { display: block; width: 100%; }
+        .kiosk-mode .reserve-table, .kiosk-mode .reserve-table tbody { display: block; width: 100%; }
         .kiosk-mode .reserve-table { border: 0; }
         .kiosk-mode .reserve-table .kiosk-hidden { display: none !important; }
-        .kiosk-mode .reserve-table tr.day-header-row td { display: block; width: 100%; }
-        .kiosk-mode .reserve-table tr.meal-row { margin: 12px 0; border: 1px solid #e5ebf1; border-radius: 17px; background: #fff; overflow: hidden; box-shadow: 0 4px 16px rgba(31,45,61,.05); }
-        .kiosk-mode .reserve-table > tbody > tr.meal-row > td { border: 0 !important; border-bottom: 1px solid #edf1f5 !important; min-width: 0; }
-        .kiosk-mode .reserve-table > tbody > tr.meal-row > td:last-child { border-bottom: 0 !important; }
+        .kiosk-mode .reserve-table tr.day-header-row { display: none; }
+        .kiosk-mode .reserve-table tr.meal-row { display: flex; flex-wrap: wrap; align-items: stretch; width: 100%; margin: 12px 0 0; border: 1px solid #e5ebf1; border-radius: 17px 17px 0 0; background: #fff; overflow: hidden; box-shadow: 0 4px 16px rgba(31,45,61,.05); }
+        .kiosk-mode .reserve-table tr.meal-row:not(.has-print) { border-radius: 17px; margin-bottom: 14px; }
+        .kiosk-mode .reserve-table > tbody > tr.meal-row > td { border: 0 !important; min-width: 0; }
+        .kiosk-mode .reserve-table > tbody > tr.meal-row > td:first-child { flex: 0 0 168px; width: 168px; background: #f6f9fd; display: flex; flex-direction: column; justify-content: center; padding: 20px !important; }
+        .kiosk-mode .reserve-table > tbody > tr.meal-row > td:nth-child(2) { flex: 1 1 360px; width: auto; padding: 17px 20px !important; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+        .kiosk-mode .reserve-table > tbody > tr.meal-row > td:nth-child(n+3) { flex: 1 1 45%; width: auto; border-top: 1px solid #edf1f5 !important; padding: 14px 20px !important; }
+        .kiosk-mode .reserve-table tr.meal-row td:before { display: none; }
+        .kiosk-food-heading { display: none; }
+        .kiosk-mode .kiosk-food-heading { display: block; color: #566b7d; font-size: 13px; font-weight: 800; margin-bottom: 8px; }
         .kiosk-mode .chip { min-height: 56px; padding: 12px 18px; font-size: 16px; touch-action: manipulation; }
         .kiosk-mode .chips { gap: 10px; }
         .kiosk-mode .reserve-sticky { bottom: 6px; }
         .kiosk-mode .reserve-sticky-inner { gap: 12px; }
         .kiosk-mode .reserve-submit { min-height: 62px; font-size: 18px; }
-        .kiosk-print-actions { align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
-        .kiosk-print-button { min-height: 58px; padding: 10px 20px; border-radius: 15px; border: 0; background: #16846e; color: #fff; font-size: 17px; font-weight: 900; touch-action: manipulation; }
-        .kiosk-print-button[aria-disabled="true"] { background: #aebcc4; color: #263a47; }
-        .kiosk-print-count { font-size: 14px; color: #576b7b; font-weight: 700; }
+        .kiosk-mode .reserve-table tr.kiosk-print-row { display: block; width: 100%; margin: 0 0 14px; }
+        .kiosk-mode .reserve-table tr.kiosk-print-row > td { display: block; width: 100%; padding: 0 !important; border: 0 !important; }
+        .kiosk-print-actions { display: none; align-items: center; justify-content: space-between; gap: 16px; min-height: 82px; padding: 12px 18px; border: 1px solid #cbe8dc; border-top: 0; border-radius: 0 0 17px 17px; background: #f0fbf6; }
+        .kiosk-mode .kiosk-print-actions { display: flex; }
+        .kiosk-print-info { display: flex; align-items: center; gap: 10px; color: #23614d; font-size: 15px; font-weight: 800; }
+        .kiosk-print-info .material-icons { font-size: 27px; }
+        .kiosk-print-button { min-width: 190px; min-height: 58px; padding: 10px 20px; border-radius: 14px; border: 0; background: #16846e; color: #fff; font-size: 17px; font-weight: 900; touch-action: manipulation; }
+        .kiosk-print-button[aria-disabled="true"] { background: #e3e9ed; color: #4f6575; }
+        .kiosk-mode .kiosk-print-actions.unavailable { background: #f6f8fa; border-color: #e2e8ed; }
+        .kiosk-mode .kiosk-print-actions.unavailable .kiosk-print-info { color: #536879; }
         @@media (max-width: 991px) {
             .reserve-head {
                 align-items: stretch;
@@ -611,6 +627,12 @@
         }
 
         @@media (max-width: 575px) {
+            .kiosk-mode .reserve-table > tbody > tr.meal-row > td:first-child,
+            .kiosk-mode .reserve-table > tbody > tr.meal-row > td:nth-child(2),
+            .kiosk-mode .reserve-table > tbody > tr.meal-row > td:nth-child(n+3) { flex-basis: 100%; width: 100%; }
+            .kiosk-mode .reserve-table > tbody > tr.meal-row > td:first-child { padding: 12px 15px !important; }
+            .kiosk-print-actions { flex-direction: column; align-items: stretch; }
+            .kiosk-print-button { width: 100%; }
             .kiosk-day-navigation { padding: 9px; gap: 6px; }
             .kiosk-nav-button { min-width: 87px; min-height: 56px; padding: 7px; font-size: 14px; }
             .kiosk-current-day { font-size: 17px; }
@@ -762,7 +784,7 @@
                     }
                     <span class="kiosk-current-day" aria-live="polite">
                         @(Model.Days.FirstOrDefault(x => x.Code == selectedDay)?.Title ?? "روز انتخاب‌شده")
-                        <small>@Shamsi(shownDate) @(shownDate == todayIranDate ? "· امروز" : "")</small>
+                        <small>@Shamsi(shownDate) @(shownDate == todayIranDate ? "· امروز" : "") · @selectedDayReservations وعده رزروشده</small>
                     </span>
                     @if (nextAllowed)
                     {
@@ -835,30 +857,18 @@
                                 var mealCanChange = allowedSlots.Contains($"{dayDate:yyyyMMdd}_{meal.Id}");
                                 var mealEditable = mealCanChange && mainFoods.Count > 0 &&
                                     (savedDetail == null || savedDetail.PrintCount == 0);
-                                <tr class="meal-row @(isDailyReservation && day.Code != selectedDay ? "kiosk-hidden" : "")" data-day-id="@day.Id" data-meal-id="@meal.Id" data-reserved="@(savedDetail != null ? "true" : "false")">
+                                <tr class="meal-row @(isDailyReservation && day.Code != selectedDay ? "kiosk-hidden" : "") @(isDailyReservation && savedDetail != null ? "has-print" : "")" data-day-id="@day.Id" data-meal-id="@meal.Id" data-reserved="@(savedDetail != null ? "true" : "false")">
                                     <td data-label="وعده">
                                         <span class="meal-badge">@meal.Title</span>
                                         @if (!mealEditable)
                                         {
-                                            <small class="reserve-readonly-note">@(savedDetail != null && savedDetail.PrintCount > 0 ? $"ژتون چاپ شده (نوبت {savedDetail.PrintCount})؛ فقط مشاهده" : foodPolicy.BlockPastDays && dayDate < todayIranDate ? "فقط مشاهده" : "انتخاب غیرفعال")</small>
-                                        }
-                                        @if (isDailyReservation && savedDetail != null && day.Code == selectedDay)
-                                        {
-                                            var canPrintDetail = printableDetailIds.Contains(savedDetail.Id);
-                                            var printMessage = savedDetail.PrintCount >= maxPrintCount
-                                                ? $"سقف {maxPrintCount} بار چاپ این ژتون پر شده است."
-                                                : "چاپ این ژتون اکنون مجاز نیست؛ زمان چاپ یا سهمیه را بررسی کنید.";
-                                            <div class="kiosk-print-actions">
-                                                <button type="button" class="kiosk-print-button" data-detail-id="@savedDetail.Id"
-                                                        aria-disabled="@(canPrintDetail ? "false" : "true")"
-                                                        data-message="@printMessage">🖨 چاپ ژتون</button>
-                                                <span class="kiosk-print-count">نوبت چاپ: @savedDetail.PrintCount از @maxPrintCount</span>
-                                            </div>
+                                            <small class="reserve-readonly-note">@(savedDetail != null && savedDetail.PrintCount > 0 ? "ژتون چاپ شده؛ غذا قابل تغییر نیست" : foodPolicy.BlockPastDays && dayDate < todayIranDate ? "فقط مشاهده" : "انتخاب غیرفعال")</small>
                                         }
                                     </td>
 
                                     <!-- غذا -->
                                     <td data-label="غذا">
+                                        <span class="kiosk-food-heading">غذای اصلی</span>
                                         <div class="chips">
                                             @foreach (var food in mainFoods)
                                             {
@@ -965,6 +975,30 @@
                                     </td>
                                     }
                                 </tr>
+                                @if (isDailyReservation && savedDetail != null && day.Code == selectedDay)
+                                {
+                                    var canPrintDetail = printableDetailIds.Contains(savedDetail.Id);
+                                    var printLimitReached = savedDetail.PrintCount >= maxPrintCount;
+                                    var printMessage = printLimitReached
+                                        ? $"سقف {maxPrintCount} بار چاپ این ژتون پر شده است."
+                                        : "چاپ این ژتون اکنون مجاز نیست؛ زمان چاپ یا سهمیه را بررسی کنید.";
+                                    <tr class="kiosk-print-row">
+                                        <td colspan="@(2 + (foodPolicy.DessertVisible ? 1 : 0) + (foodPolicy.SideDishVisible ? 1 : 0))">
+                                            <div class="kiosk-print-actions @(canPrintDetail ? "" : "unavailable")">
+                                                <span class="kiosk-print-info">
+                                                    <i class="material-icons" aria-hidden="true">@(canPrintDetail ? "confirmation_number" : "info_outline")</i>
+                                                    @(printLimitReached ? "سقف چاپ این ژتون تکمیل شده است" : canPrintDetail ? "ژتون این وعده آماده چاپ است" : "چاپ این ژتون فعلاً امکان‌پذیر نیست")
+                                                </span>
+                                                <button type="button" class="kiosk-print-button" data-detail-id="@savedDetail.Id"
+                                                        aria-disabled="@(canPrintDetail ? "false" : "true")"
+                                                        data-message="@printMessage">
+                                                    <i class="material-icons" aria-hidden="true" style="vertical-align:middle">print</i>
+                                                    چاپ ژتون
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
                             }
                         }
                     </tbody>
@@ -974,7 +1008,9 @@
             <div class="reserve-sticky">
                 <div class="reserve-sticky-inner">
                     <div class="reserve-sticky-text">
-                        انتخاب‌ها را بررسی کنید و سپس ثبت نهایی را انجام دهید.
+                        @(isDailyReservation && !kioskHasEditableMeal && selectedDayReservations > 0
+                            ? "ژتون هر وعده را از بخش چاپ همان وعده دریافت کنید."
+                            : "انتخاب‌ها را بررسی کنید و سپس غذا را ثبت کنید.")
                         <span class="reserve-selection-count">
                             <span id="selectionCount">۰</span>&nbsp;وعده انتخاب‌شده
                         </span>
@@ -983,15 +1019,17 @@
                     {
                         <button type="submit" class="btn btn-rose btn-lg reserve-submit">
                             <i class="material-icons" style="vertical-align:middle;font-size:19px;">check_circle</i>
-                            ثبت نهایی برنامه غذایی
+                            @(isDailyReservation ? "ثبت غذای این روز" : "ثبت نهایی برنامه غذایی")
                         </button>
                     }
                     else
                     {
                         <button type="button" class="btn btn-default btn-lg" disabled>
-                            @((reservationDeadlineEnabled || foodPolicy.BlockPastDays) && closedReservationSlotsCount > 0
-                                ? "مهلت رزرو به پایان رسیده است"
-                                : "در این هفته موردی برای رزرو در دسترس نیست")
+                            @(isDailyReservation && selectedDayReservations > 0
+                                ? (selectedDayHasPrintedTicket ? "غذای چاپ‌شده قابل تغییر نیست" : "امکان ویرایش این روز وجود ندارد")
+                                : (reservationDeadlineEnabled || foodPolicy.BlockPastDays) && closedReservationSlotsCount > 0
+                                    ? "مهلت رزرو به پایان رسیده است"
+                                    : "در این روز موردی برای رزرو در دسترس نیست")
                         </button>
                     }
                 </div>
@@ -1087,10 +1125,10 @@
             }
 
             function updateSelectionCount() {
-                var count = $('input[name^="MainFood_"]:checked:not(:disabled)').filter(function () {
-                    return $(this).val();
-                }).length + $('.meal-row[data-reserved="true"]:not(.kiosk-hidden) .chip-selected-readonly').filter(function () {
-                    return $(this).closest('td').attr('data-label') === 'غذا';
+                var count = $('.meal-row:not(.kiosk-hidden)').filter(function () {
+                    return $(this).find('input[name^="MainFood_"]:checked').filter(function () {
+                        return Boolean($(this).val());
+                    }).length > 0 || $(this).find('td[data-label="غذا"] .chip-selected-readonly').length > 0;
                 }).length;
 
                 $('#selectionCount').text(toPersianNumber(count));
